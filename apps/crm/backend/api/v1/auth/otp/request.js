@@ -1,6 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-
-export default function handler(_req: IncomingMessage, res: ServerResponse) {
+export default function handler(_req, res) {
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify({ sent: true, channel: "sms_stub" }));

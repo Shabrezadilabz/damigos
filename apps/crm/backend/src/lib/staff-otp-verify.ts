@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { hashPhone, phoneLast4, signStaffToken } from "@damigos/auth";
 import { db, userRestaurantRoles, users } from "@damigos/db";
-import { loadMonorepoEnv } from "@damigos/domain";
 import { isOtpBypassCode } from "./otp-bypass.js";
 
 export type StaffOtpVerifyResult = {
@@ -23,8 +22,6 @@ export class StaffOtpError extends Error {
 }
 
 export async function verifyStaffOtp(phone: string, code: string): Promise<StaffOtpVerifyResult> {
-  loadMonorepoEnv(import.meta.url);
-
   if (!phone || phone.replace(/\D/g, "").length < 10) {
     throw new StaffOtpError(400, "INVALID_REQUEST", "phone required");
   }

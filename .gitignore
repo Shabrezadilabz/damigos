@@ -8,3 +8,5 @@ dist/
 drizzle/meta/
 .vercel
 .env*
+apps/*/backend/api/bundle.mjs
+apps/crm/backend/api/otp-verify-bundle.mjs
