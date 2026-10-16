@@ -1,16 +1,17 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import serverless from "serverless-http";
 import { buildCrmApp } from "../src/build-app.js";
 
-type ServerlessHandler = ReturnType<typeof serverless>;
+type ServerlessHandler = (req: IncomingMessage, res: ServerResponse) => void;
 
 let cached: ServerlessHandler | null = null;
 
-export default async function handler(req: unknown, res: unknown) {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (!cached) {
     const app = await buildCrmApp({ serverless: true });
-    cached = serverless(app.server);
+    cached = serverless(app.server) as ServerlessHandler;
   }
-  return cached(req as never, res as never);
+  return cached(req, res);
 }
 
 export const config = {

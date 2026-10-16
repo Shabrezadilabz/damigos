@@ -24,16 +24,17 @@ npm run db:seed
 
 ## 2. Deploy API projects
 
-Import repo twice (or use CLI):
+In Vercel → each API project → **Settings → General**:
+
+- **Root Directory:** `apps/crm/backend` or `apps/guest/backend`
+- **Output Directory:** `.` (not `public`)
+
+CLI from **monorepo root** (after `vercel link` per project):
 
 ```powershell
-cd apps/crm/backend
-vercel link    # project name: damigos-crm-api
-vercel --prod
-
-cd ../../guest/backend
-vercel link    # damigos-guest-api
-vercel --prod
+cd d:\ADC\prosols\damigos_main
+vercel deploy --prod --yes --project damigos-crm-api
+vercel deploy --prod --yes --project damigos-guest-api
 ```
 
 Each uses [`vercel.json`](../apps/crm/backend/vercel.json) — Fastify runs as one serverless function (`serverless-http`).
