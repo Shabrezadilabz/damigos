@@ -1,18 +1,23 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import serverless from "serverless-http";
+import type { FastifyInstance } from "fastify";
 import { buildCrmApp } from "./build-app.js";
 
-type ServerlessHandler = (req: IncomingMessage, res: ServerResponse) => void;
+let cached: FastifyInstance | null = null;
 
-let cached: ServerlessHandler | null = null;
+function forwardToFastify(app: FastifyInstance, req: IncomingMessage, res: ServerResponse) {
+  return new Promise<void>((resolve, reject) => {
+    res.once("finish", resolve);
+    res.once("error", reject);
+    app.server.emit("request", req, res);
+  });
+}
 
 async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
     if (!cached) {
-      const app = await buildCrmApp({ serverless: true });
-      cached = serverless(app.server) as ServerlessHandler;
+      cached = await buildCrmApp({ serverless: true });
     }
-    return cached(req, res);
+    await forwardToFastify(cached, req, res);
   } catch (err) {
     res.statusCode = 503;
     res.setHeader("Content-Type", "application/json");
