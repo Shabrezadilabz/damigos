@@ -13,7 +13,7 @@ await esbuild.build({
   target: "node20",
   format: "esm",
   logLevel: "info",
-  external: ["@fastify/websocket"],
+  external: ["@fastify/websocket", "serverless-http"],
 });
 
 console.log("[bundle-vercel] wrote api/bundle.mjs");
