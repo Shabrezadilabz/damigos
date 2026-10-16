@@ -41,6 +41,7 @@
     "stop:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-damigos-ports.ps1"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "concurrently": "^9.1.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
