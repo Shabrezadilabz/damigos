@@ -1,0 +1,11 @@
+{
+  "name": "damigos-docs",
+  "private": true,
+  "description": "D'aMigo's documentation — PRD PDF generation",
+  "scripts": {
+    "pdf": "node scripts/generate-prd-pdf.mjs"
+  },
+  "devDependencies": {
+    "md-to-pdf": "^5.2.4"
+  }
+}

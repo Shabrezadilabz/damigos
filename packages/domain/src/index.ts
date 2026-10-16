@@ -1,0 +1,51 @@
+export { loadMonorepoEnv } from "./load-env.js";
+
+/** Shared domain types — align with docs/architecture/DATA-MODEL.md */
+
+export type StickerTokenStatus = "ACTIVE" | "EXPIRED" | "REVOKED" | "CONSUMED";
+
+export type StaffRole =
+  | "RESTAURANT_OWNER"
+  | "KITCHEN"
+  | "REDEEM"
+  | "STAFF"
+  | "PLATFORM_ADMIN";
+
+export type OrderStatus =
+  | "DRAFT"
+  | "PAYMENT_PENDING"
+  | "PAID"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "READY"
+  | "DISPATCHED"
+  | "DELIVERED"
+  | "CLOSED"
+  | "CANCELLED"
+  | "PAYMENT_FAILED"
+  | "REFUNDED";
+
+export interface ApiErrorBody {
+  error: {
+    code: string;
+    message: string;
+    correlationId: string;
+  };
+}
+
+export const GUEST_API_PREFIX = "/v1" as const;
+export const CRM_API_PREFIX = "/v1" as const;
+
+export { brandKitForGuestFromJson, type GuestRestaurantBrand } from "./brand-kit.js";
+
+export {
+  aiTextProvider,
+  damigosEnv,
+  deepseekApiKey,
+  hiveApiKey,
+  menuImportMode,
+  posterAiMode,
+  posterImageMode,
+  posterImageProvider,
+  type DamigosEnv,
+} from "./ai-env.js";

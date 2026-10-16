@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "name": "Your Restaurant Signature Dish",
+      "cuisine": "indian",
+      "category": "curry",
+      "isVeg": false,
+      "imageUrl": "https://example.com/your-photo.jpg",
+      "aliases": ["signature", "house special"]
+    },
+    {
+      "name": "Another Dish (use built-in photo pool)",
+      "cuisine": "chinese",
+      "category": "main",
+      "isVeg": true,
+      "imageKey": "chinese",
+      "aliases": []
+    }
+  ]
+}

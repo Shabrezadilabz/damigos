@@ -1,0 +1,44 @@
+{
+  "name": "damigos",
+  "private": true,
+  "workspaces": [
+    "apps/guest/frontend",
+    "apps/guest/backend",
+    "apps/crm/frontend",
+    "apps/crm/backend",
+    "packages/*",
+    "e2e"
+  ],
+  "scripts": {
+    "dev:guest-web": "npm run dev -w @damigos/guest-web",
+    "dev:crm-web": "npm run dev -w @damigos/crm-web",
+    "dev:guest-api": "npm run dev -w @damigos/guest-api",
+    "dev:crm-api": "npm run dev -w @damigos/crm-api",
+    "dev:crm": "concurrently -n crm-api,crm-web -c blue,cyan \"npm run dev:crm-api\" \"npm run dev:crm-web\"",
+    "dev:web": "concurrently -n guest,crm -c magenta,blue \"npm run dev:guest-web\" \"npm run dev:crm-web\"",
+    "dev:api": "concurrently -n guest,crm -c magenta,blue \"npm run dev:guest-api\" \"npm run dev:crm-api\"",
+    "dev": "concurrently -n api,web -c yellow,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-dev.ps1",
+    "build": "npm run build -w @damigos/domain -w @damigos/db -w @damigos/guest-api -w @damigos/crm-api -w @damigos/guest-web -w @damigos/crm-web",
+    "db:generate": "npm run generate -w @damigos/db",
+    "db:migrate": "npm run migrate -w @damigos/db",
+    "db:studio": "npm run studio -w @damigos/db",
+    "db:seed": "npm run seed -w @damigos/db",
+    "db:seed-food-catalog": "npm run seed:food-catalog -w @damigos/db",
+    "db:import-food-catalog": "npm run import:food-catalog -w @damigos/db",
+    "food-catalog:flux": "npm run food-catalog:flux -w @damigos/crm-api",
+    "db:patch-menu": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/patch-menu.ps1",
+    "db:cleanup-e2e-menu": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cleanup-e2e-menu.ps1",
+    "test:e2e": "npm run test -w @damigos/e2e",
+    "kitchen:load": "node scripts/kitchen-stream-load.mjs",
+    "dev:infra": "docker compose up -d",
+    "redis:ping": "tsx scripts/redis-ping.ts",
+    "check:apis": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-apis.ps1",
+    "stop:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-damigos-ports.ps1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

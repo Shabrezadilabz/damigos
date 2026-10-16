@@ -1,0 +1,31 @@
+{
+  "name": "@damigos/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/migrate-run.ts",
+    "studio": "drizzle-kit studio",
+    "seed": "tsx src/seed.ts",
+    "seed:food-catalog": "tsx src/seed-food-catalog-all.ts",
+    "import:food-catalog": "tsx src/import-food-catalog-json.ts"
+  },
+  "dependencies": {
+    "@damigos/auth": "*",
+    "@damigos/domain": "*",
+    "drizzle-orm": "^0.39.3",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#fcf9f8;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary-fixed": "#ffdad8", "on-tertiary-fixed-variant": "#5d4200", "secondary-fixed-dim": "#ffb3b1", "surface": "#fcf9f8", "background": "#fcf9f8", "on-primary-container": "#fffbff", "on-primary-fixed-variant": "#92001c", "tertiary": "#775600", "on-tertiary": "#ffffff", "surface-tint": "#bb162c", "on-primary": "#ffffff", "on-primary-fixed": "#410007", "error-container": "#ffdad6", "surface-container-lowest": "#ffffff", "primary-fixed-dim": "#ffb3b1", "surface-bright": "#fcf9f8", "surface-container-low": "#f6f3f2", "on-surface-variant": "#5b403f", "surface-container-high": "#eae7e7", "on-secondary-container": "#fffbff", "tertiary-container": "#966e00", "secondary-fixed": "#ffdad8", "surface-dim": "#dcd9d9", "inverse-on-surface": "#f3f0ef", "surface-container": "#f0eded", "outline": "#8f6f6e", "on-tertiary-fixed": "#261900", "tertiary-fixed": "#ffdea3", "on-tertiary-container": "#fffbff", "secondary-container": "#d93440", "inverse-surface": "#313030", "primary": "#b7122a", "on-secondary": "#ffffff", "surface-container-highest": "#e5e2e1", "tertiary-fixed-dim": "#f3bf51", "on-surface": "#1b1b1b", "on-error-container": "#93000a", "error": "#ba1a1a", "outline-variant": "#e4bebc", "inverse-primary": "#ffb3b1", "surface-variant": "#e5e2e1", "primary-container": "#db313f", "on-secondary-fixed-variant": "#92001c", "on-background": "#1b1b1b", "on-error": "#ffffff", "secondary": "#b6162b", "on-secondary-fixed": "#410007" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xl": "2rem", "margin": "1rem", "space-lg": "1.5rem", "space-md": "1rem", "gutter": "0.75rem", "space-xs": "0.25rem", "space-sm": "0.5rem" }, fontFamily: { "headline-md": ["Plus Jakarta Sans"], "label-lg": ["Inter"], "body-sm": ["Inter"], "headline-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-md": ["Inter"], "price-md": ["Inter"], "headline-xl": ["Plus Jakarta Sans"], "body-md": ["Inter"], "title-md": ["Plus Jakarta Sans"], "price-lg": ["Inter"], "label-sm": ["Inter"], "body-lg": ["Inter"] }, fontSize: { "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "label-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "headline-sm": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "headline-lg": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "price-md": ["15px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-xl": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "title-md": ["15px", { "lineHeight": "20px", "fontWeight": "600" }], "price-lg": ["20px", { "lineHeight": "24px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.04em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }] } } } }</script></head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-28 flex flex-col justify-between px-margin py-space-xs"><div class="flex items-center justify-between h-10"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-outline text-[18px]">lock</span><span class="font-label-md text-label-md text-on-surface">d-amigos.in</span><span class="material-symbols-outlined text-primary text-[16px]">verified</span></div><div class="flex items-center gap-space-xs"><button aria-label="Refresh page" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[20px]">refresh</span></button><button aria-label="Close view" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[20px]">close</span></button></div></div><div class="flex items-center justify-between h-14"><div class="flex items-center gap-space-xs"><button aria-label="Navigate back" class="w-11 h-11 flex items-center justify-center text-on-surface hover:text-primary" onclick="history.back()"><span class="material-symbols-outlined text-[22px]">arrow_back</span></button><div class="flex flex-col"><h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-tight line-clamp-1">Order Confirmed</h1><div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm text-on-surface-variant">Biryani Central</span><span class="text-[10px] text-outline">•</span><span class="font-label-sm text-label-sm text-primary font-bold">Table 04</span></div></div></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></div></header><main class="flex flex-col relative w-full pt-28 bg-surface min-h-screen"><div class="flex flex-col w-full pb-safe">
+<!-- Interactive Confetti & Celebration Layer -->
+<div class="relative w-full overflow-hidden pointer-events-none select-none h-0" id="confetti-container"></div>
+<!-- Main Scrollable Content Container -->
+<div class="flex flex-col px-margin pt-space-md space-y-space-md">
+<!-- Top Success Animation & Status Card -->
+<section class="flex flex-col items-center text-center bg-surface-container-lowest p-space-lg rounded-xl shadow-sm relative overflow-hidden">
+<!-- Ambient celebratory glow -->
+<div class="absolute -top-12 -right-12 w-36 h-36 bg-tertiary-fixed/30 rounded-full blur-2xl pointer-events-none"></div>
+<div class="absolute -bottom-10 -left-10 w-32 h-32 bg-primary-fixed/20 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Vibrant Green Success Check with Animated Ring & Sparkles -->
+<div class="relative flex items-center justify-center mb-space-sm">
+<div class="absolute -inset-2 rounded-full bg-emerald-500/10 animate-ping opacity-40"></div>
+<div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-md relative z-10">
+<span class="material-symbols-outlined text-white text-[34px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Sparkle Accents -->
+<span class="material-symbols-outlined text-tertiary absolute -top-1 -right-3 text-[20px] animate-bounce" style="font-variation-settings: 'FILL' 1;">arrow_back_ios_new</span>
+<span class="material-symbols-outlined text-tertiary absolute bottom-0 -left-3 text-[16px]">hotel_class</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Order Confirmed!</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">We’re slow-cooking authentic Awadhi flavors for you.</p>
+<!-- Terminal Sync Badge -->
+<div class="inline-flex items-center gap-space-xs mt-space-sm px-space-sm py-1 bg-surface-container-low rounded-full">
+<span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Order #DM-2847</span>
+<span class="text-outline text-[10px]">•</span>
+<span class="font-label-sm text-label-sm text-on-surface">Sent to Kitchen Terminal</span>
+</div>
+</section>
+<!-- ETA & Live Prep Block -->
+<section class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">timer</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Estimated Wait</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-xl text-headline-xl text-primary font-extrabold tracking-tight">24-28</span>
+<span class="font-label-lg text-label-lg text-primary font-bold">mins</span>
+</div>
+</div>
+<!-- Prep Progress Bar -->
+<div class="space-y-1 pt-1">
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-1/4 transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-on-surface-variant font-label-sm font-semibold">
+<span class="text-primary">Dum Prep Started</span>
+<span>Slow Handi Simmer</span>
+<span>Plated to Table 04</span>
+</div>
+</div>
+<!-- Chef Status Note -->
+<div class="flex items-center gap-space-sm pt-space-xs bg-surface-container-low p-space-sm rounded-lg">
+<div class="w-9 h-9 rounded-full bg-primary-fixed-dim flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary-fixed-variant text-[20px]">skillet</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">
+<span class="font-semibold text-on-surface">Chef Rajesh</span> has accepted your order and started fresh dum sealing.
+        </p>
+</div>
+</section>
+<!-- WhatsApp Digital KOT Notification Banner -->
+<section class="bg-emerald-50 p-space-md rounded-xl flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0 text-white mt-0.5">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">chat</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-emerald-950 font-bold">WhatsApp Sync Active</span>
+<span class="material-symbols-outlined text-emerald-700 text-[14px]">check_circle</span>
+</div>
+<p class="font-body-sm text-body-sm text-emerald-900 mt-0.5 leading-snug">
+          Live KOT confirmation &amp; digital bill sent to <span class="font-semibold">+91 98765 43210</span>
+</p>
+</div>
+</section>
+<!-- Cred-Style Metallic Gold Dining Rewards Card -->
+<section class="bg-inverse-surface text-inverse-on-surface p-space-md rounded-xl relative overflow-hidden shadow-sm">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-tertiary rounded-full blur-xl opacity-20 pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-tertiary-container flex items-center justify-center text-tertiary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">toll</span>
+</div>
+<div>
+<div class="flex items-center gap-1">
+<span class="font-title-md text-title-md text-tertiary-fixed font-bold">+56 D’aMigo Coins</span>
+<span class="text-xs">🎉</span>
+</div>
+<p class="font-body-sm text-body-sm text-surface-dim">Credited to Dining Wallet for Table 04</p>
+</div>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-tertiary-fixed tracking-wider uppercase font-bold">Gold Table Privilege</span>
+<span class="font-label-sm text-label-sm text-tertiary-fixed">Balance: 420 Coins</span>
+</div>
+</section>
+<!-- Collapsible Ordered Items Accordion -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-container-low transition-colors" id="accordion-toggle">
+<div class="flex items-center gap-space-xs">
+<span class="font-title-md text-title-md text-on-surface">Order Details</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 bg-surface-container text-on-surface-variant rounded-full">2 Items</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="font-price-md text-price-md text-on-surface">₹561</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200" id="accordion-icon">keyboard_arrow_down</span>
+</div>
+</button>
+<div class="px-space-md pb-space-md space-y-space-md" id="accordion-content">
+<!-- Item 1 -->
+<div class="flex items-center justify-between pt-space-sm">
+<div class="flex items-center gap-space-sm">
+<!-- Non-Veg Symbol -->
+<div class="w-4 h-4 bg-surface-container-lowest flex items-center justify-center shrink-0">
+<div class="w-2.5 h-2.5 bg-primary rotate-45"></div>
+</div>
+<div>
+<p class="font-title-md text-title-md text-on-surface">Awadhi Murgh Dum Biryani</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">1x Regular • Slow cooked handi</p>
+</div>
+</div>
+<span class="font-price-md text-price-md text-on-surface">₹313</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<!-- Non-Veg Symbol -->
+<div class="w-4 h-4 bg-surface-container-lowest flex items-center justify-center shrink-0">
+<div class="w-2.5 h-2.5 bg-primary rotate-45"></div>
+</div>
+<div>
+<p class="font-title-md text-title-md text-on-surface">Melt-in-Mouth Galouti Kebab</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">1x (4 pcs) • Mughlai seasoning</p>
+</div>
+</div>
+<span class="font-price-md text-price-md text-on-surface">₹289</span>
+</div>
+<!-- Item Summary Footer -->
+<div class="pt-space-sm space-y-1 bg-surface-container-low p-space-sm rounded-lg">
+<div class="flex justify-between font-body-sm text-body-sm text-on-surface-variant">
+<span>Item Subtotal</span>
+<span>₹602</span>
+</div>
+<div class="flex justify-between font-body-sm text-body-sm text-tertiary">
+<span>D’aMigo Table Discount</span>
+<span>- ₹41</span>
+</div>
+<div class="flex justify-between font-price-md text-price-md text-on-surface pt-1">
+<span>Total Paid (UPI)</span>
+<span>₹561</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Invoice #BC-8921</span>
+<span class="font-label-sm text-label-sm text-emerald-700 font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">done_all</span> Paid
+            </span>
+</div>
+</div>
+</div>
+</section>
+<!-- Visual Menu Previews Anchor -->
+<section class="space-y-space-sm pt-space-xs">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Adding to this order?</h3>
+<span class="font-label-sm text-label-sm text-primary font-bold">No Delivery Fee</span>
+</div>
+<div class="grid grid-cols-2 gap-gutter">
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex flex-col justify-between">
+<img class="w-full h-24 object-cover rounded-lg mb-space-xs" data-alt="Traditional Indian chilled sweet lassi served in an earthen clay kulhad garnished with saffron strands and crushed green pistachios on a warm wooden dining table." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDs9D16Wfdf0HNN9lkyPwaFHpCAO3sHo2xEDWQHY1lqgz9NwhZQWAu3QnrdE47SoEglcilPltSaUlhDiI0js_NR_PtElnZYQ4-ARE76TusY4JFI3whBWT6CUsbwbdQGOk20nttINzh-Owr5ZujbFPSfYOfp8kTK53CQLseqD2PngomQLrkvp3mGiRQ2x-peTQgOkxESUtCkdAHLYRyyDzQSzFQ0FUEVFwtmsAFaTl3WTqOefKpD4MaO"/>
+<div>
+<div class="flex items-center gap-1">
+<div class="w-3 h-3 bg-emerald-600 rounded-full"></div>
+<span class="font-title-md text-title-md text-on-surface truncate">Kulhad Kesar Lassi</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="font-price-md text-price-md text-on-surface">₹89</span>
+<button class="px-2 py-1 bg-primary text-on-primary rounded font-label-sm text-label-sm">+ ADD</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex flex-col justify-between">
+<img class="w-full h-24 object-cover rounded-lg mb-space-xs" data-alt="Hot crispy garlic butter naan freshly baked in tandoor with charred spots and aromatic coriander topping on a white ceramic plate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp59lrsdJuvcY2UhpDpA4Ma3KavejZ5lzjpI8bRoIp-wk1R7ocYXhUaV_41O4cJkNrhz6WGxyblLdr8wP5i82HUvc32WJ6AJqPOkqBJ6Lv0l4ED0klxGAg5RZAuUBm6zDecUfHdpMNLOmLNap63ztzw-o7mTIE2N7EhtmeqS7TXdJxMGiEm_cwtxW8yzwazc94ez5e05tEh0saR2Y-VxoHGNPGHg5mwjsbvJ25jX8AOnmccK_Fll8o"/>
+<div>
+<div class="flex items-center gap-1">
+<div class="w-3 h-3 bg-emerald-600 rounded-full"></div>
+<span class="font-title-md text-title-md text-on-surface truncate">Butter Garlic Naan</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="font-price-md text-price-md text-on-surface">₹65</span>
+<button class="px-2 py-1 bg-primary text-on-primary rounded font-label-sm text-label-sm">+ ADD</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Primary Action Enclosure -->
+<section class="flex flex-col space-y-space-sm pt-space-sm pb-space-lg">
+<!-- 52px Primary Track CTA -->
+<button class="w-full h-[52px] bg-primary active:scale-[0.98] transition-all rounded-xl flex items-center justify-center gap-space-xs text-on-primary font-label-lg text-label-lg shadow-sm">
+<span>Track Live Kitchen Status</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<!-- Secondary Browse Button -->
+<button class="w-full h-[52px] bg-surface-container-lowest active:bg-surface-container-low transition-colors rounded-xl flex items-center justify-center gap-space-xs text-on-surface font-label-lg text-label-lg shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">restaurant_menu</span>
+<span>Browse More Items (Add to Table)</span>
+</button>
+<!-- Tertiary Text Action -->
+<button class="py-2 flex items-center justify-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+<span class="font-label-md text-label-md">View Receipt / Download Bill</span>
+</button>
+</section>
+</div>
+</div>
+<script>
+  // Simple Accordion Toggle Logic
+  (function() {
+    const toggleBtn = document.getElementById('accordion-toggle');
+    const content = document.getElementById('accordion-content');
+    const icon = document.getElementById('accordion-icon');
+
+    if (toggleBtn && content && icon) {
+      toggleBtn.addEventListener('click', function() {
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          icon.style.transform = 'rotate(0deg)';
+        } else {
+          content.classList.add('hidden');
+          icon.style.transform = 'rotate(-90deg)';
+        }
+      });
+    }
+
+    // Micro celebratory burst on mount
+    const confettiWrapper = document.getElementById('confetti-container');
+    if (confettiWrapper) {
+      const colors = ['#b7122a', '#775600', '#24963f', '#f3bf51'];
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'absolute';
+        particle.style.width = Math.floor(Math.random() * 8 + 4) + 'px';
+        particle.style.height = Math.floor(Math.random() * 8 + 4) + 'px';
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.top = '-10px';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.opacity = '0.9';
+        particle.style.borderRadius = '2px';
+        particle.style.transform = `rotate(${Math.random() * 360}deg)`;
+        particle.style.transition = `transform ${1.5 + Math.random()}s cubic-bezier(0.25, 1, 0.5, 1), top ${1.5 + Math.random()}s ease-out, opacity 1.8s ease-out`;
+        confettiWrapper.appendChild(particle);
+
+        setTimeout(() => {
+          particle.style.top = `${60 + Math.random() * 80}px`;
+          particle.style.opacity = '0';
+          particle.style.transform = `translateY(40px) rotate(${Math.random() * 720}deg)`;
+        }, 50);
+      }
+    }
+  })();
+</script></main></body></html>

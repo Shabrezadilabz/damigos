@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_dashboard" name="shell-type"/>
+<title>D'aMigo's - AI Poster Creative Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            crimson: {
+              DEFAULT: "#e23744",
+              50: "#fff1f2",
+              100: "#ffe4e6",
+              200: "#fecdd3",
+              500: "#e23744",
+              600: "#cb202d",
+              700: "#b91c1c",
+              800: "#991b1b",
+              900: "#7f1d1d"
+            },
+            surface: "#f8f9fa",
+            card: "#ffffff"
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            body: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa;
+        font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-[#f8f9fa] text-stone-800 antialiased min-h-screen flex flex-col font-sans">
+<!-- LEFT SIDEBAR -->
+<aside class="fixed left-0 top-0 bottom-0 w-60 bg-white border-r border-stone-200 z-50 flex flex-col justify-between select-none">
+<div class="flex flex-col">
+<!-- Brand Header -->
+<div class="p-5 border-b border-stone-100">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-crimson flex items-center justify-center text-white font-extrabold text-lg shadow-sm shadow-red-200">
+            D
+          </div>
+<div class="flex flex-col">
+<span class="font-bold text-base text-stone-900 tracking-tight leading-none">D'aMigo's</span>
+<span class="text-[10px] text-stone-400 font-semibold tracking-wider uppercase mt-1">GUEST OS • CRM</span>
+</div>
+</div>
+<!-- Location Pill -->
+<div class="mt-4 px-3 py-2 bg-stone-50 rounded-lg border border-stone-200/80 flex items-center justify-between">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+<div class="flex flex-col truncate">
+<span class="text-xs font-semibold text-stone-800 truncate">Cloud Kitchen</span>
+<span class="text-[10px] text-stone-500 truncate">Sector 29 Hub</span>
+</div>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold tracking-wide uppercase">Live</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="p-3 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-stone-400">home</span>
+<span>Home</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-crimson-50 text-crimson transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-crimson">trending_up</span>
+<span>Grow Marketing</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-stone-400">restaurant_menu</span>
+<span>Menu &amp; Catalog</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-stone-400">receipt_long</span>
+<span>Orders</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-stone-400">tune</span>
+<span>Settings</span>
+</a>
+</nav>
+</div>
+<!-- Admin User Badge -->
+<div class="p-4 border-t border-stone-100">
+<div class="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-crimson shadow-2xs shrink-0">
+<span class="material-symbols-outlined text-[18px]">shield_person</span>
+</div>
+<div class="flex flex-col truncate">
+<span class="text-xs font-bold text-stone-900 truncate">Operator Admin</span>
+<span class="text-[10px] text-stone-500 font-medium truncate">WhatsApp API Live</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- MAIN WRAPPER -->
+<div class="pl-60 flex flex-col min-h-screen">
+<!-- TOP NAVIGATION BAR -->
+<header class="sticky top-0 z-40 bg-white border-b border-stone-200 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+<!-- Upper Header Row -->
+<div class="h-14 px-6 flex items-center justify-between gap-4">
+<!-- Breadcrumbs & Search -->
+<div class="flex items-center gap-6 flex-1">
+<div class="flex items-center gap-2 text-xs text-stone-500">
+<span class="font-medium hover:text-stone-800 cursor-pointer">Grow</span>
+<span class="text-stone-300">/</span>
+<span class="text-stone-900 font-semibold">AI Creative Studio</span>
+</div>
+<div class="relative w-80">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-[18px]">search</span>
+<input class="w-full h-8 pl-9 pr-4 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-crimson focus:bg-white transition-all" placeholder="Search campaign, guest or menu item... ⌘K" type="text"/>
+</div>
+</div>
+<!-- Meta WhatsApp Tier & Profile -->
+<div class="flex items-center gap-3">
+<div class="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+<span class="material-symbols-outlined text-[15px] text-amber-600">verified</span>
+<span>Meta WhatsApp Tier 2 (10k msgs/day) • 99.4% Delivery</span>
+</div>
+<button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors" title="Refresh">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+<button class="relative w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[18px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-crimson"></span>
+</button>
+<div class="w-8 h-8 rounded-lg bg-crimson text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            OA
+          </div>
+</div>
+</div>
+<!-- Sub-navigation Tabs -->
+<div class="h-11 px-6 bg-white border-t border-stone-100 flex items-center justify-between">
+<nav class="flex items-center gap-1.5">
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors" href="#">Offers &amp; game</a>
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors" href="#">Customers</a>
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors" href="#">Campaigns</a>
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors" href="#">Wallet</a>
+<!-- Active Tab -->
+<a aria-current="page" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crimson text-white text-xs font-bold shadow-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[15px]">auto_awesome</span>
+<span>AI poster</span>
+<span class="text-[9px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-extrabold uppercase tracking-wider">BETA</span>
+</a>
+</nav>
+<div class="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
+<span class="material-symbols-outlined text-[15px] text-crimson">bolt</span>
+<span>Module: Grow CRM &amp; Broadcasts</span>
+</div>
+</div>
+</header>
+<!-- CONTENT BODY -->
+<main class="flex-1 p-6 flex flex-col gap-6">
+<!-- STUDIO SUB-HEADER -->
+<section class="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<!-- Left: Title & Engine Badges -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2.5 flex-wrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-crimson-50 text-crimson border border-crimson-100 text-[11px] font-bold tracking-wide uppercase">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+                Neural Engine V2.4 Activated
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 text-stone-600 text-[11px] font-medium border border-stone-200">
+<span class="material-symbols-outlined text-[13px] text-amber-600">bolt</span>
+                Avg Latency: 1.8s
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                WhatsApp Broadcast Ready
+              </span>
+</div>
+<div class="flex items-baseline gap-2">
+<h1 class="text-xl font-extrabold text-stone-900 tracking-tight">AI Poster Copilot &amp; Creative Studio</h1>
+<span class="text-xs text-stone-500 font-normal">Generate hyper-converting WhatsApp food creatives in seconds</span>
+</div>
+</div>
+<!-- Right: Aspect Ratio Switcher & Generate Button -->
+<div class="flex items-center gap-3 shrink-0 flex-wrap">
+<div class="text-right hidden sm:block mr-2">
+<div class="text-xs font-bold text-stone-900">412 Creatives Generated</div>
+<div class="text-[11px] text-stone-400">/ 1,000 Free WhatsApp Tier</div>
+</div>
+<!-- Aspect Ratio Switcher -->
+<div class="flex items-center p-1 bg-stone-100 rounded-xl border border-stone-200/80">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs transition-all" id="btn-ratio-sq">
+<span class="material-symbols-outlined text-[15px]">crop_square</span>
+<span>Feed 1:1</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:text-stone-900 transition-all" id="btn-ratio-story">
+<span class="material-symbols-outlined text-[15px]">crop_portrait</span>
+<span>Story 9:16</span>
+</button>
+</div>
+<!-- Upload Button -->
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs">
+<span class="material-symbols-outlined text-[16px]">cloud_upload</span>
+<span>Upload High-Res</span>
+</button>
+<!-- Generate Primary CTA -->
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-crimson hover:bg-crimson-600 text-white shadow-sm shadow-red-200 transition-all active:scale-95" id="btn-trigger-generate">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+<span>Generate New Poster</span>
+</button>
+</div>
+</div>
+</section>
+<!-- TWO-COLUMN STUDIO WORKSPACE -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT STUDIO FORM PANEL (7 cols) -->
+<div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 p-6 shadow-xs flex flex-col gap-6">
+<!-- 1. Dish & Campaign Hook -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between pb-2 border-b border-stone-100">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-crimson-50 text-crimson border border-crimson-100 flex items-center justify-center font-bold text-xs">
+                  1
+                </div>
+<div>
+<h2 class="text-sm font-bold text-stone-900">Select Dish &amp; Campaign Hook</h2>
+<p class="text-[11px] text-stone-500">Linked to Sector 29 Cloud Kitchen POS Live Menu</p>
+</div>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 uppercase tracking-wider">SYNCED POS</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Catalog Anchor Dish -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-xs">
+<label class="font-bold text-stone-800">Catalog Anchor Dish</label>
+<span class="text-emerald-600 font-semibold text-[11px]">48 in stock</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-xl bg-stone-50 border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<img class="w-10 h-10 rounded-lg object-cover border border-stone-200 shrink-0" data-alt="Traditional Hyderabadi aromatic chicken dum biryani in a copper handi, garnished with fried onions, fragrant basmati rice, mint sprigs, and saffron hues with warm ambient dining lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7FdLCZuQ7iYY-q-OSa3VLu38HmtRJGUynH__qBGL9Ns6M8sRTmtjwiBYfs5MSxTZgxIlg4Wf4kCu60gDCluGI3Da7kHdsy0byYwidZRJxmyNs9phY0qhVLNoc0-h2Wmei5kJYGI5htpP-w8SKsokepcfc4P0yGZSsaMNU_FTAVz-AbVJ6Zp2GU-_6qPTTU3K1W6KRJVvWyzuP5cY1xCtlRCON_lUPQc2jP_R6ZzzC9C1lBIQz6Vb3"/>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-stone-900 truncate">Hyderabadi Chicken Dum Biryani</span>
+<div class="flex items-center gap-1.5 text-xs font-bold text-crimson">
+<span>₹249</span>
+<span class="text-[11px] text-stone-400 line-through font-normal">₹320</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-stone-400 text-[18px]">expand_more</span>
+</div>
+</div>
+<!-- Campaign Trigger Hook -->
+<div class="flex flex-col gap-1.5">
+<label class="font-bold text-stone-800 text-xs">Campaign Trigger Hook</label>
+<div class="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors h-[58px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-crimson text-[18px]">bedtime</span>
+<span class="text-xs font-bold text-stone-800">Weekend Midnight Craving</span>
+</div>
+<span class="material-symbols-outlined text-stone-400 text-[18px]">tune</span>
+</div>
+</div>
+</div>
+<!-- 2. Offer Ribbon & Promo Code Badge Selector -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="flex items-center justify-between text-xs">
+<label class="font-bold text-stone-800">Offer Ribbon &amp; Promo Code Badge</label>
+<span class="text-emerald-600 font-bold text-[11px] flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">trending_up</span> +18% Historical Conversion
+                </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<!-- Option 1: Selected -->
+<div class="p-3 rounded-xl border-2 border-crimson bg-crimson-50/60 flex items-center justify-between cursor-pointer">
+<div class="flex flex-col">
+<span class="text-xs font-extrabold text-crimson">FLAT 20% OFF</span>
+<span class="text-[10px] text-stone-600 font-bold uppercase tracking-wider">Code: AMIGO20</span>
+</div>
+<span class="material-symbols-outlined text-crimson text-[18px]">check_circle</span>
+</div>
+<!-- Option 2 -->
+<div class="p-3 rounded-xl border border-stone-200 bg-stone-50/60 hover:bg-stone-100 flex items-center justify-between cursor-pointer transition-colors">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-800">FREE GULAB JAMUN</span>
+<span class="text-[10px] text-stone-500 font-semibold uppercase">Orders &gt; ₹399</span>
+</div>
+</div>
+<!-- Option 3 -->
+<div class="p-3 rounded-xl border border-stone-200 bg-stone-50/60 hover:bg-stone-100 flex items-center justify-between cursor-pointer transition-colors">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-800">₹100 CASHBACK</span>
+<span class="text-[10px] text-stone-500 font-semibold uppercase">WhatsApp Pay</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. WhatsApp AI Copywriter -->
+<div class="flex flex-col gap-4 pt-2">
+<div class="flex items-center justify-between pb-2 border-b border-stone-100">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-crimson-50 text-crimson border border-crimson-100 flex items-center justify-center font-bold text-xs">
+                  2
+                </div>
+<div>
+<h2 class="text-sm font-bold text-stone-900">WhatsApp AI Copywriter</h2>
+<p class="text-[11px] text-stone-500">Trained on 45,000+ High ROAS F&amp;B WhatsApp Broadcasts</p>
+</div>
+</div>
+<button class="flex items-center gap-1 text-xs text-crimson font-bold hover:underline">
+<span class="material-symbols-outlined text-[15px]">autorenew</span>
+<span>Regenerate Copy</span>
+</button>
+</div>
+<!-- Headline Input -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-bold text-stone-800">Dynamic Poster Headline</label>
+<div class="relative">
+<input class="w-full h-10 px-3 pr-14 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-crimson focus:bg-white transition-all" id="input-headline" type="text" value="Slow-Cooked Aromatics. Direct to Your Doorstep."/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-[11px] font-medium">48/60</span>
+</div>
+</div>
+<!-- WhatsApp Message Companion Copy -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-bold text-stone-800">WhatsApp Message Companion Copy (Under Poster)</label>
+<div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex flex-col gap-2">
+<textarea class="w-full bg-transparent text-xs text-stone-800 focus:outline-none resize-none font-medium leading-relaxed" rows="3">Craving royal indulgence tonight? 🍗 D'aMigo's slow-dum authentic biryani is hot, spiced to perfection, and ready to dispatch under 28 mins in Gurugram! Use coupon code AMIGO20 for an instant 20% off your feast.</textarea>
+<div class="flex items-center justify-between pt-2 border-t border-stone-200/80 text-[11px]">
+<span class="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span>
+                    High Engagement Potential (Score: 94/100)
+                  </span>
+<span class="text-stone-400 font-medium">184 chars</span>
+</div>
+</div>
+</div>
+<!-- CTA and Delivery Badges -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-bold text-stone-800">CTA Button Text</label>
+<input class="w-full h-9 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-crimson focus:bg-white transition-all" id="input-cta" type="text" value="Order on WhatsApp Now ⚡"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-bold text-stone-800">Delivery Time Guarantee Badge</label>
+<input class="w-full h-9 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-crimson focus:bg-white transition-all" type="text" value="⚡ 28 Mins Superfast Delivery"/>
+</div>
+</div>
+</div>
+<!-- 4. Visual Style, Badges & Identity -->
+<div class="flex flex-col gap-4 pt-2">
+<div class="flex items-center justify-between pb-2 border-b border-stone-100">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-crimson-50 text-crimson border border-crimson-100 flex items-center justify-center font-bold text-xs">
+                  3
+                </div>
+<div>
+<h2 class="text-sm font-bold text-stone-900">Visual Style, Badges &amp; Identity</h2>
+<p class="text-[11px] text-stone-500">Configure automated overlay elements</p>
+</div>
+</div>
+<span class="text-xs font-bold text-crimson">All 3 Enabled</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<!-- Toggle 1: Crown Logo -->
+<div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-md bg-crimson flex items-center justify-center text-white font-extrabold text-[11px]">D</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-800">Crown Logo</span>
+<span class="text-[10px] text-stone-500">Top-Left</span>
+</div>
+</div>
+<span class="w-5 h-5 rounded-full bg-crimson text-white flex items-center justify-center text-[11px] font-bold">✓</span>
+</div>
+<!-- Toggle 2: Non-Veg Indicator -->
+<div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-4 h-4 rounded-xs border border-crimson flex items-center justify-center bg-white">
+<div class="w-2 h-2 rounded-full bg-crimson"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-800">Food Badge</span>
+<span class="text-[10px] text-stone-500">Non-Veg Mark</span>
+</div>
+</div>
+<span class="w-5 h-5 rounded-full bg-crimson text-white flex items-center justify-center text-[11px] font-bold">✓</span>
+</div>
+<!-- Toggle 3: ₹249 Tag -->
+<div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-crimson text-[18px]">sell</span>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-800">₹249 Tag</span>
+<span class="text-[10px] text-stone-500">Bottom Pill</span>
+</div>
+</div>
+<span class="w-5 h-5 rounded-full bg-crimson text-white flex items-center justify-center text-[11px] font-bold">✓</span>
+</div>
+</div>
+<!-- Mood Tone Pills -->
+<div class="flex items-center gap-2 pt-1 overflow-x-auto pb-1">
+<span class="text-[11px] font-bold text-stone-500 shrink-0 uppercase tracking-wider">Mood Tone:</span>
+<button class="px-3 py-1 rounded-full bg-stone-900 text-white text-xs font-semibold shrink-0">Warm Midnight Glow</button>
+<button class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 text-xs font-medium shrink-0">Crisp Studio High-Key</button>
+<button class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 text-xs font-medium shrink-0">Fiery Spice Smoke</button>
+<button class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 text-xs font-medium shrink-0">Festive Gold Spark</button>
+</div>
+</div>
+</div>
+<!-- RIGHT LIVE STUDIO CANVAS PANEL (5 cols) -->
+<div class="lg:col-span-5 bg-white rounded-2xl border border-stone-200 p-6 shadow-xs flex flex-col gap-5 sticky top-28">
+<!-- Canvas Header -->
+<div class="flex items-center justify-between pb-3 border-b border-stone-100">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-crimson text-[20px]">visibility</span>
+<span class="text-sm font-bold text-stone-900">Real-Time Studio Canvas</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 text-xs font-semibold">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span>1080 × 1080 HD (Feed)</span>
+</div>
+</div>
+<!-- POSTER CANVAS MOCKUP -->
+<div class="relative w-full aspect-square rounded-2xl overflow-hidden bg-stone-900 shadow-lg flex flex-col justify-between group transition-all duration-300 border border-stone-300" id="poster-canvas">
+<!-- Background Dish Visual with Rich Scrim -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Ultra high-definition overhead commercial photograph of royal Hyderabadi chicken biryani served steaming in a vintage handi, long aromatic grain rice with golden saffron strands, tender succulent chicken pieces, caramelized fried shallots, accompanied by spicy mirchi ka salan and fresh mint garnish with dark rustic backdrop." id="poster-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4lGiL0aS-3mdL-jc8sABnf0s7vD5SJAAg-zpfvuOyzKkBfzKRvZJNPbvE7T4lU2x_K2e6KsbXFmpQfFiWfW88jeiIyoRIuXTl1dsX3cB-GuJhKqZIJqAoCNHWjq6WZbXll3D27pEphXEwdEWiAvKAZmmVWgFmt3SSvgHWMnIaw4UYxDC-8oD382IkRNeUrflDhHvX6UnzguCwcXwCXO7LvRjzVGzDyScLtyF2DIjdlFeNOq2qNiq2"/>
+<!-- Contrast Gradients -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/60 pointer-events-none"></div>
+</div>
+<!-- Canvas Top Row: Brand & Ribbon -->
+<div class="relative z-10 p-4 flex items-start justify-between">
+<!-- Brand Pill -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md">
+<div class="w-5 h-5 rounded-md bg-crimson flex items-center justify-center text-white font-extrabold text-[11px]">D</div>
+<span class="text-xs text-stone-900 font-extrabold tracking-tight">D'aMigo's</span>
+</div>
+<!-- Offer Ribbon -->
+<div class="flex flex-col items-end">
+<div class="px-3 py-1 rounded-lg bg-crimson text-white font-extrabold text-xs shadow-lg flex items-center gap-1.5" id="canvas-offer-text">
+<span class="material-symbols-outlined text-[15px]">local_offer</span>
+<span>FLAT 20% OFF</span>
+</div>
+<div class="mt-1 px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm text-amber-300 text-[10px] uppercase font-bold tracking-wider">
+                  CODE: AMIGO20
+                </div>
+</div>
+</div>
+<!-- Canvas Middle: Fast Delivery Pill -->
+<div class="relative z-10 px-4">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-stone-900 shadow-md">
+<span class="material-symbols-outlined text-crimson text-[14px]">electric_bolt</span>
+<span class="text-[11px] font-bold">Express 28 Mins Delivery</span>
+</div>
+</div>
+<!-- Canvas Bottom Row: Food Mark, Headline, Price, CTA -->
+<div class="relative z-10 p-4 flex flex-col gap-2.5">
+<div class="flex items-center gap-2">
+<div class="w-3.5 h-3.5 rounded-xs border border-crimson flex items-center justify-center bg-white shadow-xs">
+<div class="w-1.5 h-1.5 rounded-full bg-crimson"></div>
+</div>
+<span class="text-[11px] text-white/90 uppercase tracking-widest font-extrabold drop-shadow">Chef's Signature Dum Feast</span>
+</div>
+<h3 class="text-lg font-extrabold text-white leading-snug drop-shadow-md" id="canvas-headline">
+                Slow-Cooked Aromatics. Direct to Your Doorstep.
+              </h3>
+<div class="flex items-center justify-between gap-3 pt-1">
+<div class="flex items-baseline gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
+<span class="text-[10px] text-stone-300 uppercase font-semibold">Special</span>
+<span class="text-base text-white font-extrabold">₹249</span>
+<span class="text-xs text-stone-400 line-through">₹320</span>
+</div>
+<div class="flex-1 py-2 px-3 rounded-xl bg-crimson hover:bg-crimson-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-crimson/40 transition-all cursor-pointer" id="canvas-cta">
+<span>Order on WhatsApp Now</span>
+<span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+<!-- WhatsApp Cloud API Helper Banner -->
+<div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-emerald-950">WhatsApp Cloud API Optimized</span>
+<span class="text-[11px] text-emerald-700 truncate">Auto-compressed under 1.2MB for instant recipient rendering.</span>
+</div>
+</div>
+<!-- Predicted CTR Metric Pill -->
+<div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900">Predicted WhatsApp CTR</span>
+<span class="text-[11px] text-stone-500">Based on 12k Sector 29 diners</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-lg font-extrabold text-crimson">24.6%</span>
+<span class="text-[11px] text-emerald-700 font-bold">+6.2% vs Plain Text</span>
+</div>
+</div>
+<!-- Action Buttons Suite -->
+<div class="flex flex-col gap-2 pt-1">
+<button class="w-full py-3 px-4 rounded-xl bg-crimson text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-red-200 hover:bg-crimson-600 transition-all active:scale-[0.99]">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Use in Next Campaign Broadcast</span>
+</button>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2.5 px-3 rounded-xl bg-white border border-stone-200 hover:bg-stone-50 text-stone-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-stone-500">download</span>
+<span>Download 4K PNG</span>
+</button>
+<button class="py-2.5 px-3 rounded-xl bg-white border border-stone-200 hover:bg-stone-50 text-stone-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-emerald-600">smartphone</span>
+<span>Send Test WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- BOTTOM GALLERY: RECENT AI CREATIVES VAULT -->
+<section class="mt-4 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-crimson-50 text-crimson border border-crimson-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">photo_library</span>
+</div>
+<div>
+<h2 class="text-base font-bold text-stone-900">Recent AI Creatives &amp; Templates</h2>
+<p class="text-xs text-stone-500">Re-use or fork previously generated high-performing WhatsApp visual campaigns</p>
+</div>
+</div>
+<button class="text-xs font-bold text-crimson hover:underline flex items-center gap-1">
+<span>View Full Creative Vault (28)</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+<!-- 4-Card Responsive Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Card 1: Weekend Feast Drop -->
+<div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col">
+<div class="relative w-full aspect-square bg-stone-100 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Indian culinary weekend feast spread featuring butter chicken, tandoori rotis, fragrant rice, seekh kebabs and fresh mint chutney with cinematic tabletop warmth and rich crimson tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPvRChNSSjwnycKe-ztptYrGRCTpOTO_-qDgsntzKCFc1LtfQMxuXbh6KeoXx9O_Lcjz1jOJ3dQ0KUuusCi4mktHUcBqrmo3XewhnhVjO2tYFp1mwcBRmcazJQ9HjzJOXGfYn_19aoqAqwVD72Vsi8-rpPvR3JmRlR3Eg6rjnIyQgu0pLDkora_KzNyWV10cD2YccG2L19Bpl_eMdZze9ozgdsUVf9ZzzhnrMUcRs7ve3JCSJ4uaY0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<span class="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-crimson text-white font-extrabold shadow-sm">FLAT 25% OFF</span>
+<span class="absolute top-2.5 right-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-mono font-semibold">1:1 SQ</span>
+<div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
+<span class="text-xs font-bold truncate">Weekend Feast Drop</span>
+<span class="text-[11px] font-bold text-emerald-400 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-xs">31.2% CTR</span>
+</div>
+</div>
+<div class="p-4 flex flex-col justify-between flex-1 gap-3">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-stone-500 text-[11px]">
+<span>Used in: 2 Broadcasts</span>
+<span class="font-bold text-stone-800">₹42,800 Sales</span>
+</div>
+<p class="text-xs text-stone-600 line-clamp-2 leading-relaxed">"Sunday family feast sorted. Free Butter Naan basket on orders ₹599+."</p>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-stone-100">
+<button class="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors">Fork Poster</button>
+<button class="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors" title="Download">
+<span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 2: Tandoori Night Special -->
+<div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col">
+<div class="relative w-full aspect-square bg-stone-100 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Charcoal grilled smokey chicken tandoori tikka skewers with charred lemon slices, onion rings, rich red marinade and fiery grill embers in a moody Indian cloud kitchen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk28njxAa9ycPdQghrYocD4AQsHkRHVMGQZNw_Tw3cfszdGnowAP76NZC4FZntYgBIS6WpUdZQ6m-i5SI7OxDuaDKzS1__iWBsWCHEb_O572-V38rNRreG2zcUwOsPvAv82O1j_-Fx64yuY80CuLDIwJy3bY9UD82LAv3Rmf1CZ4jUXcJUXhTpgoIC6kTMTj1BNASFa46XJsDWL72vVpl97_Y9DBu46z3TSBCKAZI6cU4wuRP_ri1A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<span class="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-crimson text-white font-extrabold shadow-sm">BUY 1 GET 1</span>
+<span class="absolute top-2.5 right-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-mono font-semibold">1:1 SQ</span>
+<div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
+<span class="text-xs font-bold truncate">Tandoori Night Special</span>
+<span class="text-[11px] font-bold text-emerald-400 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-xs">28.4% CTR</span>
+</div>
+</div>
+<div class="p-4 flex flex-col justify-between flex-1 gap-3">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-stone-500 text-[11px]">
+<span>Used in: 1 Broadcast</span>
+<span class="font-bold text-stone-800">₹28,450 Sales</span>
+</div>
+<p class="text-xs text-stone-600 line-clamp-2 leading-relaxed">"Smoky, charred, and dripping with spiced butter. Claim your BOGO tandoori."</p>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-stone-100">
+<button class="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors">Fork Poster</button>
+<button class="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors" title="Download">
+<span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 3: Monsoon Chai & Bites -->
+<div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col">
+<div class="relative w-full aspect-square bg-stone-100 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Traditional Indian kulhad masala chai pouring hot with steam, paired with crispy golden onion pakodas and fresh green chilies on rustic slate with cozy rainy monsoon vibes." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkAltupkjhWX6yXGbA3bAxrqu2UjG6gtSNF-9glH3ybhw9J3meF4EWD5yR3TSAraaxZ6Dy1jCll-sbiW8ihQxYV653U_JhRYWGnaiPHdOIxtcOhfctdGzCNO4Ct6mo_YCcEblxOY1nb4w72zszwGIO0-MU1wkNsC4_e0uV7uNduGNa0k4e1EGNFlNoavBWTPt5ft_lK28O8Uc7MbcYeMLaHYbrL7QzuGgihRLg2aRU2YkDru2RU_zo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<span class="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-extrabold shadow-sm">COMBO ₹149</span>
+<span class="absolute top-2.5 right-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-mono font-semibold">9:16 STORY</span>
+<div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
+<span class="text-xs font-bold truncate">Monsoon Chai &amp; Bites</span>
+<span class="text-[11px] font-bold text-emerald-400 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-xs">22.8% CTR</span>
+</div>
+</div>
+<div class="p-4 flex flex-col justify-between flex-1 gap-3">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-stone-500 text-[11px]">
+<span>Used in: 3 Broadcasts</span>
+<span class="font-bold text-stone-800">₹19,200 Sales</span>
+</div>
+<p class="text-xs text-stone-600 line-clamp-2 leading-relaxed">"Rain outside, kulhad chai inside. 4 crispy onion bhajiyas included free."</p>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-stone-100">
+<button class="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors">Fork Poster</button>
+<button class="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors" title="Download">
+<span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 4: Dessert Carnival Drop -->
+<div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col">
+<div class="relative w-full aspect-square bg-stone-100 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Warm royal gulab jamun with silver vark and pistachio flakes, next to rich creamy matka kulfi, dripping syrup with festive golden lighting and authentic Indian hospitality aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNlbr5xm-lv27TNLWt5TZR38hA2ev-G0sgxxWIwh3TshT0MSSeWHlynaCZAYRMAx7oAc3o14hNsPFe3_46diq0xHNyIAJ1ump5hVAV0-DSj8yajbLmC8mkvWGNyGHc2NneVkpz27XvfxSbrWibNBXVzPq-jajDndvNYSE9Mp4KvNBs8TsSTG2810BFsCUKVkrpuTIGxl6SCxCzoNdgiPQA-n5zWGYNv0dofa64yPBH1ojsdTCBrRbZ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<span class="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-crimson text-white font-extrabold shadow-sm">FREE TREAT</span>
+<span class="absolute top-2.5 right-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-mono font-semibold">1:1 SQ</span>
+<div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
+<span class="text-xs font-bold truncate">Dessert Carnival Drop</span>
+<span class="text-[11px] font-bold text-emerald-400 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-xs">34.9% CTR</span>
+</div>
+</div>
+<div class="p-4 flex flex-col justify-between flex-1 gap-3">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-stone-500 text-[11px]">
+<span>Used in: 4 Broadcasts</span>
+<span class="font-bold text-stone-800">₹51,300 Sales</span>
+</div>
+<p class="text-xs text-stone-600 line-clamp-2 leading-relaxed">"Sweet endings! Warm Gulab Jamun pair free on every dinner order today."</p>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-stone-100">
+<button class="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors">Fork Poster</button>
+<button class="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors" title="Download">
+<span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Interactive JavaScript for Live Synchronous Poster Customization -->
+<script>
+    (function initPosterStudio() {
+      // 1. Text input dynamic updates
+      const headlineInput = document.getElementById('input-headline');
+      const canvasHeadline = document.getElementById('canvas-headline');
+      if (headlineInput && canvasHeadline) {
+        headlineInput.addEventListener('input', (e) => {
+          canvasHeadline.textContent = e.target.value || "Slow-Cooked Aromatics. Direct to Your Doorstep.";
+        });
+      }
+
+      // 2. Aspect Ratio Toggle Behavior
+      const btnSquare = document.getElementById('btn-ratio-sq');
+      const btnStory = document.getElementById('btn-ratio-story');
+      const posterCanvas = document.getElementById('poster-canvas');
+
+      if (btnSquare && btnStory && posterCanvas) {
+        btnSquare.addEventListener('click', () => {
+          posterCanvas.classList.remove('aspect-[9/16]', 'max-w-xs', 'mx-auto');
+          posterCanvas.classList.add('aspect-square');
+          btnSquare.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs transition-all";
+          btnStory.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:text-stone-900 transition-all";
+        });
+
+        btnStory.addEventListener('click', () => {
+          posterCanvas.classList.remove('aspect-square');
+          posterCanvas.classList.add('aspect-[9/16]', 'max-w-xs', 'mx-auto');
+          btnStory.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs transition-all";
+          btnSquare.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:text-stone-900 transition-all";
+        });
+      }
+
+      // 3. Simulated Generative Shimmer Refresh
+      const generateBtn = document.getElementById('btn-trigger-generate');
+      if (generateBtn && posterCanvas) {
+        generateBtn.addEventListener('click', () => {
+          posterCanvas.style.opacity = '0.4';
+          posterCanvas.style.filter = 'blur(4px)';
+          generateBtn.disabled = true;
+          generateBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Generating...';
+
+          setTimeout(() => {
+            posterCanvas.style.opacity = '1';
+            posterCanvas.style.filter = 'none';
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">bolt</span> Generate New Poster';
+          }, 900);
+        });
+      }
+    })();
+  </script>
+</body></html>

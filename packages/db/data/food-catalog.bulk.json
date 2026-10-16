@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "name": "The Biryani Box Special Chicken",
+      "cuisine": "indian",
+      "category": "biryani",
+      "isVeg": false,
+      "imageKey": "biryaniNonVeg",
+      "aliases": ["biryani box chicken", "box special biryani"]
+    },
+    {
+      "name": "The Biryani Box Veg Feast",
+      "cuisine": "indian",
+      "category": "biryani",
+      "isVeg": true,
+      "imageKey": "biryaniVeg",
+      "aliases": ["biryani box veg"]
+    },
+    {
+      "name": "Paneer Butter Masala Combo",
+      "cuisine": "indian",
+      "category": "curry",
+      "isVeg": true,
+      "imageKey": "curry"
+    },
+    {
+      "name": "Chicken 65",
+      "cuisine": "indian",
+      "category": "starter",
+      "isVeg": false,
+      "imageKey": "wings",
+      "aliases": ["chicken sixty five"]
+    },
+    {
+      "name": "Gobi 65",
+      "cuisine": "indian",
+      "category": "starter",
+      "isVeg": true,
+      "imageKey": "tikkaKebab"
+    },
+    {
+      "name": "Ramyeon",
+      "cuisine": "korean",
+      "category": "ramen",
+      "isVeg": false,
+      "imageKey": "ramen"
+    },
+    {
+      "name": "Udon Noodle Soup",
+      "cuisine": "japanese",
+      "category": "ramen",
+      "isVeg": false,
+      "imageKey": "ramen"
+    },
+    {
+      "name": "Pho Bo",
+      "cuisine": "pan_asian",
+      "category": "soup",
+      "isVeg": false,
+      "imageKey": "soup"
+    },
+    {
+      "name": "Falafel Wrap",
+      "cuisine": "healthy",
+      "category": "roll",
+      "isVeg": true,
+      "imageKey": "roll"
+    },
+    {
+      "name": "Protein Smoothie",
+      "cuisine": "healthy",
+      "category": "juice",
+      "isVeg": true,
+      "imageKey": "juice"
+    }
+  ]
+}

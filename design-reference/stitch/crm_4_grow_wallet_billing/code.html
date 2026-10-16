@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_dashboard" name="shell-type"/>
+<title>D'aMigo's Guest OS - Wallet &amp; Billing</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            crimson: {
+              DEFAULT: "#e23744",
+              50: "#fdf2f2",
+              100: "#fce4e6",
+              500: "#e23744",
+              600: "#cb2330",
+              700: "#aa1925",
+              800: "#8c1923"
+            },
+            surface: "#fbfaf9",
+            "card-border": "#e7e5e4"
+          },
+          fontFamily: {
+            headline: ["Plus Jakarta Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+  </style>
+</head>
+<body class="bg-surface text-stone-900 antialiased min-h-screen">
+<!-- Left Sidebar -->
+<aside class="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-stone-200 z-50 flex flex-col justify-between">
+<div class="flex flex-col">
+<!-- Brand Header -->
+<div class="px-5 pt-5 pb-4 border-b border-stone-100">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-crimson flex items-center justify-center text-white font-heading font-extrabold text-base shadow-sm">
+            D
+          </div>
+<div class="flex flex-col">
+<span class="font-heading font-extrabold text-[17px] text-stone-900 tracking-tight leading-none">D'aMigo's</span>
+<span class="text-[10px] text-stone-400 uppercase tracking-widest font-bold mt-1">Guest OS</span>
+</div>
+</div>
+<!-- Location Badge -->
+<div class="mt-4 p-2.5 bg-stone-50 border border-stone-200/70 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+<div class="flex flex-col truncate">
+<span class="text-xs text-stone-900 font-semibold truncate leading-tight">Cloud Kitchen</span>
+<span class="text-[11px] text-stone-500 truncate leading-tight">Sector 29 Hub</span>
+</div>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 shrink-0">Live</span>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="px-3 py-3 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-crimson-50 text-crimson" href="#">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+<span>Grow</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span>Home</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">restaurant_menu</span>
+<span>Menu</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+<span>Orders</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span>Settings</span>
+</a>
+</nav>
+</div>
+<!-- Admin Profile / Role snippet -->
+<div class="p-3 border-t border-stone-100">
+<div class="p-2.5 bg-stone-50 rounded-xl border border-stone-200/70 flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-stone-200/80 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-stone-700 text-[18px]">shield_person</span>
+</div>
+<div class="flex flex-col truncate">
+<span class="text-xs text-stone-900 font-semibold truncate leading-tight">Operator Admin</span>
+<span class="text-[11px] text-stone-500 truncate leading-tight">WhatsApp CRM</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main View Frame -->
+<div class="pl-64 flex flex-col min-h-screen">
+<!-- Top Navigation Header -->
+<header class="sticky top-0 z-40 bg-white border-b border-stone-200">
+<!-- Upper Search & Status Row -->
+<div class="h-14 px-6 flex items-center justify-between gap-4">
+<!-- Search bar with keyboard shortcut -->
+<div class="flex items-center gap-2 flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-[18px]">search</span>
+<input class="w-full h-9 pl-9 pr-12 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-crimson focus:ring-1 focus:ring-crimson transition-all" placeholder="Search guest, table or order..." type="text"/>
+<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-stone-400 border border-stone-200 bg-white px-1.5 py-0.5 rounded">⌘K</span>
+</div>
+</div>
+<!-- Meta Tier Badge & Actions -->
+<div class="flex items-center gap-3">
+<div class="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+<span class="material-symbols-outlined text-[16px] text-amber-600">verified</span>
+<span>WHATSAPP META TIER: Tier 2 (10k msgs/day) • 99.4% Delivery rate</span>
+</div>
+<button class="w-8 h-8 rounded-lg border border-stone-200 bg-white flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors" title="Refresh">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+<button class="relative w-8 h-8 rounded-lg border border-stone-200 bg-white flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[18px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-crimson ring-2 ring-white"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-crimson flex items-center justify-center text-white shadow-sm font-semibold text-xs ring-2 ring-crimson-100">
+<span>DA</span>
+</div>
+</div>
+</div>
+<!-- Sub-Navigation Bar -->
+<div class="h-12 px-6 flex items-center justify-between border-t border-stone-100 bg-stone-50/60">
+<nav class="flex items-center gap-1">
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-white transition-colors" href="#">Offers &amp; game</a>
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-white transition-colors" href="#">Customers</a>
+<a class="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-white transition-colors" href="#">Campaigns</a>
+<!-- Active Tab Pill in Crimson -->
+<a class="px-3 py-1.5 rounded-lg text-xs font-bold bg-crimson text-white shadow-sm flex items-center gap-1.5" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+<span>Wallet</span>
+</a>
+<a class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-white transition-colors" href="#">
+<span>AI poster</span>
+<span class="text-[9px] px-1.5 py-0.2 rounded-full bg-crimson-100 text-crimson font-bold uppercase tracking-wider">BETA</span>
+</a>
+</nav>
+<div class="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
+<span class="material-symbols-outlined text-[16px] text-crimson">auto_graph</span>
+<span>Module: Grow CRM</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 p-6 space-y-6 max-w-7xl w-full mx-auto">
+<!-- Escrow & Billing Hero Header Block -->
+<div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+<div class="flex flex-col gap-1.5 max-w-2xl">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-crimson-50 text-crimson border border-crimson-100 text-[11px] font-bold tracking-wider uppercase">Meta Billing Tier 2</span>
+<span class="w-1 h-1 rounded-full bg-stone-300"></span>
+<span class="text-xs text-stone-600 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px] text-amber-600">lock</span>
+              Direct Escrow Protected
+            </span>
+</div>
+<h1 class="font-heading text-2xl font-extrabold text-stone-900 tracking-tight">Marketing Wallet, Credits &amp; Billing</h1>
+<p class="text-xs text-stone-500 leading-relaxed">
+            Prepaid WhatsApp Meta Cloud API conversation balance, automated top-ups, and daily message ledger for D'aMigo's guest campaigns.
+          </p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<!-- Auto-Recharge Switcher Card -->
+<div class="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900 leading-tight">Auto-Recharge</span>
+<span class="text-[11px] text-stone-500 leading-tight">When below ₹500</span>
+</div>
+<button class="relative inline-flex h-5 w-10 items-center rounded-full bg-crimson transition-colors focus:outline-none" id="autoRechargeToggle" onclick="toggleAutoRecharge()" type="button">
+<span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-5" id="autoRechargePin"></span>
+</button>
+<span class="text-xs font-bold text-crimson" id="autoRechargeStatusText">ON</span>
+</div>
+<!-- Download GST Invoices CTA -->
+<button class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm" onclick="triggerInvoiceDownload()" type="button">
+<span class="material-symbols-outlined text-[17px] text-stone-500">receipt</span>
+<span>Download Invoices (GST)</span>
+</button>
+<!-- Primary Crimson Action CTA -->
+<button class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-crimson text-white text-xs font-bold shadow-sm hover:bg-crimson-600 active:scale-[0.98] transition-all" onclick="scrollToTopUp(2500)" type="button">
+<span class="material-symbols-outlined text-[18px]">add_card</span>
+<span>Top Up Wallet (+₹2,500)</span>
+</button>
+</div>
+</div>
+<!-- 4 Architectural Metric Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Metric 1: Available Balance (Dark High-Contrast Card) -->
+<div class="rounded-xl bg-stone-900 text-white p-5 shadow-sm border border-stone-800 flex flex-col justify-between relative overflow-hidden">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-crimson/20 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="text-[10px] uppercase font-bold tracking-wider text-amber-400">Meta Escrow Credits</span>
+<h3 class="text-xs font-medium text-stone-300 mt-0.5">Available Balance</h3>
+</div>
+<div class="w-9 h-9 rounded-lg bg-stone-800 text-amber-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+</div>
+<div class="mt-4">
+<div class="flex items-baseline">
+<span class="font-heading text-2xl font-extrabold tracking-tight">₹42,850</span>
+<span class="text-sm font-semibold text-stone-400">.00</span>
+</div>
+<div class="mt-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-stone-800/80 w-fit border border-stone-700/60">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="text-[11px] text-stone-200 font-medium">~59,500 utility / promo sends</span>
+</div>
+</div>
+</div>
+<!-- Metric 2: MTD Broadcast Spend -->
+<div class="rounded-xl bg-white border border-stone-200 p-5 shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-[10px] uppercase font-bold tracking-wider text-stone-400">March 2025 MTDS</span>
+<h3 class="text-xs font-semibold text-stone-800 mt-0.5">Broadcast Spend</h3>
+</div>
+<div class="w-9 h-9 rounded-lg bg-crimson-50 text-crimson flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+</div>
+<div class="mt-4">
+<div class="flex items-baseline justify-between">
+<span class="font-heading text-xl font-bold text-stone-900">₹14,210.00</span>
+<span class="text-xs text-stone-500 font-medium">Cap: ₹18,000</span>
+</div>
+<!-- Progress Bar -->
+<div class="mt-2 w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+<div class="bg-crimson h-1.5 rounded-full" style="width: 78.9%"></div>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px] text-stone-500 font-medium">
+<span>78.9% utilized</span>
+<span class="text-emerald-700 font-semibold">₹3,790 buffer remaining</span>
+</div>
+</div>
+</div>
+<!-- Metric 3: Real-Time Tariff -->
+<div class="rounded-xl bg-white border border-stone-200 p-5 shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-[10px] uppercase font-bold tracking-wider text-stone-400">Real-Time Tariff</span>
+<h3 class="text-xs font-semibold text-stone-800 mt-0.5">Cost Per Delivered Msg</h3>
+</div>
+<div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">toll</span>
+</div>
+</div>
+<div class="mt-4">
+<div class="flex items-baseline gap-2">
+<span class="font-heading text-xl font-bold text-stone-900">₹0.72</span>
+<span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">-18% vs base</span>
+</div>
+<p class="mt-2 text-[11px] text-stone-500 line-clamp-1 leading-normal">
+              Tier 2 WhatsApp Cloud API bulk discount unlocked at &gt;10k msgs/day.
+            </p>
+</div>
+</div>
+<!-- Metric 4: Next Auto-Settlement -->
+<div class="rounded-xl bg-white border border-stone-200 p-5 shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-[10px] uppercase font-bold tracking-wider text-stone-400">POS Integration</span>
+<h3 class="text-xs font-semibold text-stone-800 mt-0.5">Next Auto-Settlement</h3>
+</div>
+<div class="w-9 h-9 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">sync_alt</span>
+</div>
+</div>
+<div class="mt-4">
+<div class="flex items-baseline">
+<span class="font-heading text-xl font-bold text-stone-900">Today, 11:30 PM</span>
+</div>
+<div class="mt-2 flex items-center gap-1.5 text-[11px] text-stone-500 font-medium">
+<span class="material-symbols-outlined text-[15px] text-emerald-600">verified_user</span>
+<span>Razorpay POS Direct EOD Sweep</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recharge Bundles & Linked Payment Rails Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- Left 8 Columns: Recharge Bundles -->
+<div class="lg:col-span-8 bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col gap-5">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-4">
+<div>
+<h2 class="font-heading text-lg font-bold text-stone-900">Select Recharge Bundle</h2>
+<p class="text-xs text-stone-500 mt-0.5">Credits reflect instantly in your WhatsApp Meta Cloud conversation bucket with automated 18% GST invoice generation.</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 font-semibold text-[11px] self-start sm:self-auto border border-stone-200">Instant Top-Up</span>
+</div>
+<!-- 3 Pricing Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Pack 1: Starter -->
+<div class="bundle-card cursor-pointer rounded-xl border border-stone-200 bg-white p-4 transition-all hover:border-stone-300 hover:shadow-sm flex flex-col justify-between" onclick="selectBundle(this, 999)">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Starter</span>
+<span class="w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center radio-indicator"></span>
+</div>
+<div class="mt-3">
+<span class="font-heading text-2xl font-extrabold text-stone-900">₹999</span>
+<span class="text-[11px] text-stone-400 block mt-0.5">+ 18% GST</span>
+</div>
+<div class="mt-4 space-y-2 text-xs text-stone-700">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-crimson">chat</span>
+<span>~1,380 messages</span>
+</div>
+<div class="flex items-center gap-1.5 text-stone-500">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span>Standard Queue</span>
+</div>
+</div>
+</div>
+<button class="mt-5 w-full py-2 rounded-lg bg-stone-100 text-stone-800 text-xs font-bold hover:bg-stone-200 transition-colors" type="button">
+                Choose ₹999
+              </button>
+</div>
+<!-- Pack 2: Growth (Highlighted / Popular) -->
+<div class="bundle-card selected cursor-pointer rounded-xl border-2 border-crimson bg-white p-4 shadow-sm transition-all flex flex-col justify-between relative" onclick="selectBundle(this, 2499)">
+<!-- Floating Popular Badge -->
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-crimson text-white text-[10px] font-extrabold uppercase tracking-wider shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">bolt</span> MOST POPULAR
+              </div>
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-crimson uppercase tracking-wider">Growth</span>
+<span class="w-4 h-4 rounded-full bg-crimson text-white flex items-center justify-center radio-indicator">
+<span class="material-symbols-outlined text-[12px]">check</span>
+</span>
+</div>
+<div class="mt-3">
+<span class="font-heading text-2xl font-extrabold text-stone-900">₹2,499</span>
+<span class="text-[11px] text-stone-400 block mt-0.5">+ 18% GST</span>
+</div>
+<div class="mt-4 space-y-2 text-xs">
+<div class="flex items-center gap-1.5 text-stone-800 font-semibold">
+<span class="material-symbols-outlined text-[16px] text-crimson">chat</span>
+<span>~3,500 messages</span>
+</div>
+<div class="flex items-center gap-1.5 text-amber-700 font-bold">
+<span class="material-symbols-outlined text-[16px]">stars</span>
+<span>+ 5% Bonus (175 msgs)</span>
+</div>
+<div class="flex items-center gap-1.5 text-stone-500">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+<span>Priority Meta Queue</span>
+</div>
+</div>
+</div>
+<button class="mt-5 w-full py-2 rounded-lg bg-crimson text-white text-xs font-bold hover:bg-crimson-600 transition-colors shadow-sm" type="button">
+                Choose ₹2,499
+              </button>
+</div>
+<!-- Pack 3: Scale Pro -->
+<div class="bundle-card cursor-pointer rounded-xl border border-stone-200 bg-white p-4 transition-all hover:border-stone-300 hover:shadow-sm flex flex-col justify-between" onclick="selectBundle(this, 9999)">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-amber-700 uppercase tracking-wider">Scale Pro</span>
+<span class="w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center radio-indicator"></span>
+</div>
+<div class="mt-3">
+<span class="font-heading text-2xl font-extrabold text-stone-900">₹9,999</span>
+<span class="text-[11px] text-stone-400 block mt-0.5">+ 18% GST</span>
+</div>
+<div class="mt-4 space-y-2 text-xs text-stone-700">
+<div class="flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px] text-crimson">chat</span>
+<span>~14,200 messages</span>
+</div>
+<div class="flex items-center gap-1.5 text-amber-700 font-bold">
+<span class="material-symbols-outlined text-[16px]">stars</span>
+<span>+ 12% Extra Bonus</span>
+</div>
+<div class="flex items-center gap-1.5 text-stone-500">
+<span class="material-symbols-outlined text-[16px]">support_agent</span>
+<span>Dedicated CAM Account</span>
+</div>
+</div>
+</div>
+<button class="mt-5 w-full py-2 rounded-lg bg-stone-100 text-stone-800 text-xs font-bold hover:bg-stone-200 transition-colors" type="button">
+                Choose ₹9,999
+              </button>
+</div>
+</div>
+<!-- Custom Recharge Input Bar -->
+<div class="p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<span class="text-xs font-bold text-stone-700 whitespace-nowrap">Custom Recharge:</span>
+<div class="relative w-full sm:w-44">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 font-bold text-xs">₹</span>
+<input class="w-full pl-7 pr-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold text-stone-900 focus:outline-none focus:border-crimson focus:ring-1 focus:ring-crimson" id="customAmountInput" min="500" placeholder="e.g. 5,000" step="500" type="number" value="2499"/>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-stone-500 text-[11px] font-medium">
+<span class="material-symbols-outlined text-[16px] text-emerald-600">verified</span>
+<span>Min ₹500 • Instant WhatsApp Gateway Allocation</span>
+</div>
+<button class="w-full sm:w-auto px-4 py-2 rounded-lg bg-crimson text-white text-xs font-bold hover:bg-crimson-600 transition-colors" onclick="handleRechargeSubmit()" type="button">
+              Proceed to Payment
+            </button>
+</div>
+</div>
+<!-- Right 4 Columns: Linked Payment Rails & Spend Protection -->
+<div class="lg:col-span-4 space-y-4">
+<!-- Linked Payment Rails Card -->
+<div class="bg-white rounded-xl border border-stone-200 p-5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-stone-100 pb-3">
+<h3 class="font-heading text-sm font-bold text-stone-900">Linked Payment Rails</h3>
+<button class="text-xs font-bold text-crimson hover:underline" type="button">+ Add New</button>
+</div>
+<div class="space-y-2">
+<!-- Method 1: Razorpay UPI (Default) -->
+<label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50/70 hover:bg-stone-50 cursor-pointer transition-colors">
+<div class="flex items-center gap-2.5">
+<input checked="" class="w-4 h-4 text-crimson focus:ring-crimson border-stone-300" name="paymentRail" type="radio"/>
+<div class="w-8 h-8 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-crimson">
+<span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900 leading-tight">Razorpay UPI Auto-Pay</span>
+<span class="text-[11px] text-stone-500">damigos@okhdfcbank</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">Default</span>
+</label>
+<!-- Method 2: HDFC Corporate NetBanking -->
+<label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer transition-colors">
+<div class="flex items-center gap-2.5">
+<input class="w-4 h-4 text-crimson focus:ring-crimson border-stone-300" name="paymentRail" type="radio"/>
+<div class="w-8 h-8 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600">
+<span class="material-symbols-outlined text-[18px]">account_balance</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900 leading-tight">HDFC Corporate NetBanking</span>
+<span class="text-[11px] text-stone-500">A/C •••• 9840</span>
+</div>
+</div>
+</label>
+<!-- Method 3: ICICI Visa -->
+<label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer transition-colors">
+<div class="flex items-center gap-2.5">
+<input class="w-4 h-4 text-crimson focus:ring-crimson border-stone-300" name="paymentRail" type="radio"/>
+<div class="w-8 h-8 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600">
+<span class="material-symbols-outlined text-[18px]">credit_card</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900 leading-tight">Corporate Visa •••• 4012</span>
+<span class="text-[11px] text-stone-500">Exp 09/28 (ICICI)</span>
+</div>
+</div>
+</label>
+</div>
+<!-- GSTIN Pill Block -->
+<div class="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-600 text-[18px]">domain_verification</span>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900 leading-tight">GSTIN: 07AABFD4491K1Z8</span>
+<span class="text-[10px] text-stone-500 font-semibold tracking-wide">D'A-MIGO HOSPITALITY LLP</span>
+</div>
+</div>
+<button class="text-xs text-crimson font-semibold hover:underline" type="button">Edit</button>
+</div>
+</div>
+<!-- Meta Spend Protection Guarantee Note -->
+<div class="bg-white rounded-xl border border-stone-200 p-4 shadow-sm flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-crimson-50 border border-crimson-100 text-crimson flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">shield</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-stone-900">Meta Spend Protection Guarantee</span>
+<p class="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                Automated campaign throttling halts broadcast if guest opt-out rate exceeds 1.2% in any 3-hour window.
+              </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Daily Transaction & API Ledger Section -->
+<div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col gap-4">
+<!-- Table Controls & Filter Tabs -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-stone-100">
+<div>
+<h2 class="font-heading text-lg font-bold text-stone-900">Daily Transaction &amp; API Ledger</h2>
+<p class="text-xs text-stone-500">Real-time debit records for WhatsApp utility alerts, promotional marketing campaigns, and wallet credits.</p>
+</div>
+<!-- Filter Tabs -->
+<div class="flex items-center gap-1 p-1 bg-stone-100 rounded-lg self-start md:self-auto border border-stone-200/60">
+<button class="ledger-tab-btn active px-3 py-1.5 rounded-md text-xs font-bold bg-white text-stone-900 shadow-sm border border-stone-200/80 transition-all" onclick="filterTable('all', this)" type="button">
+              All Transactions
+            </button>
+<button class="ledger-tab-btn px-3 py-1.5 rounded-md text-xs font-medium text-stone-600 hover:text-stone-900 transition-all" onclick="filterTable('deductions', this)" type="button">
+              Deductions (Meta Campaigns)
+            </button>
+<button class="ledger-tab-btn px-3 py-1.5 rounded-md text-xs font-medium text-stone-600 hover:text-stone-900 transition-all" onclick="filterTable('topups', this)" type="button">
+              Top-Ups &amp; Refunds
+            </button>
+</div>
+</div>
+<!-- Ledger Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="bg-stone-50/80 text-stone-500 font-bold uppercase tracking-wider text-[11px] border-b border-stone-200">
+<th class="py-3 px-4">Transaction ID</th>
+<th class="py-3 px-4">Date &amp; Time</th>
+<th class="py-3 px-4">Description / Campaign</th>
+<th class="py-3 px-4">Type</th>
+<th class="py-3 px-4">Units / Metric</th>
+<th class="py-3 px-4 text-right">Amount</th>
+<th class="py-3 px-4 text-center">Tax Invoice</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-stone-100 text-stone-700" id="ledgerTableBody">
+<!-- Row 1: Campaign Send (Debit) -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="deductions">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-89412</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">Today, 2:45 PM</span>
+<span class="text-[10px] text-stone-400">Server Seq: 091-G</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-crimson shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">Campaign Broadcast: Tandoori Tuesday</span>
+<span class="text-[11px] text-stone-500">Segment: High AOV Dinner Guests (Sector 29)</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">
+                    Campaign Send (Debit)
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  420 msgs @ ₹0.72
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-crimson text-sm">
+                  - ₹302.40
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-89412')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Top-Up Credit -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="topups">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-89380</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">Today, 09:12 AM</span>
+<span class="text-[10px] text-stone-400">UPI Ref: 4099120894</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">Razorpay Auto-Recharge (Low Balance Rule)</span>
+<span class="text-[11px] text-stone-500">Trigger: Threshold breached (&lt; ₹500)</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                    Wallet Recharge (Credit)
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  Instant Top-Up Pack
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-emerald-700 text-sm">
+                  + ₹2,500.00
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-89380')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Counter Loyalty Reward Burn -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="deductions">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-89244</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">Yesterday, 9:20 PM</span>
+<span class="text-[10px] text-stone-400">POS Terminal #03</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-600 shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">Counter Reward Credit Burn</span>
+<span class="text-[11px] text-stone-500">Guest: Rohit Khurana • Table 12 Redemptions</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                    Privilege Burn (Debit)
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  1 Session Burn
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-crimson text-sm">
+                  - ₹180.00
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-89244')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: AI Poster Generation Batch -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="deductions">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-89105</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">Yesterday, 4:10 PM</span>
+<span class="text-[10px] text-stone-400">AI Studio Module</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">AI Poster Generation Batch (Weekend Specials)</span>
+<span class="text-[11px] text-stone-500">Midjourney V6 + SDXL High Res Renders</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold">
+                    AI Studio Compute
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  6 Creative Assets
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-crimson text-sm">
+                  - ₹90.00
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-89105')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Dispute Refund -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="topups">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-88902</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">23 Mar, 10:05 AM</span>
+<span class="text-[10px] text-stone-400">Audit Auto-Reversal</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">Dispute Refund: Undelivered Inactive WhatsApp Numbers</span>
+<span class="text-[11px] text-stone-500">Meta Error 131026 Automatic Credit Adjustment</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                    Dispute Refund (Credit)
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  68 Undelivered msgs
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-emerald-700 text-sm">
+                  + ₹48.96
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-88902')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+<!-- Row 6: Live Band Campaign -->
+<tr class="hover:bg-stone-50/70 transition-colors" data-type="deductions">
+<td class="py-3.5 px-4 font-mono font-bold text-stone-900">#TXN-88711</td>
+<td class="py-3.5 px-4">
+<span class="text-stone-900 font-semibold block leading-tight">22 Mar, 1:15 PM</span>
+<span class="text-[10px] text-stone-400">Campaign Blast #302</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-crimson shrink-0"></span>
+<div class="flex flex-col">
+<span class="font-semibold text-stone-900 leading-tight">Campaign: Sufi Night Table Bookings</span>
+<span class="text-[11px] text-stone-500">Segment: Repeat Weekend Visitors</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">
+                    Campaign Send (Debit)
+                  </span>
+</td>
+<td class="py-3.5 px-4 font-medium text-stone-800">
+                  1,120 msgs @ ₹0.72
+                </td>
+<td class="py-3.5 px-4 text-right font-bold text-crimson text-sm">
+                  - ₹806.40
+                </td>
+<td class="py-3.5 px-4 text-center">
+<button class="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold" onclick="downloadSingleInvoice('TXN-88711')" type="button">
+<span class="material-symbols-outlined text-[15px] text-red-600">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-stone-100 text-xs text-stone-500">
+<div class="flex items-center gap-2 font-medium">
+<span>Showing 6 of 148 recorded transactions (March 2025)</span>
+<span class="w-1 h-1 rounded-full bg-stone-300"></span>
+<span class="text-emerald-700 font-semibold">All logs synced with Meta Cloud API Webhooks</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="px-3 py-1.5 rounded-lg border border-stone-200 text-stone-400 bg-stone-50 font-medium cursor-not-allowed" disabled="" type="button">Previous</button>
+<button class="px-3 py-1.5 rounded-lg bg-crimson text-white font-bold" type="button">1</button>
+<button class="px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 font-medium transition-colors" type="button">2</button>
+<button class="px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 font-medium transition-colors" type="button">3</button>
+<button class="px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 font-medium transition-colors" type="button">Next</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Interactive Logic Script -->
+<script>
+    let autoRechargeActive = true;
+    let selectedAmount = 2499;
+
+    function toggleAutoRecharge() {
+      autoRechargeActive = !autoRechargeActive;
+      const toggle = document.getElementById('autoRechargeToggle');
+      const pin = document.getElementById('autoRechargePin');
+      const label = document.getElementById('autoRechargeStatusText');
+
+      if (autoRechargeActive) {
+        toggle.className = 'relative inline-flex h-5 w-10 items-center rounded-full bg-crimson transition-colors focus:outline-none';
+        pin.className = 'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-5';
+        label.innerText = 'ON';
+        label.className = 'text-xs font-bold text-crimson';
+      } else {
+        toggle.className = 'relative inline-flex h-5 w-10 items-center rounded-full bg-stone-300 transition-colors focus:outline-none';
+        pin.className = 'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-1';
+        label.innerText = 'OFF';
+        label.className = 'text-xs font-bold text-stone-400';
+      }
+    }
+
+    function selectBundle(element, amount) {
+      selectedAmount = amount;
+      document.querySelectorAll('.bundle-card').forEach(card => {
+        card.classList.remove('selected', 'border-2', 'border-crimson');
+        card.classList.add('border', 'border-stone-200');
+        const indicator = card.querySelector('.radio-indicator');
+        if (indicator) {
+          indicator.className = 'w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center radio-indicator';
+          indicator.innerHTML = '';
+        }
+        const btn = card.querySelector('button');
+        if (btn) {
+          btn.className = 'mt-5 w-full py-2 rounded-lg bg-stone-100 text-stone-800 text-xs font-bold hover:bg-stone-200 transition-colors';
+        }
+      });
+
+      element.classList.add('selected', 'border-2', 'border-crimson');
+      element.classList.remove('border-stone-200');
+      const activeIndicator = element.querySelector('.radio-indicator');
+      if (activeIndicator) {
+        activeIndicator.className = 'w-4 h-4 rounded-full bg-crimson text-white flex items-center justify-center radio-indicator';
+        activeIndicator.innerHTML = '<span class="material-symbols-outlined text-[12px]">check</span>';
+      }
+
+      const activeBtn = element.querySelector('button');
+      if (activeBtn) {
+        activeBtn.className = 'mt-5 w-full py-2 rounded-lg bg-crimson text-white text-xs font-bold hover:bg-crimson-600 transition-colors shadow-sm';
+      }
+
+      const customInput = document.getElementById('customAmountInput');
+      if (customInput) customInput.value = amount;
+    }
+
+    function scrollToTopUp(amount) {
+      const customInput = document.getElementById('customAmountInput');
+      if (customInput) {
+        customInput.value = amount;
+        customInput.focus();
+      }
+      window.scrollTo({
+        top: 260,
+        behavior: 'smooth'
+      });
+    }
+
+    function handleRechargeSubmit() {
+      const customInput = document.getElementById('customAmountInput');
+      const amt = customInput && customInput.value ? customInput.value : selectedAmount;
+      alert('Initiating direct encrypted Razorpay checkout for ₹' + amt + ' + 18% GST for WhatsApp Meta Cloud API credits.');
+    }
+
+    function triggerInvoiceDownload() {
+      alert('Generating consolidated GST Tax Invoices (PDF/Zip) for FY 2024-25. Download will start momentarily.');
+    }
+
+    function downloadSingleInvoice(txnId) {
+      alert('Downloading GST Tax Invoice for transaction: ' + txnId);
+    }
+
+    function filterTable(filter, button) {
+      document.querySelectorAll('.ledger-tab-btn').forEach(btn => {
+        btn.className = 'ledger-tab-btn px-3 py-1.5 rounded-md text-xs font-medium text-stone-600 hover:text-stone-900 transition-all';
+      });
+      button.className = 'ledger-tab-btn active px-3 py-1.5 rounded-md text-xs font-bold bg-white text-stone-900 shadow-sm border border-stone-200/80 transition-all';
+
+      const rows = document.querySelectorAll('#ledgerTableBody tr');
+      rows.forEach(row => {
+        const rowType = row.getAttribute('data-type');
+        if (filter === 'all' || filter === rowType) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body></html>

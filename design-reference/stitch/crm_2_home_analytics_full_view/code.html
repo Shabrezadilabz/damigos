@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-fixed": "#410007", "secondary": "#b6162b", "primary-fixed-dim": "#ffb3b1", "outline": "#8f6f6e", "on-tertiary-container": "#fffbff", "surface-container-high": "#eae7e7", "background": "#fcf9f8", "on-error": "#ffffff", "on-secondary-container": "#fffbff", "inverse-primary": "#ffb3b1", "on-error-container": "#93000a", "inverse-on-surface": "#f3f0ef", "tertiary": "#775600", "on-tertiary": "#ffffff", "on-background": "#1b1b1b", "on-primary-container": "#fffbff", "primary-fixed": "#ffdad8", "on-secondary": "#ffffff", "error": "#ba1a1a", "on-primary": "#ffffff", "inverse-surface": "#313030", "on-tertiary-fixed-variant": "#5d4200", "on-surface-variant": "#5b403f", "secondary-fixed": "#ffdad8", "on-tertiary-fixed": "#261900", "tertiary-fixed-dim": "#f3bf51", "surface-tint": "#bb162c", "surface": "#fcf9f8", "surface-container-highest": "#e5e2e1", "secondary-container": "#d93440", "on-secondary-fixed": "#410007", "on-secondary-fixed-variant": "#92001c", "surface-dim": "#dcd9d9", "on-surface": "#1b1b1b", "primary": "#b7122a", "surface-container": "#f0eded", "outline-variant": "#e4bebc", "tertiary-container": "#966e00", "surface-container-lowest": "#ffffff", "error-container": "#ffdad6", "on-primary-fixed-variant": "#92001c", "surface-container-low": "#f6f3f2", "primary-container": "#db313f", "secondary-fixed-dim": "#ffb3b1", "surface-variant": "#e5e2e1", "tertiary-fixed": "#ffdea3", "surface-bright": "#fcf9f8" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "space-xl": "2rem", "gutter": "0.75rem", "space-lg": "1.5rem", "space-md": "1rem" }, "fontFamily": { "label-lg": ["Inter"], "body-lg": ["Inter"], "price-md": ["Inter"], "body-md": ["Inter"], "body-sm": ["Inter"], "label-md": ["Inter"], "headline-xl": ["Plus Jakarta Sans"], "price-lg": ["Inter"], "headline-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "label-sm": ["Inter"] }, "fontSize": { "label-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "price-md": ["15px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-xl": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "price-lg": ["20px", { "lineHeight": "24px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "headline-md": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-sm": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "title-md": ["15px", { "lineHeight": "20px", "fontWeight": "600" }], "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.04em", "fontWeight": "700" }] } } } }</script></head><body class="bg-surface font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-6"><div class="flex flex-col gap-6"><div class="px-5"><div class="flex items-center gap-3 mb-5"><div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-headline-md text-headline-md">D</div><div><div class="font-headline-sm text-headline-sm tracking-tight text-on-surface">D'aMigo's</div><div class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Guest OS</div></div></div><div class="p-2.5 rounded-xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex items-center justify-between"><div class="flex items-center gap-2.5 overflow-hidden"><div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-sm text-headline-sm flex-shrink-0">CK</div><div class="truncate"><div class="font-title-md text-title-md truncate text-on-surface">Cloud Kitchen Demo</div><div class="font-body-sm text-body-sm text-on-surface-variant truncate">Sector 29 Hub</div></div></div><div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-high flex-shrink-0"><span class="w-2 h-2 rounded-full bg-[#24963F]"></span><span class="font-label-sm text-label-sm text-on-surface">Live</span></div></div></div><nav class="flex flex-col gap-1 px-3" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">home</span><span>Home</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="menu" href="#"><span class="material-symbols-outlined text-[20px]">restaurant_menu</span><span>Menu</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="grow" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span>Grow</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="orders" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span>Orders</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Settings</span></a></nav></div><div class="px-4"><div class="p-3 rounded-xl bg-surface-container-lowest flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface">Operator Admin</span><span class="font-label-sm text-label-sm text-on-surface-variant">WhatsApp CRM</span></div></div><span class="material-symbols-outlined text-on-surface-variant text-[18px]">expand_more</span></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-3"><div class="px-3 py-1.5 rounded-lg bg-surface-container-low flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-primary">lock</span><span class="font-label-md text-label-md text-on-surface-variant">d-amigos.in/portal</span></div></div><div class="flex items-center gap-4"><button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all"><span class="material-symbols-outlined text-[18px]">search</span><span>Search guest, table or order...</span><span class="px-1.5 py-0.5 rounded bg-surface-container-highest font-label-sm text-label-sm">⌘K</span></button><div class="flex items-center gap-2"><button class="w-9 h-9 rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface flex items-center justify-center transition-all"><span class="material-symbols-outlined text-[20px]">notifications</span></button><button class="w-9 h-9 rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface flex items-center justify-center transition-all"><span class="material-symbols-outlined text-[20px]">sync</span></button></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 bg-surface min-h-screen w-full px-8 py-6"><div class="flex flex-col w-full">
+<!-- Sub-Header & Live Segmented Navigation -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-surface-container">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">Guest OS Central</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Telemetry &amp; Conversion Engine</span>
+</div>
+<div class="flex items-center gap-3">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">WhatsApp Experience Control</h1>
+<div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-high">
+<span class="w-2 h-2 rounded-full bg-[#24963F] animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">36 Tables Active</span>
+</div>
+</div>
+</div>
+<!-- Right Controls: Segmented View + Broadcast CTA -->
+<div class="flex items-center gap-3 flex-wrap">
+<!-- Segmented View Toggle -->
+<div class="flex items-center p-1 rounded-xl bg-surface-container-high shadow-inner">
+<a class="px-3.5 py-1.5 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-[16px]">dashboard</span>
+<span>Overview</span>
+</a>
+<button class="px-3.5 py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm flex items-center gap-1.5 transition-all">
+<span class="material-symbols-outlined text-[16px]">monitoring</span>
+<span>Analytics</span>
+<span class="px-1.5 py-0.2 rounded-full bg-on-primary/20 text-on-primary font-label-sm text-label-sm uppercase">Live Beta</span>
+</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary hover:bg-primary text-on-primary font-label-md text-label-md shadow-sm hover:shadow transition-all">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+<span>+ Broadcast Flash Deal</span>
+</button>
+</div>
+</div>
+<!-- KPI Top Metric Ribbon (4 Responsive Bento Cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+<!-- Card 1: Direct GMV -->
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+<div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-bl from-primary/10 via-transparent to-transparent pointer-events-none rounded-tr-2xl"></div>
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Total Direct GMV (30d)</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">currency_rupee</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">₹8,42,650</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#24963F]/10 text-[#24963F] font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +18.4%
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">vs last 30d window</span>
+</div>
+</div>
+<!-- Card 2: Conversion Rate -->
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Scan-to-Order Rate</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">64.2%</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-primary/10 text-primary font-label-sm text-label-sm font-bold">
+          2.0x
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Industry norm ~32%</span>
+</div>
+</div>
+<!-- Card 3: Guest Opt-ins Captured -->
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Guest Profiles Captured</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">14,890</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#24963F]/10 text-[#24963F] font-label-sm text-label-sm font-bold">
+          99.2%
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">DPDP act opt-in valid</span>
+</div>
+</div>
+<!-- Card 4: Average Order Value -->
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Average Order Value (AOV)</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">shopping_bag</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">₹1,480</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#24963F]/10 text-[#24963F] font-label-sm text-label-sm font-bold">
+          +₹360
+        </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">vs Aggregators (₹1,120)</span>
+</div>
+</div>
+</div>
+<!-- Primary Deep-Dive: End-to-End Guest Ordering & Loyalty Funnel -->
+<div class="mt-6 p-6 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex flex-col gap-6">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">End-to-End Guest Ordering &amp; Loyalty Funnel</h2>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant font-medium">Direct WhatsApp Webview</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Full interaction path from physical scan, gamified wheel interaction, to repeat reorders.</p>
+</div>
+<div class="flex items-center gap-2.5">
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low font-label-md text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span>Last 30 Days (Oct 24 - Nov 23)</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+<button class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md text-label-md transition-all">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Funnel Visual Architecture -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
+<!-- Stage 1 -->
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between relative group hover:bg-surface-container transition-all">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">Stage 01</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">qr_code_2</span>
+</div>
+<div class="font-title-md text-title-md text-on-surface mb-1">Packaging Sticker Scan</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">14,890</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Unique Visitors</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Pass Through</span>
+<span class="font-bold text-on-surface">100%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between relative group hover:bg-surface-container transition-all">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">Stage 02</span>
+<span class="material-symbols-outlined text-[18px] text-tertiary">casino</span>
+</div>
+<div class="font-title-md text-title-md text-on-surface mb-1">Spun Loyalty Wheel</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">11,204</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Active Gamified Diners</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Drop: -24.8%</span>
+<span class="font-bold text-on-surface">75.2%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 75.2%"></div>
+</div>
+</div>
+</div>
+<!-- Stage 3 -->
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between relative group hover:bg-surface-container transition-all">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">Stage 03</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">restaurant</span>
+</div>
+<div class="font-title-md text-title-md text-on-surface mb-1">Viewed Direct Menu</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">10,480</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Browsed 3+ Categories</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Drop: -4.8%</span>
+<span class="font-bold text-on-surface">70.4%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 70.4%"></div>
+</div>
+</div>
+</div>
+<!-- Stage 4 (Critical Conversion) -->
+<div class="p-4 rounded-xl bg-primary/5 flex flex-col justify-between relative group hover:bg-primary/10 transition-all">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">Stage 04 • Core</span>
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+</div>
+<div class="font-title-md text-title-md text-on-surface mb-1">Placed Direct Order</div>
+<div class="font-headline-md text-headline-md text-primary font-bold tracking-tight">9,560</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Paid via UPI / Cash</div>
+</div>
+<div class="mt-4 pt-3 border-t border-primary/20">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Net Conversion</span>
+<span class="font-bold text-primary">64.2%</span>
+</div>
+<div class="w-full bg-primary/20 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 64.2%"></div>
+</div>
+</div>
+</div>
+<!-- Stage 5 (Repeat Loyalty) -->
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between relative group hover:bg-surface-container transition-all">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">Stage 05</span>
+<span class="material-symbols-outlined text-[18px] text-tertiary">repeat</span>
+</div>
+<div class="font-title-md text-title-md text-on-surface mb-1">Reordered (14 Days)</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">3,824</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">High-LTV Regulars</div>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Repeat Velocity</span>
+<span class="font-bold text-on-surface">40.0%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 40%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Funnel Insight Banner -->
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">lightbulb</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold">Key Insight: Gamification Anchor Spike.</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant ml-1">Guests who spun the loyalty reward wheel convert 3.1x faster than guests skipping directly to raw catalog view.</span>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-primary hover:bg-surface-container-high font-label-md text-label-md font-semibold transition-all flex items-center gap-1 flex-shrink-0">
+<span>A/B Test Wheel Offers</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Two-Column Analytics Row -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+<!-- Left Column (7/12 ~ 60%): Hourly Demand & Peak Kitchen Heatmap -->
+<div class="lg:col-span-7 p-6 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Hourly Demand &amp; Kitchen Rush Analysis</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Order distribution by hour (12:00 PM – 11:00 PM)</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Peak Rush</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-surface-container-high"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Regular</span>
+</div>
+</div>
+</div>
+<!-- SVG Bar Chart Visualization -->
+<div class="w-full pt-4 pb-2">
+<svg aria-label="Hourly order bar chart" class="w-full h-44 overflow-visible" viewbox="0 0 580 180">
+<!-- Grid Lines -->
+<line class="text-surface-container" stroke="currentColor" stroke-dasharray="3 3" x1="30" x2="570" y1="20" y2="20"></line>
+<line class="text-surface-container" stroke="currentColor" stroke-dasharray="3 3" x1="30" x2="570" y1="70" y2="70"></line>
+<line class="text-surface-container" stroke="currentColor" stroke-dasharray="3 3" x1="30" x2="570" y1="120" y2="120"></line>
+<line class="text-surface-container-high" stroke="currentColor" x1="30" x2="570" y1="150" y2="150"></line>
+<!-- Axis Labels Y -->
+<text class="text-[10px] fill-current text-on-surface-variant font-label-sm" text-anchor="end" x="22" y="24">300</text>
+<text class="text-[10px] fill-current text-on-surface-variant font-label-sm" text-anchor="end" x="22" y="74">200</text>
+<text class="text-[10px] fill-current text-on-surface-variant font-label-sm" text-anchor="end" x="22" y="124">100</text>
+<!-- 12 PM -->
+<rect class="fill-current text-surface-container-high hover:opacity-80 transition-opacity" height="45" rx="4" width="28" x="42" y="105"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="56" y="165">12P</text>
+<!-- 1 PM -->
+<rect class="fill-current text-surface-container-highest hover:opacity-80 transition-opacity" height="75" rx="4" width="28" x="88" y="75"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="102" y="165">1P</text>
+<!-- 2 PM -->
+<rect class="fill-current text-surface-container-highest hover:opacity-80 transition-opacity" height="85" rx="4" width="28" x="134" y="65"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="148" y="165">2P</text>
+<!-- 3 PM -->
+<rect class="fill-current text-surface-container-high hover:opacity-80 transition-opacity" height="25" rx="4" width="28" x="180" y="125"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="194" y="165">3P</text>
+<!-- 4 PM -->
+<rect class="fill-current text-surface-container-high hover:opacity-80 transition-opacity" height="18" rx="4" width="28" x="226" y="132"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="240" y="165">4P</text>
+<!-- 5 PM -->
+<rect class="fill-current text-surface-container-high hover:opacity-80 transition-opacity" height="32" rx="4" width="28" x="272" y="118"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="286" y="165">5P</text>
+<!-- 6 PM -->
+<rect class="fill-current text-surface-container-highest hover:opacity-80 transition-opacity" height="60" rx="4" width="28" x="318" y="90"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="332" y="165">6P</text>
+<!-- 7 PM -->
+<rect class="fill-current text-secondary hover:opacity-80 transition-opacity" height="90" rx="4" width="28" x="364" y="60"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="378" y="165">7P</text>
+<!-- 8 PM (PEAK CRIMSON) -->
+<rect class="fill-current text-primary hover:opacity-90 transition-opacity" height="126" rx="4" width="28" x="410" y="24"></rect>
+<text class="text-[11px] fill-current text-primary font-bold" text-anchor="middle" x="424" y="18">292</text>
+<text class="text-[11px] fill-current text-primary font-bold" text-anchor="middle" x="424" y="165">8P</text>
+<!-- 9 PM (PEAK CRIMSON) -->
+<rect class="fill-current text-primary hover:opacity-90 transition-opacity" height="132" rx="4" width="28" x="456" y="18"></rect>
+<text class="text-[11px] fill-current text-primary font-bold" text-anchor="middle" x="470" y="12">310</text>
+<text class="text-[11px] fill-current text-primary font-bold" text-anchor="middle" x="470" y="165">9P</text>
+<!-- 10 PM -->
+<rect class="fill-current text-secondary hover:opacity-80 transition-opacity" height="98" rx="4" width="28" x="502" y="52"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="516" y="165">10P</text>
+<!-- 11 PM -->
+<rect class="fill-current text-surface-container-high hover:opacity-80 transition-opacity" height="40" rx="4" width="28" x="548" y="110"></rect>
+<text class="text-[11px] fill-current text-on-surface-variant font-label-sm" text-anchor="middle" x="562" y="165">11P</text>
+</svg>
+</div>
+</div>
+<!-- Dine-in vs Delivery Fulfillment Split -->
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-surface-container mt-2">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-low">
+<div class="w-9 h-9 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">table_bar</span>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase font-semibold">Dine-in QR Scan</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">68.4% <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">(6,539 orders)</span></div>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-low">
+<div class="w-9 h-9 rounded-lg bg-surface-container-lowest text-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">delivery_dining</span>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase font-semibold">WhatsApp Delivery</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">31.6% <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">(3,021 orders)</span></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (5/12 ~ 40%): Customer Retention & Commission Savings -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Retention Tier Breakdown -->
+<div class="p-6 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Customer Loyalty Segments</h2>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface font-semibold">14,890 Total</span>
+</div>
+<div class="space-y-4">
+<!-- First Timers -->
+<div>
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-surface-container-highest"></span> First-Time Scanners
+                </span>
+<span class="font-label-md text-label-md text-on-surface font-bold">35% <span class="text-on-surface-variant font-normal">(5,212)</span></span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-outline-variant h-full rounded-full" style="width: 35%"></div>
+</div>
+</div>
+<!-- Silver Repeaters -->
+<div>
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Silver Repeaters (2–4 visits)
+                </span>
+<span class="font-label-md text-label-md text-on-surface font-bold">42% <span class="text-on-surface-variant font-normal">(6,254)</span></span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<!-- Gold VIPs -->
+<div>
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span> Gold VIPs (5+ visits / VIP Club)
+                </span>
+<span class="font-label-md text-label-md text-on-surface font-bold">23% <span class="text-on-surface-variant font-normal">(3,424)</span></span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary-fixed-dim h-full rounded-full" style="width: 23%"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-container flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Monthly Churn Defense</span>
+<span class="font-label-md text-label-md text-[#24963F] font-bold">+8.6% Retained</span>
+</div>
+</div>
+<!-- Aggregator Savings Cred-Style Metallic Card -->
+<div class="p-6 rounded-2xl bg-inverse-surface text-inverse-on-surface shadow-[0_12px_24px_-6px_rgba(28,28,28,0.12)] relative overflow-hidden flex flex-col justify-between">
+<div class="absolute -right-12 -top-12 w-40 h-40 bg-gradient-to-br from-tertiary/30 via-primary/20 to-transparent rounded-full blur-xl pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary-fixed font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">savings</span> 0% Commission Direct Engine
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-on-surface/20 text-inverse-on-surface font-label-sm text-label-sm">Sector 29 Hub</span>
+</div>
+<div class="font-headline-xl text-headline-xl text-inverse-on-surface font-extrabold tracking-tight mb-1">
+            ₹2,18,400
+          </div>
+<div class="font-body-md text-body-md text-inverse-on-surface/80">
+            Net Savings vs 26% 3rd-Party Food Aggregator commissions this month alone.
+          </div>
+</div>
+<div class="mt-6 pt-4 border-t border-inverse-on-surface/10 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#24963F]"></span>
+<span class="font-body-sm text-body-sm text-inverse-on-surface/90">Pure bottom-line margin expansion</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold hover:bg-surface-container-high transition-colors">
+            Commission Report
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Data Section: Top Performing Dish & Category Conversion -->
+<div class="mt-6 p-6 rounded-2xl bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Top Performing Menu Items &amp; Visual Conversion</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Dishes driving maximum cart additions directly through WhatsApp interactive catalog.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span>Sort by:</span>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-semibold flex items-center gap-1">
+<span>Direct Revenue</span>
+<span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-container text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-3 px-4 font-semibold">Dish &amp; Classification</th>
+<th class="py-3 px-4 font-semibold">Category</th>
+<th class="py-3 px-4 font-semibold text-right">Orders Count</th>
+<th class="py-3 px-4 font-semibold text-right">Direct Revenue</th>
+<th class="py-3 px-4 font-semibold text-right">Menu View-to-Cart</th>
+<th class="py-3 px-4 font-semibold text-center">30d Velocity</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-4 h-4 rounded-sm border border-[#ba1a1a] flex items-center justify-center flex-shrink-0">
+<div class="w-0 h-0 border-x-4 border-x-transparent border-b-[7px] border-b-primary"></div>
+</div>
+<div class="font-title-md text-title-md text-on-surface font-semibold">Smoked Butter Chicken Slider Trio</div>
+</div>
+</td>
+<td class="py-3 px-4 font-body-md text-body-md text-on-surface-variant">Signature Sliders</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface text-right">1,420</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface font-bold text-right">₹6,95,800</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">34.8%</span>
+</td>
+<td class="py-3 px-4 text-center">
+<span class="inline-flex items-center gap-0.5 text-[#24963F] font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +24%
+              </span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-4 h-4 rounded-sm border border-[#24963F] flex items-center justify-center flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#24963F]"></span>
+</div>
+<div class="font-title-md text-title-md text-on-surface font-semibold">Truffle Edamame &amp; Cream Cheese Dimsum</div>
+</div>
+</td>
+<td class="py-3 px-4 font-body-md text-body-md text-on-surface-variant">Dimsum &amp; Bao</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface text-right">1,180</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface font-bold text-right">₹5,78,200</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">29.4%</span>
+</td>
+<td class="py-3 px-4 text-center">
+<span class="inline-flex items-center gap-0.5 text-[#24963F] font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +18%
+              </span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-4 h-4 rounded-sm border border-[#ba1a1a] flex items-center justify-center flex-shrink-0">
+<div class="w-0 h-0 border-x-4 border-x-transparent border-b-[7px] border-b-primary"></div>
+</div>
+<div class="font-title-md text-title-md text-on-surface font-semibold">Fiery Ghost Pepper Crispy Wings (8pc)</div>
+</div>
+</td>
+<td class="py-3 px-4 font-body-md text-body-md text-on-surface-variant">Appetizers</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface text-right">994</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface font-bold text-right">₹4,42,330</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold">25.1%</span>
+</td>
+<td class="py-3 px-4 text-center">
+<span class="inline-flex items-center gap-0.5 text-[#24963F] font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +12%
+              </span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-4 h-4 rounded-sm border border-[#24963F] flex items-center justify-center flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#24963F]"></span>
+</div>
+<div class="font-title-md text-title-md text-on-surface font-semibold">Woodfired Burrata &amp; Pesto Margherita</div>
+</div>
+</td>
+<td class="py-3 px-4 font-body-md text-body-md text-on-surface-variant">Artisan Pizza</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface text-right">865</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface font-bold text-right">₹5,01,700</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold">22.8%</span>
+</td>
+<td class="py-3 px-4 text-center">
+<span class="inline-flex items-center gap-0.5 text-on-surface-variant font-label-sm text-label-sm font-medium">
+<span class="material-symbols-outlined text-[14px]">horizontal_rule</span> 0%
+              </span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-4">
+<div class="flex items-center gap-3">
+<div class="w-4 h-4 rounded-sm border border-[#24963F] flex items-center justify-center flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#24963F]"></span>
+</div>
+<div class="font-title-md text-title-md text-on-surface font-semibold">Belgian Dark Chocolate Lava Tart</div>
+</div>
+</td>
+<td class="py-3 px-4 font-body-md text-body-md text-on-surface-variant">Dessert &amp; Pastry</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface text-right">740</td>
+<td class="py-3 px-4 font-price-md text-price-md text-on-surface font-bold text-right">₹2,59,000</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold">21.5%</span>
+</td>
+<td class="py-3 px-4 text-center">
+<span class="inline-flex items-center gap-0.5 text-error font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> -4%
+              </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer and Navigation Link back to Overview -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-5 border-t border-surface-container mt-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Showing top 5 of 68 items cataloged across 9 food categories.</span>
+<div class="flex items-center gap-3">
+<a class="px-3.5 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container font-label-md text-label-md transition-colors flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Return to CRM Overview</span>
+</a>
+<button class="px-3.5 py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-secondary transition-all">
+          Manage Menu Engineering
+        </button>
+</div>
+</div>
+</div>
+</div></main></div></body></html>
