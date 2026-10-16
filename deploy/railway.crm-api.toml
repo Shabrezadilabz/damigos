@@ -1,4 +1,4 @@
-# Link this service in Railway → Settings → Config-as-code path: deploy/railway.crm-api.toml
+# Optional — prefer Render (render.yaml). Legacy Railway config:
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "deploy/Dockerfile.crm-api"

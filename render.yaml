@@ -1,0 +1,75 @@
+# Render Blueprint — https://dashboard.render.com/
+# New → Blueprint → connect Shabrezadilabz/damigos → uses this file.
+# Frontends stay on Vercel (see docs/DEPLOY-VERCEL.md).
+
+databases:
+  - name: damigos-db
+    databaseName: damigos
+    user: damigos
+    plan: free
+
+services:
+  - type: web
+    name: damigos-crm-api
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile.crm-api
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    preDeployCommand: npm run db:migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: damigos-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OTP_BYPASS_CODE
+        value: "000000"
+      - key: ENABLE_DEV_FIXTURES
+        value: "true"
+      - key: ONBOARDING_AUTO_APPROVE
+        value: "true"
+      - key: DAMIGOS_ENV
+        value: staging
+      - key: CRM_CORS_ORIGINS
+        value: "*"
+      - key: CRM_WEB_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+
+  - type: web
+    name: damigos-guest-api
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile.guest-api
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    preDeployCommand: npm run db:migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: damigos-db
+          property: connectionString
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: damigos-crm-api
+          envVarKey: JWT_SECRET
+      - key: OTP_BYPASS_CODE
+        value: "000000"
+      - key: ENABLE_DEV_FIXTURES
+        value: "true"
+      - key: DAMIGOS_ENV
+        value: staging
+      - key: GUEST_CORS_ORIGINS
+        value: "*"
+      - key: GUEST_WEB_URL
+        sync: false

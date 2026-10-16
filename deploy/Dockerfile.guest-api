@@ -1,4 +1,4 @@
-# Railway / Docker — Guest API (monorepo root context)
+# Render / Docker — Guest API (monorepo root context)
 FROM node:20-bookworm-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*

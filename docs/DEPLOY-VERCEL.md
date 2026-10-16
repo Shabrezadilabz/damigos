@@ -1,4 +1,8 @@
-# Deploy — Vercel (frontends) + Railway (APIs)
+# Deploy — Vercel (frontends) + Render (APIs)
+
+**Backends:** [Render Dashboard](https://dashboard.render.com/) — see **[DEPLOY-RENDER.md](./DEPLOY-RENDER.md)** (Blueprint `render.yaml`).
+
+**Frontends:** Vercel (this doc).
 
 Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 
@@ -8,82 +12,48 @@ Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 |---------|------|----------------|
 | CRM web | Vercel | `apps/crm/frontend` + `vercel.json` |
 | Guest web | Vercel | `apps/guest/frontend` + `vercel.json` |
-| CRM API | Railway | `deploy/Dockerfile.crm-api`, `deploy/railway.crm-api.toml` |
-| Guest API | Railway | `deploy/Dockerfile.guest-api`, `deploy/railway.guest-api.toml` |
-| Postgres | Railway plugin | `DATABASE_URL` on **both** API services |
-| Redis (optional) | Railway | `REDIS_URL` on CRM API only |
+| CRM API | Render | `deploy/Dockerfile.crm-api`, [`render.yaml`](../render.yaml) |
+| Guest API | Render | `deploy/Dockerfile.guest-api`, [`render.yaml`](../render.yaml) |
+| Postgres | Render | `damigos-db` in Blueprint |
 
-## 1. Railway — one project, three resources
+## 1. Render (APIs + DB)
 
-1. [railway.app](https://railway.app) → **New project** → **Deploy from GitHub** → `Shabrezadilabz/damigos`.
-2. Add **PostgreSQL** → copy `DATABASE_URL` into **both** API services.
-3. **Service: crm-api**
-   - Settings → **Config-as-code**: `deploy/railway.crm-api.toml`
-   - Variables: see [`deploy/ENV.production.example`](../deploy/ENV.production.example)
-   - Generate domain → note `https://….up.railway.app`
-4. **Service: guest-api** (duplicate service from same repo)
-   - Config: `deploy/railway.guest-api.toml`
-   - Same `DATABASE_URL`, `JWT_SECRET`, pilot flags
-   - Generate domain
-5. First deploy runs `npm run db:migrate` as **release** command. Then once: Railway shell or local with prod URL:
-   ```bash
-   DATABASE_URL=... npm run db:seed
-   ```
-
-API health: `GET /health` on each Railway URL.
+Follow **[DEPLOY-RENDER.md](./DEPLOY-RENDER.md)** first. You need CRM and Guest API public URLs before wiring Vercel.
 
 ## 2. Vercel — two projects
 
 ### CRM web
 
-1. Import `Shabrezadilabz/damigos` → **Root Directory**: `apps/crm/frontend`
-2. Env:
-   - `CRM_API_PROXY_TARGET` = CRM Railway URL (no trailing slash)
-   - Or `NEXT_PUBLIC_CRM_API_URL` = same (direct browser calls)
+1. [vercel.com](https://vercel.com) → Import `Shabrezadilabz/damigos` → **Root Directory**: `apps/crm/frontend`
+2. Environment:
+   - `CRM_API_PROXY_TARGET` = `https://damigos-crm-api.onrender.com` (your Render URL)
+   - Or `NEXT_PUBLIC_CRM_API_URL` = same URL
 3. Deploy
 
 ### Guest web
 
 1. Second project → **Root Directory**: `apps/guest/frontend`
-2. Env (required at build):
-   - `NEXT_PUBLIC_GUEST_API_URL` = Guest Railway URL
-   - `NEXT_PUBLIC_SHOW_UI_DEMO=true` (pilot)
+2. Environment (build-time):
+   - `NEXT_PUBLIC_GUEST_API_URL` = Guest Render URL
+   - `NEXT_PUBLIC_SHOW_UI_DEMO=true`
 3. Deploy
 
-## 3. Wire CORS + public URLs
+## 3. Link CORS
 
-On Railway CRM API:
-
-- `CRM_WEB_URL` = your CRM Vercel URL
-- `CRM_CORS_ORIGINS=*` (pilot) or comma-list of Vercel URLs
-
-On Railway Guest API:
-
-- `GUEST_WEB_URL` = Guest Vercel URL
-- `GUEST_CORS_ORIGINS=*`
-
-Redeploy APIs after changing CORS.
+On Render, set `CRM_WEB_URL` / `GUEST_WEB_URL` to your Vercel URLs (`CRM_CORS_ORIGINS=*` is fine for pilot).
 
 ## 4. CLI (optional)
 
 ```powershell
-cd d:\ADC\prosols\damigos_main
-git push origin main
-
-# Vercel (after vercel login)
-cd apps/crm/frontend
+cd d:\ADC\prosols\damigos_main\apps\crm\frontend
 vercel link
 vercel --prod
 
-cd ../../guest/frontend
+cd ..\..\guest\frontend
 vercel link
 vercel --prod
-
-# Railway (after railway login)
-railway link
-railway up
 ```
 
 ## 5. Smoke test
 
-See [TESTING-PHASE.md](./TESTING-PHASE.md) — same phones/OTP `000000`, on production URLs.
+[TESTING-PHASE.md](./TESTING-PHASE.md) — phones + OTP `000000` on production URLs.

@@ -1,3 +1,4 @@
+# Optional — prefer Render (render.yaml). Legacy Railway config:
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "deploy/Dockerfile.guest-api"
