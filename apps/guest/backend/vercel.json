@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && npm ci",
-  "buildCommand": "cd ../.. && npm run build -w @damigos/domain && node apps/guest/backend/scripts/bundle-vercel.mjs",
+  "buildCommand": "cd ../.. && npm run build -w @damigos/domain && node guest/backend/scripts/bundle-vercel.mjs",
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "functions": {
     "api/index.ts": {
