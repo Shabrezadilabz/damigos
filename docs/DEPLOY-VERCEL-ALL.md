@@ -9,9 +9,11 @@
 
 Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 
-## 1. Database (once)
+## 1. Database (required — fixes “Unexpected token 'A' / not valid JSON”)
 
-Use **Vercel Postgres**, **Neon**, or any hosted Postgres. Copy `DATABASE_URL` into **both** API projects.
+That error means the **API Vercel functions are crashing** (HTML/plain “A server error…”), not your frontend. The CRM web proxy forwards to `damigos-crm-api`; without `DATABASE_URL` the function fails.
+
+Use **Vercel Postgres**, **Neon**, or any hosted Postgres. Copy `DATABASE_URL` into **both** API projects (`damigos-crm-api` + `damigos-guest-api`). Use the **same** `JWT_SECRET` on both.
 
 From your machine (once per environment):
 

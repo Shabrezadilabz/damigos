@@ -14,12 +14,31 @@ function crmApiBase(): string {
 const base = crmApiBase();
 
 function crmApiUnreachableMessage() {
+  if (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_CRM_API_URL?.trim()) {
+    return (
+      "CRM API is not responding. On Vercel: open project damigos-crm-api → set DATABASE_URL + JWT_SECRET → redeploy → run db:migrate and db:seed. " +
+      `Proxy: ${base} → CRM_API_PROXY_TARGET.`
+    );
+  }
   return (
     `Could not reach CRM API (proxy ${base} → port 4001). From damigos_main run: ` +
     `npm run dev:crm-api — or npm run dev:api for both APIs. ` +
-    `Ensure Docker/Postgres is up (npm run dev:infra) and .env exists. ` +
-    `Optional: NEXT_PUBLIC_CRM_API_URL=http://localhost:4001 in apps/crm/frontend/.env.local`
+    `Ensure Docker/Postgres is up (npm run dev:infra) and .env exists.`
   );
+}
+
+/** Vercel returns plain text "A server error…" when the API function crashes — avoid JSON.parse errors. */
+async function readCrmApiJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    if (/server error|invocation failed|502|504|503/i.test(text)) {
+      throw new Error(crmApiUnreachableMessage());
+    }
+    throw new Error(`CRM API returned non-JSON (${res.status}): ${text.slice(0, 120)}`);
+  }
 }
 
 export async function verifyCrmOtp(phone: string, code: string) {
@@ -28,7 +47,7 @@ export async function verifyCrmOtp(phone: string, code: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone, code }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "OTP failed");
   return data as { token: string; roles: string[]; restaurantId: string | null };
 }
@@ -48,7 +67,7 @@ export async function fetchRestaurantOperations(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load operations");
   return data as RestaurantOperations;
 }
@@ -59,7 +78,7 @@ export async function patchRestaurantOperations(restaurantId: string, orderingEn
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, orderingEnabled }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to update operations");
   return data as RestaurantOperations;
 }
@@ -69,7 +88,7 @@ export async function fetchCrmMe() {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Session expired");
   return data as { userId: string; roles: string[]; restaurantId: string | null };
 }
@@ -91,7 +110,7 @@ export async function verifyFssaiLicense(fssai: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fssai }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "FSSAI verification failed");
   return data as FssaiVerifyResponse;
 }
@@ -122,7 +141,7 @@ export async function submitOnboardingApplication(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Could not submit application");
   return data as OnboardingApplicationResponse;
 }
@@ -132,7 +151,7 @@ export async function fetchOnboardingStatus() {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Onboarding status unavailable");
   return data as {
     restaurantId: string;
@@ -166,7 +185,7 @@ async function stickerFetch<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new Error(crmApiUnreachableMessage());
   }
-  const data = await res.json().catch(() => ({}));
+  const data = await readCrmApiJson(res).catch(() => ({}));
   if (!res.ok) {
     if (res.status >= 500 && !data?.error?.message) {
       throw new Error(crmApiUnreachableMessage());
@@ -257,7 +276,7 @@ export async function fetchMenuItems(restaurantId: string, draft?: boolean) {
   } catch {
     throw new Error(`Failed to fetch menu from ${base}`);
   }
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? `Failed to load menu (${res.status})`);
   return data.items as MenuItemRow[];
 }
@@ -274,7 +293,7 @@ export async function createMenuItem(input: {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Create failed");
   return data.item as MenuItemRow;
 }
@@ -285,7 +304,7 @@ export async function deleteMenuItem(restaurantId: string, itemId: string) {
     method: "DELETE",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Delete failed");
   return data as { deleted: boolean; id: string };
 }
@@ -296,7 +315,7 @@ export async function purgeTestMenuItems(restaurantId: string) {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Purge failed");
   return data as { deletedCount: number };
 }
@@ -307,7 +326,7 @@ export async function revertMenuDrafts(restaurantId: string) {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Revert failed");
   return data as { deletedCount: number; restaurantId: string };
 }
@@ -318,7 +337,7 @@ export async function publishMenu(restaurantId: string, itemIds?: string[]) {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, itemIds }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Publish failed");
   return data;
 }
@@ -355,7 +374,7 @@ export async function startMenuPdfImport(
       `${crmApiUnreachableMessage()} If the API is running, the menu photo may exceed the upload limit — retry after restarting CRM API.`,
     );
   }
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Import start failed");
   return data.job as MenuImportJobRow;
 }
@@ -373,7 +392,7 @@ export async function fetchMenuImportJob(jobId: string) {
   if (res.status === 404) {
     throw new Error("Import job not found — it may have been cleared. Refresh the page.");
   }
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Import status failed");
   return {
     job: data.job as MenuImportJobRow,
@@ -399,7 +418,7 @@ export async function updateMenuItem(
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Update failed");
   return data.item as MenuItemRow;
 }
@@ -453,7 +472,7 @@ export async function fetchDashboardOverview(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load dashboard");
   return data as DashboardOverview;
 }
@@ -464,7 +483,7 @@ export async function fetchDashboardAnalytics(restaurantId: string, range: "7d" 
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load analytics");
   return data as DashboardAnalytics;
 }
@@ -476,7 +495,7 @@ export async function downloadDashboardAnalyticsCsv(restaurantId: string, range:
     headers: crmAuthHeaders(),
   });
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
+    const data = await readCrmApiJson(res).catch(() => ({}));
     throw new Error(data?.error?.message ?? "CSV export failed");
   }
   return res.text();
@@ -490,7 +509,7 @@ export async function fetchCrmOrders(restaurantId: string, activeKitchen?: boole
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load orders");
   return data.orders as CrmOrder[];
 }
@@ -500,7 +519,7 @@ export async function acceptCrmOrder(orderId: string) {
     method: "POST",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Accept failed");
   return data.order as CrmOrder;
 }
@@ -511,7 +530,7 @@ export async function patchCrmOrderStatus(orderId: string, status: string) {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ status }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Status update failed");
   return data.order as CrmOrder;
 }
@@ -540,7 +559,7 @@ export async function fetchGrowOffersGame(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load offers");
   return normalizeGrowOffersPayload(data);
 }
@@ -573,7 +592,7 @@ export async function saveGrowOffersGame(restaurantId: string, config: GrowLoyal
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, config }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to save loyalty configuration");
   return normalizeGrowOffersPayload(data);
 }
@@ -594,7 +613,7 @@ export async function fetchCrmCustomers(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load customers");
   return data.customers as CrmCustomerRow[];
 }
@@ -615,7 +634,7 @@ export async function fetchCrmCustomerDetail(restaurantId: string, customerId: s
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load customer");
   return data as CrmCustomerDetail;
 }
@@ -668,7 +687,7 @@ export async function generateGrowPoster(input: {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Poster generate failed");
   return data.poster as GrowPosterJob;
 }
@@ -679,7 +698,7 @@ export async function fetchGrowPoster(restaurantId: string, posterId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Poster load failed");
   return data.poster as GrowPosterJob;
 }
@@ -690,7 +709,7 @@ export async function approveGrowPoster(restaurantId: string, posterId: string) 
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Poster approve failed");
   return data.poster as GrowPosterJob;
 }
@@ -701,7 +720,7 @@ export async function fetchCrmWallet(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load wallet");
   return data as CrmWallet;
 }
@@ -716,7 +735,7 @@ export async function topUpCrmWallet(restaurantId: string, idempotencyKey: strin
     },
     body: JSON.stringify({ restaurantId, amountPaise: 99900 }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Top-up failed");
   return data.wallet as CrmWallet;
 }
@@ -737,7 +756,7 @@ export async function fetchCampaignPrograms(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load campaign programs");
   return data as { programs: CampaignProgramRow[]; enabledCount: number };
 }
@@ -752,7 +771,7 @@ export async function setCampaignProgramEnabled(
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, enabled }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to update program");
   return data as { programId: string; enabled: boolean; programs: CampaignProgramRow[] };
 }
@@ -778,7 +797,7 @@ export async function fetchCrmCampaigns(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load campaigns");
   return data.campaigns as CrmCampaign[];
 }
@@ -790,7 +809,7 @@ export async function fetchCampaignTemplates() {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load templates");
   return data.templates as CampaignTemplate[];
 }
@@ -812,7 +831,7 @@ export async function fetchCampaignAudiencePreview(
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Preview failed");
   return data as AudiencePreview;
 }
@@ -829,7 +848,7 @@ export async function createCrmCampaign(input: {
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Create campaign failed");
   return data.campaign as CrmCampaign;
 }
@@ -840,7 +859,7 @@ export async function dispatchCrmCampaign(campaignId: string, restaurantId: stri
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Dispatch failed");
   return data as { sent: number; campaign: CrmCampaign };
 }
@@ -855,7 +874,7 @@ export async function scheduleCrmCampaign(
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, scheduledAt }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) {
     const msg = data?.error?.message ?? "Schedule failed";
     const err = new Error(msg) as Error & { code?: string };
@@ -886,7 +905,7 @@ export async function fetchPayoutSettings(restaurantId: string) {
     cache: "no-store",
     headers: crmAuthHeaders(),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load payout settings");
   return data as PayoutSettings;
 }
@@ -900,7 +919,7 @@ export async function patchPayoutPos(
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
     body: JSON.stringify({ restaurantId, ...input }),
   });
-  const data = await res.json();
+  const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Save failed");
   return data as PayoutSettings;
 }

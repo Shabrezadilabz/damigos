@@ -2,11 +2,31 @@ import { authHeaders } from "./session";
 
 const base = process.env.NEXT_PUBLIC_GUEST_API_URL ?? "http://localhost:4000";
 
+function guestApiUnreachableMessage() {
+  return (
+    "Guest API is not responding. On Vercel: project damigos-guest-api → set DATABASE_URL + JWT_SECRET (same as CRM) → redeploy → db:migrate + db:seed. " +
+    `URL: ${base}`
+  );
+}
+
+async function readGuestApiJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    if (/server error|invocation failed|502|504|503/i.test(text)) {
+      throw new Error(guestApiUnreachableMessage());
+    }
+    throw new Error(`Guest API returned non-JSON (${res.status}): ${text.slice(0, 120)}`);
+  }
+}
+
 export async function resolveScanToken(token: string) {
   const res = await fetch(`${base}/v1/scan/resolve?token=${encodeURIComponent(token)}`, {
     cache: "no-store",
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) {
     throw Object.assign(new Error(data?.error?.message ?? "Scan failed"), { data, status: res.status });
   }
@@ -26,14 +46,14 @@ export async function fetchActiveOffers(restaurantId: string) {
   const res = await fetch(`${base}/v1/restaurants/${restaurantId}/offers/active`, {
     cache: "no-store",
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Offers failed");
   return data.offers as { id: string; title: string; description: string | null; terms: string | null }[];
 }
 
 export async function fetchPlayByScan(scanId: string) {
   const res = await fetch(`${base}/v1/rewards/plays/by-scan/${scanId}`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Play lookup failed");
   return data as {
     play: {
@@ -55,7 +75,7 @@ export async function spinReward(input: {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Spin failed");
   return data as { playId: string; alreadyPlayed: boolean; outcome: RewardOutcome };
 }
@@ -66,7 +86,7 @@ export async function claimReward(playId: string) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ playId }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Claim failed");
   return data;
 }
@@ -83,7 +103,7 @@ export type GuestMenuItem = {
 
 export async function fetchGuestMenu(restaurantId: string) {
   const res = await fetch(`${base}/v1/restaurants/${restaurantId}/menu`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) {
     throw Object.assign(new Error(data?.error?.message ?? "Menu failed"), {
       data,
@@ -122,7 +142,7 @@ export async function verifyGuestOtp(phone: string, code: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone, code }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "OTP failed");
   return data as { token: string; customerId: string };
 }
@@ -131,7 +151,7 @@ export async function fetchMe(token: string) {
   const res = await fetch(`${base}/v1/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Me failed");
   return data as {
     profileComplete: boolean;
@@ -146,7 +166,7 @@ export async function saveGuestProfile(token: string, name: string) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Profile failed");
   return data;
 }
@@ -194,7 +214,7 @@ export async function fetchRewardClaims(restaurantId: string) {
     headers: authHeaders(),
     cache: "no-store",
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Claims failed");
   return data.claims as RewardClaimOption[];
 }
@@ -205,7 +225,7 @@ export async function applyCartClaim(restaurantId: string, claimId: string | nul
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ restaurantId, claimId }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Apply offer failed");
   return data;
 }
@@ -215,7 +235,7 @@ export async function fetchCart(restaurantId: string) {
     headers: authHeaders(),
     cache: "no-store",
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Cart failed");
   return data as CartResponse;
 }
@@ -226,14 +246,14 @@ export async function addCartItem(restaurantId: string, menuItemId: string, quan
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ restaurantId, menuItemId, quantity }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Add failed");
   return data;
 }
 
 export async function fetchDeliveryConfig() {
   const res = await fetch(`${base}/v1/delivery/config`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   return data as { mode: "off" | "mock"; platformMarkupPaise: number };
 }
 
@@ -243,7 +263,7 @@ export async function requestDeliveryQuote(restaurantId: string, pincode: string
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ restaurantId, pincode }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Delivery quote failed");
   return data as {
     carrier: string;
@@ -278,7 +298,7 @@ export async function fetchOpenCart(): Promise<OpenCartSummary | null> {
     headers: authHeaders(),
   });
   if (res.status === 401) return null;
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Open cart failed");
   return (data.openCart as OpenCartSummary | null) ?? null;
 }
@@ -288,7 +308,7 @@ export async function clearOpenCart() {
     method: "DELETE",
     headers: authHeaders(),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Clear cart failed");
   return data as { cleared: boolean };
 }
@@ -299,14 +319,14 @@ export async function fetchHubRestaurants(city = "bangalore", q?: string) {
   const res = await fetch(`${base}/v1/hub/restaurants?${params}`, {
     cache: "no-store",
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Hub failed");
   return data.restaurants as HubRestaurant[];
 }
 
 export async function fetchCheckoutConfig() {
   const res = await fetch(`${base}/v1/checkout/config`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   return data as { paymentMode: "mock" | "stub" | "razorpay"; razorpayKeyId: string | null };
 }
 
@@ -316,7 +336,7 @@ export async function mockPay(restaurantId: string) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Payment failed");
   return data as { orderId: string; trackPath: string; totalPaise: number };
 }
@@ -336,7 +356,7 @@ export async function prepareCheckout(restaurantId: string) {
     },
     body: JSON.stringify({ restaurantId }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Prepare failed");
   return data as {
     orderId: string;
@@ -353,7 +373,7 @@ export async function confirmStubCheckout(orderId: string) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ orderId }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Confirm failed");
   return data as { trackPath: string; orderId: string };
 }
@@ -374,7 +394,7 @@ export async function verifyRazorpayCheckout(input: {
       razorpaySignature: input.razorpaySignature,
     }),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Payment verify failed");
   return data as { trackPath: string; orderId: string; status: string };
 }
@@ -391,7 +411,7 @@ export type GuestOrderSummary = {
 export async function fetchMyOrders(status?: "active" | "past") {
   const q = status ? `?status=${status}` : "";
   const res = await fetch(`${base}/v1/me/orders${q}`, { headers: authHeaders(), cache: "no-store" });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Orders failed");
   return data.orders as GuestOrderSummary[];
 }
@@ -405,7 +425,7 @@ export async function saveGuestConsents(
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
   });
-  const data = await res.json();
+  const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(data?.error?.message ?? "Consents failed");
   return data;
 }

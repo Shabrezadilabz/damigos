@@ -7,11 +7,25 @@ type ServerlessHandler = (req: IncomingMessage, res: ServerResponse) => void;
 let cached: ServerlessHandler | null = null;
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (!cached) {
-    const app = await buildGuestApp();
-    cached = serverless(app.server) as ServerlessHandler;
+  try {
+    if (!cached) {
+      const app = await buildGuestApp();
+      cached = serverless(app.server) as ServerlessHandler;
+    }
+    return cached(req, res);
+  } catch (err) {
+    res.statusCode = 503;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        error: {
+          code: "API_INIT_FAILED",
+          message: err instanceof Error ? err.message : "Guest API failed to start",
+          hint: "Set DATABASE_URL and JWT_SECRET on Vercel project damigos-guest-api, redeploy, run db:migrate + db:seed",
+        },
+      }),
+    );
   }
-  return cached(req, res);
 }
 
 export const config = {

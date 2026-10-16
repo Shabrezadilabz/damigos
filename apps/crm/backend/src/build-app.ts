@@ -2,10 +2,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { CRM_API_PREFIX, loadMonorepoEnv } from "@damigos/domain";
 import { pingRedis } from "@damigos/kitchen-bus";
-import { ensureBrandSchema } from "./lib/ensure-brand-schema.js";
-import { ensureGrowSchema } from "./lib/ensure-grow-schema.js";
-import { ensureMenuSchema } from "./lib/ensure-menu-schema.js";
-import { ensureOperationsSchema } from "./lib/ensure-operations-schema.js";
+import { ensureSchemasIfConfigured } from "./lib/ensure-schemas-if-configured.js";
 import { resolveCorsOrigin } from "./lib/cors-origins.js";
 import { registerAdminStickerRoutes } from "./routes/admin-stickers.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -73,11 +70,7 @@ export async function buildCrmApp(options: BuildCrmAppOptions = {}) {
     { prefix: CRM_API_PREFIX },
   );
 
-  await ensureMenuSchema();
-  await ensureGrowSchema();
-  await ensureBrandSchema();
-  await ensureOperationsSchema();
-
+  await ensureSchemasIfConfigured(app);
   await app.ready();
 
   if (!options.serverless) {

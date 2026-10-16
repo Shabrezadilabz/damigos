@@ -302,9 +302,10 @@ export function KitchenBoard({
     let cancelled = false;
 
     function connectSse() {
-      if (!token || cancelled) return;
+      const authToken = token;
+      if (!authToken || cancelled) return;
       es?.close();
-      const url = `${base}/v1/kitchen/stream?restaurantId=${encodeURIComponent(rid)}&token=${encodeURIComponent(token)}`;
+      const url = `${base}/v1/kitchen/stream?restaurantId=${encodeURIComponent(rid)}&token=${encodeURIComponent(authToken)}`;
       es = new EventSource(url);
       es.addEventListener("connected", () => {
         reconnectAttempt = 0;

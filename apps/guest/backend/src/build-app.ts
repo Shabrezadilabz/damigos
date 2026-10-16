@@ -44,7 +44,11 @@ export async function buildGuestApp() {
     { prefix: GUEST_API_PREFIX },
   );
 
-  await ensureMenuSchema();
+  if (process.env.DATABASE_URL?.trim()) {
+    await ensureMenuSchema();
+  } else {
+    app.log.warn("DATABASE_URL missing — configure on Vercel (damigos-guest-api) then redeploy");
+  }
   await app.ready();
   return app;
 }

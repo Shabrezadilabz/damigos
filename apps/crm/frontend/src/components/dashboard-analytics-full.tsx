@@ -49,6 +49,7 @@ const STITCH_MENU_ROWS = [
     cartHot: false,
     velocity: "0%",
     velocityUp: null,
+    veg: true,
   },
   {
     name: "Belgian Dark Chocolate Lava Tart",
@@ -59,6 +60,7 @@ const STITCH_MENU_ROWS = [
     cartHot: false,
     velocity: "-4%",
     velocityUp: false,
+    veg: true,
   },
 ] as const;
 
