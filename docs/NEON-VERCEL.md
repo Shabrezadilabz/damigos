@@ -62,6 +62,14 @@ curl -X POST https://damigos-guest-api.vercel.app/v1/dev/reseed
 
 Demo owner: **9876543210** / OTP **000000** — Biryani Box + full UI pack (orders, grow, menu). See [UI-DEMO-ACCOUNTS.md](./UI-DEMO-ACCOUNTS.md).
 
+**PowerShell OTP test** (use `curl.exe`, not `curl` alias):
+
+```powershell
+curl.exe -s -X POST "https://damigos-crm-web.vercel.app/api/crm/v1/auth/otp/verify" `
+  -H "Content-Type: application/json" `
+  -d '{\"phone\":\"9876543210\",\"code\":\"000000\"}'
+```
+
 ## 4. Verify
 
 ```text

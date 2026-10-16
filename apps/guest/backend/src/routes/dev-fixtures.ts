@@ -154,13 +154,13 @@ export async function registerDevFixtureRoutes(app: FastifyInstance) {
   });
 
   /** Idempotent UI demo pack — same as `npm run db:seed` (Neon / Vercel testing). */
-  app.post("/dev/reseed", async (_request, reply) => {
+  app.post("/dev/reseed", async (request, reply) => {
     try {
       const { runAppSeed } = await import("@damigos/db/seed-app");
       const summary = await runAppSeed();
       return { ok: true, summary };
     } catch (err) {
-      _request.log.error(err);
+      request.log.error(err);
       return reply.status(500).send({
         error: {
           code: "SEED_FAILED",
