@@ -43,14 +43,24 @@ Check after deploy: `GET https://damigos-crm-api.vercel.app/health` → JSON fie
 
 Redeploy both API projects after saving env.
 
-## 3. Migrate + seed (once, from your PC)
+## 3. Migrate + seed (Neon = production DB for Vercel)
+
+Same database as Vercel APIs. From your PC (uses root `.env` `DATABASE_URL`):
 
 ```powershell
 cd d:\ADC\prosols\damigos_main
-$env:DATABASE_URL="postgresql://..."   # Neon URL
 npm run db:migrate
 npm run db:seed
+npm run db:seed-food-catalog
 ```
+
+Or after guest API is up (`ENABLE_DEV_FIXTURES=true`):
+
+```powershell
+curl -X POST https://damigos-guest-api.vercel.app/v1/dev/reseed
+```
+
+Demo owner: **9876543210** / OTP **000000** — Biryani Box + full UI pack (orders, grow, menu). See [UI-DEMO-ACCOUNTS.md](./UI-DEMO-ACCOUNTS.md).
 
 ## 4. Verify
 

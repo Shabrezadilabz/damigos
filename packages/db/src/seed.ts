@@ -14,7 +14,17 @@ import {
 } from "./index.ts";
 import { seedUiDemo } from "./seed-ui-demo.ts";
 
-async function main() {
+export type AppSeedSummary = {
+  restaurantId: string;
+  batchCode: string;
+  sampleToken: string | undefined;
+  devOwnerPhone: string;
+  devAdminPhone: string;
+  devGuestPhone: string;
+  uiDemo: Record<string, unknown> | null;
+};
+
+export async function runAppSeed(): Promise<AppSeedSummary> {
   let [r] = await db
     .select()
     .from(restaurants)
@@ -367,40 +377,47 @@ async function main() {
 
   const guestPhone = process.env.DEV_GUEST_PHONE ?? "9123456780";
 
-  console.log(
-    JSON.stringify(
-      {
-        restaurantId: r.id,
-        batchCode: b.batchCode,
-        sampleToken: t?.publicToken,
-        guestScanPath: t ? `/s/${t.publicToken}` : null,
-        expiredScanToken: expiredToken?.publicToken ?? null,
-        revokedScanToken: revokedToken?.publicToken ?? null,
-        pausedRestaurantId: pausedR.id,
-        hubSecondRestaurantId: hub2.id,
-        hubSecondRestaurantName: hub2.name,
-        devOwnerPhone: ownerPhone,
-        devAdminPhone: adminPhone,
-        devGuestPhone: guestPhone,
-        otpBypass: process.env.OTP_BYPASS_CODE ?? "000000",
-        envHint: "Set NEXT_PUBLIC_DEMO_RESTAURANT_ID in both frontends .env.local",
-        uiDemo: uiDemo
-          ? {
-              guestTrackOrderId: uiDemo.activeTrackOrderId,
-              guestPhones: [uiDemo.guestPhone, uiDemo.guest2Phone, uiDemo.guest3Phone],
-              crmLogin: { url: "http://localhost:3001/start", phone: ownerPhone, otp: process.env.OTP_BYPASS_CODE ?? "000000" },
-              guestLogin: { phone: guestPhone, otp: process.env.OTP_BYPASS_CODE ?? "000000", name: "Priya Sharma" },
-              doc: "docs/UI-DEMO-ACCOUNTS.md",
-            }
-          : null,
-      },
-      null,
-      2,
-    ),
-  );
+  const summary: AppSeedSummary = {
+    restaurantId: r.id,
+    batchCode: b.batchCode,
+    sampleToken: t?.publicToken,
+    devOwnerPhone: ownerPhone,
+    devAdminPhone: adminPhone,
+    devGuestPhone: guestPhone,
+    uiDemo: uiDemo
+      ? {
+          guestTrackOrderId: uiDemo.activeTrackOrderId,
+          guestPhones: [uiDemo.guestPhone, uiDemo.guest2Phone, uiDemo.guest3Phone],
+          crmLogin: {
+            url: "https://damigos-crm-web.vercel.app/start",
+            phone: ownerPhone,
+            otp: process.env.OTP_BYPASS_CODE ?? "000000",
+          },
+          guestLogin: {
+            phone: guestPhone,
+            otp: process.env.OTP_BYPASS_CODE ?? "000000",
+            name: "Priya Sharma",
+          },
+          doc: "docs/UI-DEMO-ACCOUNTS.md",
+        }
+      : null,
+  };
+
+  return summary;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+async function main() {
+  const summary = await runAppSeed();
+  console.log(JSON.stringify(summary, null, 2));
+}
+
+const isSeedCli =
+  typeof process.argv[1] === "string" &&
+  (process.argv[1].endsWith("seed.ts") || process.argv[1].includes("seed.ts"));
+
+if (isSeedCli) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
