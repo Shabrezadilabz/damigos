@@ -1,8 +1,6 @@
-# Optional — prefer Render (render.yaml). Legacy Railway config:
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "deploy/Dockerfile.guest-api"
 
 [deploy]
-releaseCommand = "npm run db:migrate"
 restartPolicyType = "ON_FAILURE"

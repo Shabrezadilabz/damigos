@@ -1,59 +1,42 @@
-# Deploy — Vercel (frontends) + Render (APIs)
+# Deploy — Vercel (frontends) + Railway (APIs)
 
-**Backends:** [Render Dashboard](https://dashboard.render.com/) — see **[DEPLOY-RENDER.md](./DEPLOY-RENDER.md)** (Blueprint `render.yaml`).
+**Backends:** [Railway](https://railway.com/new) — **[DEPLOY-RAILWAY.md](./DEPLOY-RAILWAY.md)** (primary).
 
-**Frontends:** Vercel (this doc).
+**Render (optional):** [DEPLOY-RENDER.md](./DEPLOY-RENDER.md) — free tier works after `preDeployCommand` was removed; migrations run at container start.
 
 Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 
 ## Architecture
 
-| Service | Host | Root / config |
-|---------|------|----------------|
-| CRM web | Vercel | `apps/crm/frontend` + `vercel.json` |
-| Guest web | Vercel | `apps/guest/frontend` + `vercel.json` |
-| CRM API | Render | `deploy/Dockerfile.crm-api`, [`render.yaml`](../render.yaml) |
-| Guest API | Render | `deploy/Dockerfile.guest-api`, [`render.yaml`](../render.yaml) |
-| Postgres | Render | `damigos-db` in Blueprint |
+| Service | Host | Config |
+|---------|------|--------|
+| CRM web | Vercel | `apps/crm/frontend` |
+| Guest web | Vercel | `apps/guest/frontend` |
+| CRM API | Railway | `deploy/railway.crm-api.toml` |
+| Guest API | Railway | `deploy/railway.guest-api.toml` |
+| Postgres | Railway | PostgreSQL plugin |
 
-## 1. Render (APIs + DB)
+## Vercel projects (already linked)
 
-Follow **[DEPLOY-RENDER.md](./DEPLOY-RENDER.md)** first. You need CRM and Guest API public URLs before wiring Vercel.
+| Project | URL (when deploy succeeds) |
+|---------|----------------------------|
+| `damigos-crm-web` | https://damigos-crm-web.vercel.app |
+| `damigos-guest-web` | https://damigos-guest-web.vercel.app |
 
-## 2. Vercel — two projects
+Root directory: `apps/crm/frontend` and `apps/guest/frontend`. Install/build use `vercel.json` (`cd ../.. && npm ci`).
 
-### CRM web
+Env after Railway APIs are up — see `deploy/ENV.production.example`.
 
-1. [vercel.com](https://vercel.com) → Import `Shabrezadilabz/damigos` → **Root Directory**: `apps/crm/frontend`
-2. Environment:
-   - `CRM_API_PROXY_TARGET` = `https://damigos-crm-api.onrender.com` (your Render URL)
-   - Or `NEXT_PUBLIC_CRM_API_URL` = same URL
-3. Deploy
-
-### Guest web
-
-1. Second project → **Root Directory**: `apps/guest/frontend`
-2. Environment (build-time):
-   - `NEXT_PUBLIC_GUEST_API_URL` = Guest Render URL
-   - `NEXT_PUBLIC_SHOW_UI_DEMO=true`
-3. Deploy
-
-## 3. Link CORS
-
-On Render, set `CRM_WEB_URL` / `GUEST_WEB_URL` to your Vercel URLs (`CRM_CORS_ORIGINS=*` is fine for pilot).
-
-## 4. CLI (optional)
+## Redeploy frontends
 
 ```powershell
 cd d:\ADC\prosols\damigos_main\apps\crm\frontend
-vercel link
-vercel --prod
+vercel deploy --prod --yes
 
 cd ..\..\guest\frontend
-vercel link
-vercel --prod
+vercel deploy --prod --yes
 ```
 
-## 5. Smoke test
+## Smoke test
 
-[TESTING-PHASE.md](./TESTING-PHASE.md) — phones + OTP `000000` on production URLs.
+[TESTING-PHASE.md](./TESTING-PHASE.md)

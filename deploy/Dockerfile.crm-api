@@ -5,7 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY package.json package-lock.json ./
 COPY apps ./apps
 COPY packages ./packages
-RUN npm ci
+COPY deploy/docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && npm ci
 ENV NODE_ENV=production
 EXPOSE 4001
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "run", "start", "-w", "@damigos/crm-api"]

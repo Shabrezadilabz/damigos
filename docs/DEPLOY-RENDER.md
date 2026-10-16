@@ -12,7 +12,7 @@ Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
    - PostgreSQL **`damigos-db`**
    - Web **`damigos-crm-api`** (Docker)
    - Web **`damigos-guest-api`** (Docker)
-4. Wait for first deploy (migrations run via `preDeployCommand`).
+4. Wait for first deploy (migrations run **on container start** — free tier does not support `preDeployCommand`).
 5. Open each web service → **Settings** → note public URL (`https://damigos-crm-api.onrender.com`, etc.).
 
 ### Seed demo data (once)

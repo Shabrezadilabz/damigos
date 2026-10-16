@@ -1,8 +1,7 @@
-# Optional — prefer Render (render.yaml). Legacy Railway config:
+# Railway → service Settings → Config file: deploy/railway.crm-api.toml
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "deploy/Dockerfile.crm-api"
 
 [deploy]
-releaseCommand = "npm run db:migrate"
 restartPolicyType = "ON_FAILURE"
