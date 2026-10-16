@@ -70,7 +70,14 @@ export async function buildCrmApp(options: BuildCrmAppOptions = {}) {
     { prefix: CRM_API_PREFIX },
   );
 
-  await ensureSchemasIfConfigured(app);
+  let schemasEnsured = false;
+  app.addHook("onRequest", async (request) => {
+    if (request.url === "/health" || request.url.startsWith("/health?")) return;
+    if (schemasEnsured) return;
+    schemasEnsured = true;
+    await ensureSchemasIfConfigured(app);
+  });
+
   await app.ready();
 
   if (!options.serverless) {

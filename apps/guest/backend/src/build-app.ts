@@ -44,11 +44,18 @@ export async function buildGuestApp() {
     { prefix: GUEST_API_PREFIX },
   );
 
-  if (process.env.DATABASE_URL?.trim()) {
-    await ensureMenuSchema();
-  } else {
-    app.log.warn("DATABASE_URL missing — configure on Vercel (damigos-guest-api) then redeploy");
-  }
+  let schemasEnsured = false;
+  app.addHook("onRequest", async (request) => {
+    if (request.url === "/health" || request.url.startsWith("/health?")) return;
+    if (schemasEnsured) return;
+    schemasEnsured = true;
+    if (process.env.DATABASE_URL?.trim()) {
+      await ensureMenuSchema();
+    } else {
+      app.log.warn("DATABASE_URL missing — configure on Vercel (damigos-guest-api) then redeploy");
+    }
+  });
+
   await app.ready();
   return app;
 }
