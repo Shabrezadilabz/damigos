@@ -22,13 +22,22 @@ async function readGuestApiJson(res: Response): Promise<Record<string, unknown>>
   }
 }
 
+function guestApiErrorMessage(data: Record<string, unknown>, fallback: string): string {
+  const err = data.error;
+  if (err && typeof err === "object" && "message" in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return fallback;
+}
+
 export async function resolveScanToken(token: string) {
   const res = await fetch(`${base}/v1/scan/resolve?token=${encodeURIComponent(token)}`, {
     cache: "no-store",
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) {
-    throw Object.assign(new Error(data?.error?.message ?? "Scan failed"), { data, status: res.status });
+    throw Object.assign(new Error(guestApiErrorMessage(data, "Scan failed")), { data, status: res.status });
   }
   return data as { restaurantId: string; redirectPath: string; scanEventId?: string };
 }
@@ -47,14 +56,14 @@ export async function fetchActiveOffers(restaurantId: string) {
     cache: "no-store",
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Offers failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Offers failed"));
   return data.offers as { id: string; title: string; description: string | null; terms: string | null }[];
 }
 
 export async function fetchPlayByScan(scanId: string) {
   const res = await fetch(`${base}/v1/rewards/plays/by-scan/${scanId}`, { cache: "no-store" });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Play lookup failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Play lookup failed"));
   return data as {
     play: {
       playId: string;
@@ -76,7 +85,7 @@ export async function spinReward(input: {
     body: JSON.stringify(input),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Spin failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Spin failed"));
   return data as { playId: string; alreadyPlayed: boolean; outcome: RewardOutcome };
 }
 
@@ -87,7 +96,7 @@ export async function claimReward(playId: string) {
     body: JSON.stringify({ playId }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Claim failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Claim failed"));
   return data;
 }
 
@@ -105,7 +114,7 @@ export async function fetchGuestMenu(restaurantId: string) {
   const res = await fetch(`${base}/v1/restaurants/${restaurantId}/menu`, { cache: "no-store" });
   const data = await readGuestApiJson(res);
   if (!res.ok) {
-    throw Object.assign(new Error(data?.error?.message ?? "Menu failed"), {
+    throw Object.assign(new Error(guestApiErrorMessage(data, "Menu failed")), {
       data,
       status: res.status,
       restaurant: data.restaurant as { id: string; name: string } | undefined,
@@ -143,7 +152,7 @@ export async function verifyGuestOtp(phone: string, code: string) {
     body: JSON.stringify({ phone, code }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "OTP failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "OTP failed"));
   return data as { token: string; customerId: string };
 }
 
@@ -152,7 +161,7 @@ export async function fetchMe(token: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Me failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Me failed"));
   return data as {
     profileComplete: boolean;
     name: string | null;
@@ -167,7 +176,7 @@ export async function saveGuestProfile(token: string, name: string) {
     body: JSON.stringify({ name }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Profile failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Profile failed"));
   return data;
 }
 
@@ -215,7 +224,7 @@ export async function fetchRewardClaims(restaurantId: string) {
     cache: "no-store",
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Claims failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Claims failed"));
   return data.claims as RewardClaimOption[];
 }
 
@@ -226,7 +235,7 @@ export async function applyCartClaim(restaurantId: string, claimId: string | nul
     body: JSON.stringify({ restaurantId, claimId }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Apply offer failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Apply offer failed"));
   return data;
 }
 
@@ -236,7 +245,7 @@ export async function fetchCart(restaurantId: string) {
     cache: "no-store",
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Cart failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cart failed"));
   return data as CartResponse;
 }
 
@@ -247,7 +256,7 @@ export async function addCartItem(restaurantId: string, menuItemId: string, quan
     body: JSON.stringify({ restaurantId, menuItemId, quantity }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Add failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Add failed"));
   return data;
 }
 
@@ -264,7 +273,7 @@ export async function requestDeliveryQuote(restaurantId: string, pincode: string
     body: JSON.stringify({ restaurantId, pincode }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Delivery quote failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Delivery quote failed"));
   return data as {
     carrier: string;
     shiprocketRatePaise: number;
@@ -299,7 +308,7 @@ export async function fetchOpenCart(): Promise<OpenCartSummary | null> {
   });
   if (res.status === 401) return null;
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Open cart failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Open cart failed"));
   return (data.openCart as OpenCartSummary | null) ?? null;
 }
 
@@ -309,7 +318,7 @@ export async function clearOpenCart() {
     headers: authHeaders(),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Clear cart failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Clear cart failed"));
   return data as { cleared: boolean };
 }
 
@@ -320,7 +329,7 @@ export async function fetchHubRestaurants(city = "bangalore", q?: string) {
     cache: "no-store",
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Hub failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Hub failed"));
   return data.restaurants as HubRestaurant[];
 }
 
@@ -337,7 +346,7 @@ export async function mockPay(restaurantId: string) {
     body: JSON.stringify({ restaurantId }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Payment failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Payment failed"));
   return data as { orderId: string; trackPath: string; totalPaise: number };
 }
 
@@ -357,7 +366,7 @@ export async function prepareCheckout(restaurantId: string) {
     body: JSON.stringify({ restaurantId }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Prepare failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Prepare failed"));
   return data as {
     orderId: string;
     trackPath: string;
@@ -374,7 +383,7 @@ export async function confirmStubCheckout(orderId: string) {
     body: JSON.stringify({ orderId }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Confirm failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Confirm failed"));
   return data as { trackPath: string; orderId: string };
 }
 
@@ -395,7 +404,7 @@ export async function verifyRazorpayCheckout(input: {
     }),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Payment verify failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Payment verify failed"));
   return data as { trackPath: string; orderId: string; status: string };
 }
 
@@ -412,7 +421,7 @@ export async function fetchMyOrders(status?: "active" | "past") {
   const q = status ? `?status=${status}` : "";
   const res = await fetch(`${base}/v1/me/orders${q}`, { headers: authHeaders(), cache: "no-store" });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Orders failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Orders failed"));
   return data.orders as GuestOrderSummary[];
 }
 
@@ -426,6 +435,6 @@ export async function saveGuestConsents(
     body: JSON.stringify(input),
   });
   const data = await readGuestApiJson(res);
-  if (!res.ok) throw new Error(data?.error?.message ?? "Consents failed");
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Consents failed"));
   return data;
 }

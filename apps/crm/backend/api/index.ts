@@ -1,3 +1,4 @@
+import "tsx/esm/api";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import serverless from "serverless-http";
 import { buildCrmApp } from "../src/build-app.js";
