@@ -13,7 +13,9 @@ await esbuild.build({
   target: "node20",
   format: "esm",
   logLevel: "info",
-  external: ["serverless-http"],
+  banner: {
+    js: "import { createRequire as __damigosCreateRequire } from 'node:module'; const require = __damigosCreateRequire(import.meta.url);",
+  },
 });
 
 console.log("[bundle-vercel] wrote api/bundle.mjs");
