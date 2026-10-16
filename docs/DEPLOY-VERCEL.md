@@ -1,20 +1,19 @@
-# Deploy — Vercel (frontends) + Railway (APIs)
+# Deploy on Vercel
 
-**Backends:** [Railway](https://railway.com/new) — **[DEPLOY-RAILWAY.md](./DEPLOY-RAILWAY.md)** (primary).
+**Recommended:** **[DEPLOY-VERCEL-ALL.md](./DEPLOY-VERCEL-ALL.md)** — 4 projects (2 frontends + 2 Fastify APIs).
 
-**Render (optional):** [DEPLOY-RENDER.md](./DEPLOY-RENDER.md) — free tier works after `preDeployCommand` was removed; migrations run at container start.
+Alternatives: [DEPLOY-RAILWAY.md](./DEPLOY-RAILWAY.md) · [DEPLOY-RENDER.md](./DEPLOY-RENDER.md)
 
 Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 
-## Architecture
+## Architecture (all Vercel)
 
-| Service | Host | Config |
-|---------|------|--------|
-| CRM web | Vercel | `apps/crm/frontend` |
-| Guest web | Vercel | `apps/guest/frontend` |
-| CRM API | Railway | `deploy/railway.crm-api.toml` |
-| Guest API | Railway | `deploy/railway.guest-api.toml` |
-| Postgres | Railway | PostgreSQL plugin |
+| Service | Root |
+|---------|------|
+| CRM web | `apps/crm/frontend` |
+| Guest web | `apps/guest/frontend` |
+| CRM API | `apps/crm/backend` |
+| Guest API | `apps/guest/backend` |
 
 ## Vercel projects (already linked)
 
