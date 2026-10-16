@@ -1,14 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && npm ci",
-  "buildCommand": "cd ../.. && npm run build -w @damigos/domain && node apps/guest/backend/scripts/bundle-vercel.mjs",
+  "buildCommand": "cd ../.. && npm run build -w @damigos/domain && node apps/guest/backend/scripts/bundle-vercel.mjs && test -s apps/guest/backend/api/bundle.mjs",
   "rewrites": [
     { "source": "/health", "destination": "/api/health" },
     { "source": "/(.*)", "destination": "/api" }
   ],
   "functions": {
-    "api/index.ts": {
-      "maxDuration": 60
-    }
+    "api/index.js": { "maxDuration": 60 }
   }
 }

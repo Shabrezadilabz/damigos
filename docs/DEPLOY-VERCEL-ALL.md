@@ -41,6 +41,25 @@ vercel deploy --prod --yes --project damigos-guest-api
 
 Each uses [`vercel.json`](../apps/crm/backend/vercel.json) — Fastify runs as one serverless function (`serverless-http`).
 
+### If Git push does not start a deployment
+
+1. Vercel → **damigos-crm-api** → **Settings → Git** — confirm repo `Shabrezadilabz/damigos`, branch **main**, root **`apps/crm/backend`**.
+2. On [Deployments](https://vercel.com/shabrezadilabzs-projects/damigos-crm-api/deployments), open the **Production** row — the commit must match [latest `main`](https://github.com/Shabrezadilabz/damigos/commits/main). If you still see an older SHA (e.g. `05046ae`), production never picked up the push (quota, disconnected Git, or wrong root).
+3. Force a production deploy from your machine (linked project):
+
+   ```powershell
+   cd d:\ADC\prosols\damigos_main\apps\crm\backend
+   npx vercel deploy --prod --yes
+   ```
+
+### Build log: `TS7016` on `./bundle.mjs`
+
+Vercel type-checks `api/*.ts` before serving. The main app entry is **`api/index.js`** (re-export of esbuild `api/bundle.mjs`) so that error should not appear. If it does, you are still on an old deployment that used `api/index.ts`.
+
+A log line alone does not mean the deploy failed — Vercel can still mark **Ready** while serving an **old** commit. Always check the deployment **commit SHA**.
+
+The `buildCommand` must run `node apps/crm/backend/scripts/bundle-vercel.mjs` (from monorepo root). A wrong path skips rebundling; the build then uses whatever `bundle.mjs` is already in git.
+
 ### API env (both services)
 
 | Variable | Notes |
