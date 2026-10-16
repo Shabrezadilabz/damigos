@@ -43,10 +43,11 @@ import { ensureBrandSchema } from "./lib/ensure-brand-schema.js";
 import { ensureOperationsSchema } from "./lib/ensure-operations-schema.js";
 
 import { pingRedis } from "@damigos/kitchen-bus";
+import { resolveCorsOrigin } from "./lib/cors-origins.js";
 
 
 
-const port = Number(process.env.CRM_API_PORT ?? 4001);
+const port = Number(process.env.PORT ?? process.env.CRM_API_PORT ?? 4001);
 
 const host = process.env.CRM_API_HOST ?? "0.0.0.0";
 
@@ -61,11 +62,8 @@ const app = Fastify({
 
 
 await app.register(cors, {
-
-  origin: process.env.CRM_WEB_URL ?? "http://localhost:3001",
-
+  origin: resolveCorsOrigin(process.env.CRM_CORS_ORIGINS, process.env.CRM_WEB_URL ?? "http://localhost:3001"),
   credentials: true,
-
 });
 
 await registerHealthRoutes(app);

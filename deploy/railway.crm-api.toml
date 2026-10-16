@@ -1,0 +1,8 @@
+# Link this service in Railway → Settings → Config-as-code path: deploy/railway.crm-api.toml
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "deploy/Dockerfile.crm-api"
+
+[deploy]
+releaseCommand = "npm run db:migrate"
+restartPolicyType = "ON_FAILURE"

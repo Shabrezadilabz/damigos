@@ -16,14 +16,15 @@ import { registerDeliveryRoutes } from "./routes/delivery.js";
 import { registerHubRoutes } from "./routes/hub.js";
 import { registerRazorpayWebhookRoutes } from "./routes/razorpay-webhook.js";
 import { ensureMenuSchema } from "./lib/ensure-menu-schema.js";
+import { resolveCorsOrigin } from "./lib/cors-origins.js";
 
-const port = Number(process.env.GUEST_API_PORT ?? 4000);
+const port = Number(process.env.PORT ?? process.env.GUEST_API_PORT ?? 4000);
 const host = process.env.GUEST_API_HOST ?? "0.0.0.0";
 
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-  origin: process.env.GUEST_WEB_URL ?? "http://localhost:3000",
+  origin: resolveCorsOrigin(process.env.GUEST_CORS_ORIGINS, process.env.GUEST_WEB_URL ?? "http://localhost:3000"),
   credentials: true,
 });
 

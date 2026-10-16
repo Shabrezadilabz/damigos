@@ -1,60 +1,89 @@
-# Deploy D'aMigo's (GitHub + Vercel + API host)
+# Deploy — Vercel (frontends) + Railway (APIs)
 
-Target GitHub org/user: [Shabrezadilabz](https://github.com/Shabrezadilabz).
+Repo: [Shabrezadilabz/damigos](https://github.com/Shabrezadilabz/damigos)
 
-## 1. Push `damigos_main` to GitHub
+## Architecture
 
-From `damigos_main` (monorepo root):
+| Service | Host | Root / config |
+|---------|------|----------------|
+| CRM web | Vercel | `apps/crm/frontend` + `vercel.json` |
+| Guest web | Vercel | `apps/guest/frontend` + `vercel.json` |
+| CRM API | Railway | `deploy/Dockerfile.crm-api`, `deploy/railway.crm-api.toml` |
+| Guest API | Railway | `deploy/Dockerfile.guest-api`, `deploy/railway.guest-api.toml` |
+| Postgres | Railway plugin | `DATABASE_URL` on **both** API services |
+| Redis (optional) | Railway | `REDIS_URL` on CRM API only |
+
+## 1. Railway — one project, three resources
+
+1. [railway.app](https://railway.app) → **New project** → **Deploy from GitHub** → `Shabrezadilabz/damigos`.
+2. Add **PostgreSQL** → copy `DATABASE_URL` into **both** API services.
+3. **Service: crm-api**
+   - Settings → **Config-as-code**: `deploy/railway.crm-api.toml`
+   - Variables: see [`deploy/ENV.production.example`](../deploy/ENV.production.example)
+   - Generate domain → note `https://….up.railway.app`
+4. **Service: guest-api** (duplicate service from same repo)
+   - Config: `deploy/railway.guest-api.toml`
+   - Same `DATABASE_URL`, `JWT_SECRET`, pilot flags
+   - Generate domain
+5. First deploy runs `npm run db:migrate` as **release** command. Then once: Railway shell or local with prod URL:
+   ```bash
+   DATABASE_URL=... npm run db:seed
+   ```
+
+API health: `GET /health` on each Railway URL.
+
+## 2. Vercel — two projects
+
+### CRM web
+
+1. Import `Shabrezadilabz/damigos` → **Root Directory**: `apps/crm/frontend`
+2. Env:
+   - `CRM_API_PROXY_TARGET` = CRM Railway URL (no trailing slash)
+   - Or `NEXT_PUBLIC_CRM_API_URL` = same (direct browser calls)
+3. Deploy
+
+### Guest web
+
+1. Second project → **Root Directory**: `apps/guest/frontend`
+2. Env (required at build):
+   - `NEXT_PUBLIC_GUEST_API_URL` = Guest Railway URL
+   - `NEXT_PUBLIC_SHOW_UI_DEMO=true` (pilot)
+3. Deploy
+
+## 3. Wire CORS + public URLs
+
+On Railway CRM API:
+
+- `CRM_WEB_URL` = your CRM Vercel URL
+- `CRM_CORS_ORIGINS=*` (pilot) or comma-list of Vercel URLs
+
+On Railway Guest API:
+
+- `GUEST_WEB_URL` = Guest Vercel URL
+- `GUEST_CORS_ORIGINS=*`
+
+Redeploy APIs after changing CORS.
+
+## 4. CLI (optional)
 
 ```powershell
-git init   # only if this folder is not already a repo
-git add .
-git commit -m "Initial D'aMigo's CRM + guest monorepo for testing"
-gh repo create Shabrezadilabz/damigos --private --source=. --remote=origin --push
+cd d:\ADC\prosols\damigos_main
+git push origin main
+
+# Vercel (after vercel login)
+cd apps/crm/frontend
+vercel link
+vercel --prod
+
+cd ../../guest/frontend
+vercel link
+vercel --prod
+
+# Railway (after railway login)
+railway link
+railway up
 ```
 
-Use a public repo only if you are sure no secrets are tracked (`.env` is gitignored).
+## 5. Smoke test
 
-## 2. What runs where
-
-| App | Stack | Recommended host |
-|-----|--------|------------------|
-| CRM web | Next.js `apps/crm/frontend` | **Vercel** |
-| Guest web | Next.js `apps/guest/frontend` | **Vercel** |
-| CRM API | Fastify `apps/crm/backend` | **Railway**, **Render**, or **Fly.io** (long-lived Node) |
-| Guest API | Fastify `apps/guest/backend` | Same as CRM API (second service) |
-
-Fastify + Postgres + Redis + kitchen SSE/WebSocket is **not** a good fit for Vercel serverless alone. Use Vercel for the two Next apps and a small Node host for each API.
-
-## 3. Vercel — CRM frontend
-
-1. Import repo → **Root Directory**: `apps/crm/frontend`.
-2. Framework: Next.js (default).
-3. Environment variables:
-   - `NEXT_PUBLIC_CRM_API_URL` = `https://<your-crm-api-host>` (no trailing slash)
-4. Deploy. Remove or adjust local rewrite in `next.config.ts` when using a public API URL.
-
-## 4. Vercel — Guest frontend
-
-1. Second Vercel project → **Root Directory**: `apps/guest/frontend`.
-2. `NEXT_PUBLIC_GUEST_API_URL` = `https://<your-guest-api-host>`.
-
-## 5. API services (Railway / Render example)
-
-Each API needs:
-
-- **Build**: from monorepo root, e.g. `npm install && npm run build -w @damigos/crm-api`
-- **Start**: `node apps/crm/backend/dist/index.js` (or workspace start script)
-- **Env** (minimum):
-  - `DATABASE_URL` (managed Postgres)
-  - `JWT_SECRET` (32+ chars)
-  - `OTP_BYPASS_CODE=000000` (testing only; remove for real SMS later)
-  - `ENABLE_DEV_FIXTURES=true` / `ONBOARDING_AUTO_APPROVE=true` for pilot
-  - `CRM_WEB_URL`, `GUEST_WEB_URL` → your Vercel URLs (CORS/cookies if added later)
-  - `REDIS_URL` if using kitchen realtime features
-
-Run migrations against production DB once: `npm run db:migrate` (from CI or local with prod `DATABASE_URL`).
-
-## 6. Post-deploy testing
-
-Use the same phones/OTP as [TESTING-PHASE.md](./TESTING-PHASE.md), but hit your Vercel URLs instead of localhost.
+See [TESTING-PHASE.md](./TESTING-PHASE.md) — same phones/OTP `000000`, on production URLs.
