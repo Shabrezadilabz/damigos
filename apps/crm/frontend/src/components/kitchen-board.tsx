@@ -288,6 +288,7 @@ export function KitchenBoard({
 
   useEffect(() => {
     if (!restaurantId) return;
+    const rid = restaurantId;
     void reload().catch((e) => setError(e instanceof Error ? e.message : "Load failed"));
     const pollId = window.setInterval(() => {
       void reload().catch(() => undefined);
@@ -303,7 +304,7 @@ export function KitchenBoard({
     function connectSse() {
       if (!token || cancelled) return;
       es?.close();
-      const url = `${base}/v1/kitchen/stream?restaurantId=${encodeURIComponent(restaurantId)}&token=${encodeURIComponent(token)}`;
+      const url = `${base}/v1/kitchen/stream?restaurantId=${encodeURIComponent(rid)}&token=${encodeURIComponent(token)}`;
       es = new EventSource(url);
       es.addEventListener("connected", () => {
         reconnectAttempt = 0;
