@@ -79,6 +79,8 @@ test.describe("C-03.05 / C-03.07 menu item drawer", () => {
     await page.getByRole("button", { name: /86 — hide from menu/i }).click();
 
     await expect(page.getByText("86'd").first()).toBeVisible({ timeout: 10_000 });
+    // Item stays in CRM list with a working toggle (can restore without re-import).
+    await expect(page.getByText(uniqueName)).toBeVisible();
 
     await expect.poll(async () => fetchGuestMenuNames(fx!.restaurantId), { timeout: 10_000 }).not.toContain(
       uniqueName,

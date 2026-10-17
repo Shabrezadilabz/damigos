@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { KitchenBoard } from "@/components/kitchen-board";
 import { OrdersList } from "@/components/orders-list";
+import { KitchenMenuStockPanel } from "@/components/orders/kitchen-menu-stock-panel";
 import { OrdersActionRail, type OrdersViewMode } from "@/components/orders/orders-action-rail";
 import { OrdersKitchenHistory } from "@/components/orders/orders-kitchen-history";
 import { OrdersRedeemStrip } from "@/components/orders/orders-redeem-strip";
@@ -26,7 +27,8 @@ export function OrdersModule({ mode }: { mode: OrdersViewMode }) {
       />
       {mode === "list" ? (
         <OrdersList embedded />
-      ) : (
+      ) : null}
+      {mode === "kitchen" ? (
         <>
           <KitchenBoard
             chrome="stitch"
@@ -37,7 +39,14 @@ export function OrdersModule({ mode }: { mode: OrdersViewMode }) {
           {restaurantId ? <OrdersKitchenHistory restaurantId={restaurantId} /> : null}
           <OrdersRedeemStrip />
         </>
-      )}
+      ) : null}
+      {mode === "stock" ? (
+        restaurantId ? (
+          <KitchenMenuStockPanel restaurantId={restaurantId} />
+        ) : (
+          <p className="text-sm text-on-surface-variant">Select a restaurant to manage menu stock.</p>
+        )
+      ) : null}
     </div>
   );
 }

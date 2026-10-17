@@ -97,6 +97,23 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     }
   }
 
+  async function onQuickRestore() {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateMenuItem(item.id, {
+        restaurantId,
+        available: true,
+      });
+      setAvailable(true);
+      onSaved(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const rupeesNum = parseFloat(price);
   const estPaise = aggregatorEstimate(
     Number.isNaN(rupeesNum) ? item.pricePaise : Math.round(rupeesNum * 100),
@@ -250,16 +267,26 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
         Available on guest menu
       </label>
 
-      {!item.draft && (
+      {!item.draft && available ? (
         <button
           type="button"
           className="w-full rounded-xl border border-amber-500 py-2.5 text-sm font-semibold text-amber-950 hover:bg-amber-50"
-          disabled={saving || !available}
+          disabled={saving}
           onClick={() => void onQuick86()}
         >
           86 — hide from menu today
         </button>
-      )}
+      ) : null}
+      {!item.draft && !available ? (
+        <button
+          type="button"
+          className="w-full rounded-xl border border-primary py-2.5 text-sm font-semibold text-primary hover:bg-primary/5"
+          disabled={saving}
+          onClick={() => void onQuickRestore()}
+        >
+          Restore to guest menu
+        </button>
+      ) : null}
 
       {error && <p className="text-sm text-red-700">{error}</p>}
 

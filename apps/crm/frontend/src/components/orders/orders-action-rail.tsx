@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { cn } from "@/lib/utils";
 
-export type OrdersViewMode = "list" | "kitchen";
+export type OrdersViewMode = "list" | "kitchen" | "stock";
 
 export function OrdersActionRail({
   mode,
@@ -64,6 +64,19 @@ export function OrdersActionRail({
             {mode === "kitchen" ? (
               <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />
             ) : null}
+          </Link>
+          <Link
+            href="/orders/stock"
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all",
+              mode === "stock"
+                ? "bg-surface-container-lowest text-primary shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface",
+            )}
+            data-testid="orders-menu-stock-tab"
+          >
+            <MaterialIcon name="toggle_on" className="text-[18px]" />
+            Menu 86
           </Link>
         </div>
         {mode === "kitchen" && connectionLabel ? (

@@ -20,6 +20,7 @@ import { menuItemThumb } from "@/lib/menu-item-thumb";
 import { MenuImportReview } from "@/components/menu-import-review";
 import { MenuImportOverlay } from "@/components/menu-import-overlay";
 import { MenuExtractionAudit, MenuItemDrawer } from "@/components/menu-item-drawer";
+import { MenuAvailabilityToggle } from "@/components/menu-availability-toggle";
 import { MaterialIcon } from "@/components/material-icon";
 import { cn } from "@/lib/utils";
 
@@ -71,28 +72,6 @@ function VegMark({ isVeg }: { isVeg: boolean }) {
   );
 }
 
-function AvailabilityToggle({
-  checked,
-  disabled,
-  onChange,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="relative inline-flex cursor-pointer items-center">
-      <input
-        type="checkbox"
-        className="peer sr-only"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <div className="h-4 w-8 rounded-full bg-surface-container-highest after:absolute after:left-[2px] after:top-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-full" />
-    </label>
-  );
-}
 
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [stage, setStage] = useState<Stage>("draft");
@@ -646,14 +625,15 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                         </span>
                       </td>
                       <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        {!item.available ? (
-                          <span className="text-xs font-semibold text-amber-800">86&apos;d</span>
-                        ) : (
-                          <AvailabilityToggle
+                        <div className="flex flex-col items-center gap-0.5">
+                          <MenuAvailabilityToggle
                             checked={item.available}
                             onChange={(v) => void toggleAvailable(item, v)}
                           />
-                        )}
+                          {!item.available ? (
+                            <span className="text-[10px] font-semibold text-amber-800">86&apos;d</span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
