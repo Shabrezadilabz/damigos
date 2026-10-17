@@ -147,7 +147,7 @@ export function StickerPrintDialog({
                 })}
               </div>
             </div>
-            <div className="grid max-h-44 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5 md:grid-cols-6">
+            <div className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5 md:grid-cols-6">
               {filteredDesigns.map((d) => (
                 <button
                   key={d.id}
