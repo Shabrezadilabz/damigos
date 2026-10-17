@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
 import { StickerPrintTile } from "@/components/sticker-print-tile";
-import { STICKER_PRINT_DESIGNS, type StickerPrintDesign } from "@/lib/sticker-print-designs";
+import {
+  STICKER_DESIGN_OCCASIONS,
+  STICKER_PRINT_DESIGNS,
+  filterStickerDesigns,
+  type StickerDesignOccasion,
+  type StickerPrintDesign,
+} from "@/lib/sticker-print-designs";
 import { fetchStickerPrintSheet, type StickerPrintSheet } from "@/lib/api";
 
 function StickerSheetPreview({
@@ -43,14 +49,26 @@ export function StickerPrintDialog({
   batchCode: string;
 }) {
   const [designId, setDesignId] = useState(1);
+  const [occasion, setOccasion] = useState<StickerDesignOccasion | "all">("all");
   const [sheet, setSheet] = useState<StickerPrintSheet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const filteredDesigns = useMemo(
+    () => filterStickerDesigns(STICKER_PRINT_DESIGNS, occasion),
+    [occasion],
+  );
 
   const design = useMemo(
     () => STICKER_PRINT_DESIGNS.find((d) => d.id === designId) ?? STICKER_PRINT_DESIGNS[0]!,
     [designId],
   );
+
+  useEffect(() => {
+    if (filteredDesigns.some((d) => d.id === designId)) return;
+    const first = filteredDesigns[0];
+    if (first) setDesignId(first.id);
+  }, [filteredDesigns, designId]);
 
   const previewSample = useMemo(
     () => ({
@@ -95,15 +113,46 @@ export function StickerPrintDialog({
 
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 print:hidden">
           <div>
-            <div className="mb-2 text-[10px] font-bold uppercase text-on-surface-variant">
-              Design library — retail &amp; scan-me tags ({STICKER_PRINT_DESIGNS.length})
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+              <div className="text-[10px] font-bold uppercase text-on-surface-variant">
+                Design library — retail &amp; scan-me tags (
+                {occasion === "all"
+                  ? STICKER_PRINT_DESIGNS.length
+                  : `${filteredDesigns.length} of ${STICKER_PRINT_DESIGNS.length}`}
+                )
+              </div>
+              <div
+                className="flex flex-wrap gap-1"
+                role="tablist"
+                aria-label="Sticker design occasion"
+              >
+                {STICKER_DESIGN_OCCASIONS.map((opt) => {
+                  const active = occasion === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setOccasion(opt.id)}
+                      className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
+                        active
+                          ? "bg-primary text-on-primary"
+                          : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="grid max-h-44 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5 md:grid-cols-6">
-              {STICKER_PRINT_DESIGNS.map((d) => (
+              {filteredDesigns.map((d) => (
                 <button
                   key={d.id}
                   type="button"
-                  title={d.name}
+                  title={`${d.name} · ${d.occasions.join(", ")}`}
                   onClick={() => setDesignId(d.id)}
                   className={`rounded-lg border-2 bg-surface-container-low p-1 transition-transform hover:scale-[1.02] ${
                     designId === d.id ? "border-primary ring-2 ring-primary/30" : "border-transparent"
@@ -122,7 +171,16 @@ export function StickerPrintDialog({
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-on-surface-variant">Selected: {design.name}</p>
+            {filteredDesigns.length === 0 ? (
+              <p className="mt-2 text-[11px] text-on-surface-variant">No designs for this filter.</p>
+            ) : (
+              <p className="mt-2 text-[11px] text-on-surface-variant">
+                Selected: {design.name}
+                {design.occasions.length > 0
+                  ? ` · ${design.occasions.map((o) => STICKER_DESIGN_OCCASIONS.find((x) => x.id === o)?.label ?? o).join(", ")}`
+                  : ""}
+              </p>
+            )}
           </div>
 
           {loading ? <p className="text-sm text-on-surface-variant">Loading QR codes…</p> : null}

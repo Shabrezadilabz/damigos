@@ -7,10 +7,19 @@ export type StickerTemplateId =
   | "horizontal-badge"
   | "vertical-split";
 
+/** Occasion filters for the design library (aligned with Grow calendar language). */
+export type StickerDesignOccasion =
+  | "everyday"
+  | "weekend"
+  | "festive"
+  | "payday"
+  | "birthday";
+
 export type StickerPrintDesign = {
   id: number;
   name: string;
   template: StickerTemplateId;
+  occasions: StickerDesignOccasion[];
   primary: string;
   secondary: string;
   accent: string;
@@ -18,6 +27,18 @@ export type StickerPrintDesign = {
   ink: string;
   paper: string;
 };
+
+export const STICKER_DESIGN_OCCASIONS: {
+  id: StickerDesignOccasion | "all";
+  label: string;
+}[] = [
+  { id: "all", label: "All" },
+  { id: "everyday", label: "Everyday" },
+  { id: "weekend", label: "Weekend" },
+  { id: "festive", label: "Festive" },
+  { id: "payday", label: "Payday" },
+  { id: "birthday", label: "Birthday" },
+];
 
 const TEMPLATES: { id: StickerTemplateId; label: string }[] = [
   { id: "luggage-tag", label: "Luggage tag" },
@@ -40,18 +61,52 @@ const PALETTES = [
   { primary: "#4361EE", secondary: "#3A0CA3", accent: "#F72585", ribbon: "#FFFFFF", ink: "#10002B", paper: "#F5F7FF" },
 ];
 
+const ROTATING: StickerDesignOccasion[] = ["everyday", "weekend", "festive", "payday", "birthday"];
+
+function occasionsFor(
+  index: number,
+  template: StickerTemplateId,
+  paletteIdx: number,
+): StickerDesignOccasion[] {
+  const tags = new Set<StickerDesignOccasion>([ROTATING[index % ROTATING.length]!]);
+
+  if (template === "sale-ribbon" || template === "horizontal-badge") tags.add("payday");
+  if (template === "luggage-tag" || template === "scan-shield") tags.add("everyday");
+  if (template === "retro-notch" || template === "scan-circle") tags.add("weekend");
+  if (template === "vertical-split") tags.add("festive");
+
+  // Warm / red / purple palettes read as celebration or payday.
+  if (paletteIdx === 0 || paletteIdx === 3) tags.add("festive");
+  if (paletteIdx === 3 || paletteIdx === 6) tags.add("payday");
+  if (paletteIdx === 1 || paletteIdx === 5 || paletteIdx === 7) tags.add("weekend");
+  if (paletteIdx === 4 || paletteIdx === 7) tags.add("birthday");
+  if (paletteIdx === 2 || paletteIdx === 5) tags.add("everyday");
+
+  return [...tags];
+}
+
 /** 50 tag-style layouts (template × palette), inspired by retail / scan-me sticker packs. */
 export const STICKER_PRINT_DESIGNS: StickerPrintDesign[] = Array.from({ length: 50 }, (_, i) => {
   const t = TEMPLATES[i % TEMPLATES.length]!;
-  const p = PALETTES[Math.floor(i / TEMPLATES.length) % PALETTES.length]!;
+  const paletteIdx = Math.floor(i / TEMPLATES.length) % PALETTES.length;
+  const p = PALETTES[paletteIdx]!;
   return {
     id: i + 1,
     name: `${t.label} · ${String((i % PALETTES.length) + 1).padStart(2, "0")}`,
     template: t.id,
+    occasions: occasionsFor(i, t.id, paletteIdx),
     ...p,
   };
 });
 
 export function templateLabel(id: StickerTemplateId): string {
   return TEMPLATES.find((t) => t.id === id)?.label ?? id;
+}
+
+export function filterStickerDesigns(
+  designs: StickerPrintDesign[],
+  occasion: StickerDesignOccasion | "all",
+): StickerPrintDesign[] {
+  if (occasion === "all") return designs;
+  return designs.filter((d) => d.occasions.includes(occasion));
 }
