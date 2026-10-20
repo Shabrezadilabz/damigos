@@ -9,6 +9,7 @@ import {
   normalizeWaPhone,
   sendFoodHiNew,
   sendFoodHiReturning,
+  sendKapsoCtaUrl,
   sendKapsoText,
   sendSparkOptInInvite,
   sparkWaMeE164,
@@ -284,17 +285,35 @@ export async function registerWaRoutes(app: FastifyInstance) {
           const customer = await findCustomerByWaPhone(from);
           const last = customer ? await lastVisitedKitchens(customer.id, 1) : [];
           const path = last[0]?.menuPath ?? "/hub";
-          await sendKapsoText(
-            "food",
-            from,
-            last[0]
-              ? `Reordering from *${last[0].name}*:\n${hub}${path}`
-              : `No past kitchen yet — explore: ${hub}/hub`,
-          );
+          const url = `${hub}${path}`;
+          if (last[0]) {
+            await sendKapsoCtaUrl(
+              "food",
+              from,
+              `Reordering from *${last[0].name}* — open menu inside WhatsApp.`,
+              "Open menu",
+              url,
+            );
+          } else {
+            await sendKapsoCtaUrl(
+              "food",
+              from,
+              `No past kitchen yet — explore the hub inside WhatsApp.`,
+              "Open hub",
+              `${hub}/hub`,
+            );
+          }
           continue;
         }
         const path = buttonId === "active_orders" ? "/orders" : "/hub";
-        await sendKapsoText("food", from, `Open here: ${hub}${path}`);
+        const label = buttonId === "active_orders" ? "My orders" : "Open hub";
+        await sendKapsoCtaUrl(
+          "food",
+          from,
+          `Tap to open inside WhatsApp.`,
+          label,
+          `${hub}${path}`,
+        );
         continue;
       }
 

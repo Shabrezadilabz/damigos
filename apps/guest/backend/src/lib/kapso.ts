@@ -167,6 +167,35 @@ export async function sendKapsoButtons(
   });
 }
 
+/**
+ * CTA URL — on mobile WhatsApp this prefers the in-app browser (webview)
+ * over jumping to Chrome. Desktop WhatsApp Web still uses a browser tab
+ * (Meta limitation — cannot force webview-only everywhere).
+ */
+export async function sendKapsoCtaUrl(
+  agent: KapsoAgent,
+  toPhone: string,
+  bodyText: string,
+  displayText: string,
+  url: string,
+): Promise<KapsoSendResult> {
+  return postMessage(agent, {
+    to: normalizeWaPhone(toPhone),
+    type: "interactive",
+    interactive: {
+      type: "cta_url",
+      body: { text: bodyText.slice(0, 1024) },
+      action: {
+        name: "cta_url",
+        parameters: {
+          display_text: displayText.slice(0, 20),
+          url,
+        },
+      },
+    },
+  });
+}
+
 export async function sendSparkOptInInvite(toPhone: string, playUrl: string, kitchenName: string) {
   const body =
     `🎁 *Spark by D'aMigo's*\n\n` +
@@ -333,8 +362,10 @@ export async function sendFoodHiNew(toPhone: string, hubUrl: string) {
   const body =
     `👋 Welcome to *D'aMigo Food*\n\n` +
     `Order direct from local kitchens — *First order FREE delivery* on us.\n\n` +
-    `${hubUrl}`;
-  return sendKapsoText("food", toPhone, body);
+    `Tap below to open the hub inside WhatsApp.`;
+  const cta = await sendKapsoCtaUrl("food", toPhone, body, "Open hub", hubUrl);
+  if (cta.ok) return cta;
+  return sendKapsoText("food", toPhone, `${body}\n\n${hubUrl}`);
 }
 
 export function guestWebOrigin(): string {
