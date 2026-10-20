@@ -1,10 +1,16 @@
-/** G-04.03 — mock Shiprocket until live credentials */
-export type DeliveryMode = "off" | "mock";
+import {
+  deliveryMode as domainDeliveryMode,
+  deliveryQuoteRequired,
+  type ShiprocketMode,
+} from "@damigos/domain";
+
+/** G-04.03 — off | mock | sandbox | live (Shiprocket) */
+export type DeliveryMode = ShiprocketMode;
 
 export function deliveryMode(): DeliveryMode {
-  const mode = (process.env.DELIVERY_MODE ?? "off").toLowerCase();
-  if (mode === "mock") return "mock";
-  return "off";
+  return domainDeliveryMode();
 }
+
+export { deliveryQuoteRequired };
 
 export const PLATFORM_DELIVERY_MARKUP_PAISE = 500;

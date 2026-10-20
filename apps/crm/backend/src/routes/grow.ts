@@ -22,7 +22,7 @@ import {
   renderPosterSvgDataUrl,
 } from "../lib/ai/render-poster-image.js";
 import { randomUUID } from "node:crypto";
-import { posterAiMode, posterImageProvider } from "@damigos/domain";
+import { isPlausibleRestaurantDisplayName, posterAiMode, posterImageProvider } from "@damigos/domain";
 import { approvePosterJob, createPosterJob, getPosterJob, type PosterJob } from "../lib/poster-jobs.js";
 import {
   createCampaignRecord,
@@ -36,6 +36,7 @@ import {
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 import { debitForCampaign, WHATSAPP_MSG_COST_PAISE } from "../lib/wallet.js";
 import { ensureGrowSchema } from "../lib/ensure-grow-schema.js";
+import { ensureKitchenSchema } from "../lib/ensure-kitchen-schema.js";
 import {
   configToOffersRows,
   growLoyaltyConfigSchema,
@@ -161,6 +162,7 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     }
 
     await writeGrowConfig(body.restaurantId, body.config);
+    await ensureKitchenSchema();
 
     await db
       .update(offers)
@@ -439,7 +441,11 @@ export async function registerGrowRoutes(app: FastifyInstance) {
 
     if (kapsoMode() === "off") {
       return reply.status(503).send({
-        error: { code: "KAPSO_DISABLED", message: "Set KAPSO_MODE=mock to dispatch", correlationId: request.id },
+        error: {
+          code: "KAPSO_DISABLED",
+          message: "Set KAPSO_MODE=mock or live to dispatch",
+          correlationId: request.id,
+        },
       });
     }
 
@@ -478,7 +484,10 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     }
 
     const brand = parseBrandKit(restaurant.brandKit ?? null);
-    const restaurantName = brand?.displayName ?? restaurant.name;
+    const restaurantName =
+      brand && isPlausibleRestaurantDisplayName(brand.displayName)
+        ? brand.displayName
+        : restaurant.name;
     const posterMode = posterAiMode();
     let spec: PosterSpec;
     let previewSource: PosterJob["previewSource"] = "local";

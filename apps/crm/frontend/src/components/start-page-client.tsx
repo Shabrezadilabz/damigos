@@ -27,7 +27,7 @@ const CUISINE_TAGS = [
 const ONBOARDING_STEPS = [
   { label: "Entity Baseline", hint: "Legal entity, zone, and how you fulfill orders." },
   { label: "Compliance", hint: "FSSAI and regulatory checks before go-live." },
-  { label: "Menu & POS", hint: "Menu import and POS adapter placeholders." },
+  { label: "POS sync", hint: "Optional POS adapter — upload menus later in Menu after go-live." },
   { label: "Review", hint: "Confirm details — we will activate your tenant before owner login unlocks." },
 ] as const;
 
@@ -629,19 +629,13 @@ export function StartPageClient() {
 
                 {onboardingStep === 3 ? (
                   <div className="space-y-4">
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-fixed/30 via-surface-container-low to-amber-50 p-4 shadow-inner">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="relative mx-auto flex h-40 w-full max-w-[200px] shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-white/60 bg-white/50 shadow-lg sm:mx-0">
-                          <MaterialIcon name="menu_book" className="text-[64px] text-primary/80" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-primary">Step 3 · Menu AI</p>
-                          <p className="font-[family-name:var(--font-display)] text-lg font-bold">Upload PDF → draft menu in minutes</p>
-                          <p className="mt-1 text-xs text-on-surface-variant">
-                            Human-in-the-loop publish gate. Ops can seed your first menu during pilot if you skip now.
-                          </p>
-                        </div>
-                      </div>
+                    <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-on-surface-variant">
+                      <p className="font-semibold text-foreground">Menu upload moved to Settings → Menu</p>
+                      <p className="mt-1 text-xs">
+                        After activation, open <strong className="text-foreground">Menu</strong> to import PDF /
+                        photos. Banking &amp; daily settlements live under{" "}
+                        <strong className="text-foreground">Settings → Payout</strong>.
+                      </p>
                     </div>
                     <p className="text-xs font-semibold text-on-surface-variant">Preferred POS sync (optional)</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -662,6 +656,13 @@ export function StartPageClient() {
                         </button>
                       ))}
                     </div>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-on-surface-variant underline"
+                      onClick={() => setPosChoice("")}
+                    >
+                      Skip POS for now
+                    </button>
                   </div>
                 ) : null}
 

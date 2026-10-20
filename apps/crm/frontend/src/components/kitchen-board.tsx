@@ -5,8 +5,11 @@ import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
 import {
   acceptCrmOrder,
+  computeWaitingPenaltyPaiseClient,
+  extendCrmOrderPrep,
   fetchCrmOrders,
   formatInr,
+  markCrmRiderArrived,
   patchCrmOrderStatus,
   type CrmOrder,
 } from "@/lib/api";
@@ -40,6 +43,25 @@ function VegDot({ veg }: { veg?: boolean }) {
   );
 }
 
+type PrepClock = { deadlineMs: number; baseMin: number; extended: boolean };
+
+function prepFromOrder(order: CrmOrder): PrepClock | null {
+  if (!order.prepDeadlineAt) return null;
+  return {
+    deadlineMs: new Date(order.prepDeadlineAt).getTime(),
+    baseMin: order.committedPrepMinutes ?? 15,
+    extended: (order.extendedPrepMinutes ?? 0) > 0,
+  };
+}
+
+function formatMmSs(totalSec: number) {
+  const neg = totalSec < 0;
+  const abs = Math.abs(totalSec);
+  const m = Math.floor(abs / 60);
+  const s = abs % 60;
+  return `${neg ? "+" : ""}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 function OrderCard({
   order,
   column,
@@ -50,6 +72,14 @@ function OrderCard({
   onRefresh: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const prep = prepFromOrder(order);
+
+  useEffect(() => {
+    if (column !== "prep" && column !== "new") return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [column]);
 
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -61,9 +91,29 @@ function OrderCard({
     }
   }
 
+  const acceptPrepMin: 10 | 15 =
+    order.suggestedPrepMinutes === 10 || order.suggestedPrepMinutes === 15
+      ? order.suggestedPrepMinutes
+      : order.committedPrepMinutes === 10
+        ? 10
+        : 15;
+
+  async function onAccept() {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+    await act(() => acceptCrmOrder(order.id, acceptPrepMin));
+  }
+
+  async function onExtend5() {
+    if (!prep || prep.extended) return;
+    const remaining = prep.deadlineMs - Date.now();
+    if (remaining <= 3 * 60_000) return;
+    await act(() => extendCrmOrderPrep(order.id));
+  }
+
   const shortId = order.id.slice(0, 8).toUpperCase();
   const subtotal = order.subtotalPaise ?? order.totalPaise + order.discountPaise;
   const hasDiscount = order.discountPaise > 0;
+  const remainSec = prep ? Math.floor((prep.deadlineMs - now) / 1000) : null;
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl bg-surface-container-lowest p-5 shadow-md transition-shadow hover:shadow-lg">
@@ -135,23 +185,129 @@ function OrderCard({
           </Button>
           <Button
             size="sm"
-            className="h-11 gap-2 rounded-xl bg-[#24963F] text-white hover:bg-[#1E7D34]"
+            className="h-11 gap-1 rounded-xl bg-[#24963F] text-white hover:bg-[#1E7D34]"
             disabled={busy}
-            onClick={() => act(() => acceptCrmOrder(order.id))}
+            onClick={() => void onAccept()}
           >
             Accept
+            <span className="text-[10px] font-semibold opacity-90">
+              {acceptPrepMin}m + rider
+            </span>
           </Button>
+        </div>
+      ) : null}
+
+      {order.shipment ? (
+        <div className="rounded-xl bg-sky-50 px-3 py-2.5 ring-1 ring-sky-200">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800">
+            {order.shipment.foodDelivery !== false
+              ? "Food delivery · Shiprocket"
+              : "Shiprocket"}
+          </p>
+          <p className="mt-0.5 text-[12px] font-semibold text-sky-950">
+            {order.shipment.carrier}
+            {order.shipment.awb ? (
+              <span className="ml-1 font-mono text-[11px]">· {order.shipment.awb}</span>
+            ) : null}
+          </p>
+          <p className="mt-0.5 text-[11px] text-sky-900/80">
+            {order.shipment.lastTrackingStatus ?? order.shipment.status}
+          </p>
+          <p className="mt-1 text-[10px] text-sky-800/90">
+            Limits · ≤50 km · 2-wheeler meals · ETA 10–60 min after AWB
+          </p>
+          {order.shipment.trackingUrl ? (
+            <a
+              href={order.shipment.trackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block text-[11px] font-bold text-primary underline"
+            >
+              Live rider track
+            </a>
+          ) : null}
         </div>
       ) : null}
 
       {column === "prep" ? (
         <>
+          {remainSec != null ? (
+            <div className="flex items-center justify-between rounded-xl bg-inverse-surface px-3 py-2.5 text-inverse-on-surface">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-tertiary-fixed-dim">
+                  Prep SLA {prep?.baseMin ?? 15}m{prep?.extended ? " +5" : ""}
+                </p>
+                <p
+                  className={`font-[family-name:var(--font-display)] text-2xl font-bold tabular-nums ${
+                    remainSec < 0 ? "text-red-300" : "text-white"
+                  }`}
+                >
+                  {formatMmSs(remainSec)}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-10 rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                disabled={!prep || prep.extended || remainSec <= 180 || busy}
+                onClick={() => void onExtend5()}
+                title="One-time +5 min before T-3m"
+              >
+                +5 min
+              </Button>
+            </div>
+          ) : null}
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
             <div
               className="h-full rounded-full bg-secondary transition-all"
-              style={{ width: order.status === "PREPARING" ? "68%" : "35%" }}
+              style={{
+                width:
+                  remainSec == null
+                    ? order.status === "PREPARING"
+                      ? "68%"
+                      : "35%"
+                    : `${Math.max(5, Math.min(100, 100 - (remainSec / ((prep?.baseMin ?? 15) * 60)) * 100))}%`,
+              }}
             />
           </div>
+          {order.riderArrivedAt && !order.readyForPickupAt ? (
+            <div className="rounded-xl bg-amber-50 px-3 py-2.5 ring-1 ring-amber-200">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                Rider waiting · ₹2/min after grace
+              </p>
+              {(() => {
+                const w = computeWaitingPenaltyPaiseClient({
+                  riderArrivedAt: order.riderArrivedAt,
+                  readyForPickupAt: order.readyForPickupAt,
+                  committedPrepMinutes: order.committedPrepMinutes,
+                  extendedPrepMinutes: order.extendedPrepMinutes,
+                  nowMs: now,
+                });
+                return (
+                  <p className="mt-0.5 font-[family-name:var(--font-display)] text-xl font-bold tabular-nums text-amber-950">
+                    {formatInr(w.penaltyPaise)}
+                    <span className="ml-2 text-[11px] font-semibold text-amber-800/80">
+                      {w.overtimeMin > 0
+                        ? `${w.overtimeMin}m overtime`
+                        : `grace ${w.graceMin}m`}
+                    </span>
+                  </p>
+                );
+              })()}
+            </div>
+          ) : !order.riderArrivedAt ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-10 w-full rounded-xl"
+              disabled={busy}
+              onClick={() => act(() => markCrmRiderArrived(order.id))}
+              data-testid="kitchen-rider-arrived"
+            >
+              Rider at pickup
+            </Button>
+          ) : null}
+
           {order.status === "ACCEPTED" ? (
             <Button
               size="sm"
@@ -168,7 +324,7 @@ function OrderCard({
               disabled={busy}
               onClick={() => act(() => patchCrmOrderStatus(order.id, "READY"))}
             >
-              Mark ready to serve
+              Mark ready for pickup
             </Button>
           )}
         </>
@@ -176,6 +332,11 @@ function OrderCard({
 
       {column === "out" ? (
         <>
+          {(order.waitingPenaltyPaise ?? 0) > 0 ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+              Waiting penalty settled: {formatInr(order.waitingPenaltyPaise!)}
+            </p>
+          ) : null}
           {order.status === "READY" ? (
             <Button
               size="sm"
@@ -262,6 +423,7 @@ export function KitchenBoard({
   const [orders, setOrders] = useState<CrmOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connection, setConnection] = useState<KitchenConnection>("polling");
+  const [prevPaidCount, setPrevPaidCount] = useState<number | null>(null);
 
   const reload = useCallback(async () => {
     if (!restaurantId) return;
@@ -269,6 +431,28 @@ export function KitchenBoard({
     setOrders(rows);
     setError(null);
   }, [restaurantId]);
+
+  useEffect(() => {
+    const paid = orders.filter((o) => o.status === "PAID").length;
+    if (prevPaidCount != null && paid > prevPaidCount) {
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.18);
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate([40, 60, 40]);
+      } catch {
+        /* ignore audio errors */
+      }
+    }
+    setPrevPaidCount(paid);
+  }, [orders, prevPaidCount]);
 
   useEffect(() => {
     registerRefresh?.(() => {

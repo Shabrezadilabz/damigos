@@ -271,7 +271,7 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                 <option value="flat_off_paise:10000">₹100 off</option>
                 <option value="free_item:0">Free item / drink</option>
               </select>
-              <label className="sm:col-span-3 text-sm">
+              <label className="sm:col-span-2 text-sm">
                 <span className="text-[10px] font-bold uppercase text-on-surface-variant">Weight</span>
                 <input
                   type="number"
@@ -285,9 +285,27 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                   }}
                 />
               </label>
+              <label className="sm:col-span-2 text-sm">
+                <span className="text-[10px] font-bold uppercase text-on-surface-variant">Scope</span>
+                <select
+                  className={cn(GROW_FIELD_CLASS, "mt-0")}
+                  value={seg.scope ?? "RESTAURANT_SCOPED"}
+                  onChange={(e) => {
+                    const spinSegments = [...config.spinSegments];
+                    spinSegments[idx] = {
+                      ...seg,
+                      scope: e.target.value === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED",
+                    };
+                    patch({ spinSegments });
+                  }}
+                >
+                  <option value="RESTAURANT_SCOPED">Kitchen only</option>
+                  <option value="PLATFORM_WIDE">Platform-wide</option>
+                </select>
+              </label>
               <button
                 type="button"
-                className="text-xs text-red-700 sm:col-span-2 sm:self-center"
+                className="text-xs text-red-700 sm:col-span-1 sm:self-center"
                 onClick={() => {
                   if (config.spinSegments.length <= 1) return;
                   patch({ spinSegments: config.spinSegments.filter((_, i) => i !== idx) });
@@ -314,6 +332,7 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                   prizeType: "flat_off_paise",
                   prizeValue: 5000,
                   weight: 10,
+                  scope: "RESTAURANT_SCOPED" as const,
                 },
               ],
             })
@@ -344,15 +363,19 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
         </div>
       </Section>
 
-      <Section title="Dine-in & channel offers" icon="restaurant" description="Offers when guest orders at table / dine-in scan.">
+      <Section
+        title="Packaging channel offers"
+        icon="restaurant"
+        description="Welcome offer when guest scans packaging QR (Direct D2C)."
+      >
         <OfferSelect
-          label="Dine-in welcome offer"
+          label="Packaging welcome offer"
           value={config.dineIn.offerPresetId}
           onChange={(offerPresetId) => patch({ dineIn: { ...config.dineIn, offerPresetId } })}
         />
         <div className="mt-2">
           <ToggleRow
-            label="Dine-in offer active"
+            label="Packaging welcome offer active"
             checked={config.dineIn.enabled}
             onChange={(enabled) => patch({ dineIn: { ...config.dineIn, enabled } })}
           />

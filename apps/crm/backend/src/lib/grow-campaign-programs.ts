@@ -47,8 +47,8 @@ export const GROW_CAMPAIGN_PROGRAM_CATALOG = [
   },
   {
     id: "dine_in",
-    title: "Dine-in / table scan",
-    description: "Welcome offer when guest scans at table (packaging QR).",
+    title: "Packaging QR welcome",
+    description: "Welcome offer when guest scans packaging QR (Direct D2C).",
     templateKey: "new_menu_drop",
     icon: "restaurant",
   },

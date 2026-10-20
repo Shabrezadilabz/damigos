@@ -1,6 +1,7 @@
 # D'aMigo's — System Architecture
 
-**Version:** 1.0 | **Date:** 2026-10-15
+**Version:** 1.0 + **v2.0 planning overlays** | **Date:** 2026-10-15 · overlay 2026-10-18  
+**v2 companions:** [DATA-MODEL-V2.md](./DATA-MODEL-V2.md) · [INTEGRATIONS-V2.md](./INTEGRATIONS-V2.md) · [MASTER-PLAN-V2.md](../MASTER-PLAN-V2.md)
 
 ---
 

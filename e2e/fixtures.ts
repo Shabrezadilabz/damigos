@@ -83,6 +83,8 @@ export type GuestSpinResult = {
   playId: string;
   prizeType: string;
   claimId: string;
+  restaurantId: string;
+  scanEventId: string;
 };
 
 /** Spin + claim on a fresh scan (requires unused scan token for same-day limit isolation). */
@@ -123,6 +125,8 @@ export async function guestSpinAndClaim(
     playId: spin.playId,
     prizeType: spin.outcome?.prizeType ?? "unknown",
     claimId: claim.claimId,
+    restaurantId: scan.restaurantId,
+    scanEventId: scan.scanEventId,
   };
 }
 
@@ -137,14 +141,11 @@ export async function guestOtpToken(phone: string, otp: string): Promise<string>
   return data.token;
 }
 
-export async function guestStubPrepareOrder(
-  restaurantId: string,
-  guestToken: string,
-): Promise<{ orderId: string; razorpayOrderId: string }> {
+async function guestAddOneItemAndQuote(restaurantId: string, guestToken: string) {
   const menuRes = await fetch(`${guestApi}/v1/restaurants/${restaurantId}/menu`, { cache: "no-store" });
   const menu = (await menuRes.json()) as { items: { id: string }[] };
   const menuItemId = menu.items[0]?.id;
-  if (!menuItemId) throw new Error("No menu items for stub prepare");
+  if (!menuItemId) throw new Error(`No menu items for ${restaurantId}`);
 
   await fetch(`${guestApi}/v1/cart/items`, {
     method: "POST",
@@ -167,6 +168,13 @@ export async function guestStubPrepareOrder(
       body: JSON.stringify({ restaurantId, pincode: "560034" }),
     });
   }
+}
+
+export async function guestStubPrepareOrder(
+  restaurantId: string,
+  guestToken: string,
+): Promise<{ orderId: string; razorpayOrderId: string }> {
+  await guestAddOneItemAndQuote(restaurantId, guestToken);
 
   const idempotencyKey = crypto.randomUUID();
   const prep = await fetch(`${guestApi}/v1/checkout/prepare`, {
@@ -187,6 +195,46 @@ export async function guestStubPrepareOrder(
     throw new Error(prepData.error?.message ?? "Prepare checkout failed");
   }
   return { orderId: prepData.orderId, razorpayOrderId: prepData.razorpayOrderId };
+}
+
+/** Cross-By: two kitchen carts → one checkout_group prepare (stub Razorpay order). */
+export async function guestStubPrepareCheckoutGroup(
+  restaurantIdA: string,
+  restaurantIdB: string,
+  guestToken: string,
+): Promise<{ checkoutGroupId: string; orderIds: string[]; razorpayOrderId: string }> {
+  await guestAddOneItemAndQuote(restaurantIdA, guestToken);
+  await guestAddOneItemAndQuote(restaurantIdB, guestToken);
+
+  const idempotencyKey = crypto.randomUUID();
+  const prep = await fetch(`${guestApi}/v1/checkout-groups/prepare`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${guestToken}`,
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({}),
+  });
+  const prepData = (await prep.json()) as {
+    checkoutGroupId?: string;
+    orderIds?: string[];
+    razorpayOrderId?: string;
+    error?: { message: string };
+  };
+  if (
+    !prep.ok ||
+    !prepData.checkoutGroupId ||
+    !prepData.orderIds?.length ||
+    !prepData.razorpayOrderId
+  ) {
+    throw new Error(prepData.error?.message ?? "Prepare checkout group failed");
+  }
+  return {
+    checkoutGroupId: prepData.checkoutGroupId,
+    orderIds: prepData.orderIds,
+    razorpayOrderId: prepData.razorpayOrderId,
+  };
 }
 
 export async function crmTopUpWallet(restaurantId: string, token: string) {

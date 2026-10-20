@@ -1,109 +1,109 @@
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
-
 import type { FastifyInstance } from "fastify";
-
 import { z } from "zod";
-
-import { db, restaurants, stickerBatches, stickerTokens } from "@damigos/db";
-
+import { db, stickerBatches } from "@damigos/db";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 
-
-
-/** C-06.04 — owner activate batch (P0 API) */
-
+import { db, restaurants, stickerBatches, stickerTokens } from "@damigos/db";
 export async function registerStickerRoutes(app: FastifyInstance) {
-
   const ownerStickers = requireRoles("RESTAURANT_OWNER", "STAFF", "PLATFORM_ADMIN");
 
-
-
   app.get("/stickers/active", { preHandler: ownerStickers }, async (request, reply) => {
-
     const query = z
-
       .object({ restaurantId: z.string().uuid().optional() })
-
       .parse(request.query);
 
-
-
     const restaurantId = query.restaurantId ?? request.staff?.restaurantId;
-
     if (!restaurantId) {
-
       return reply.status(400).send({
-
         error: {
-
           code: "INVALID_REQUEST",
-
           message: "restaurantId required",
-
           correlationId: request.id,
-
         },
-
       });
-
     }
 
-
-
     await enforceRestaurantScope(request, reply, restaurantId);
-
     if (reply.sent) return;
 
-
-
     const batches = await db
-
       .select()
-
       .from(stickerBatches)
-
       .where(
-
         and(
-
           eq(stickerBatches.restaurantId, restaurantId),
-
           isNotNull(stickerBatches.activatedAt),
-
           isNull(stickerBatches.revokedAt),
-
         ),
-
       )
-
       .orderBy(desc(stickerBatches.activatedAt));
 
-
-
     return {
-
       batches: batches.map((b) => ({
-
         id: b.id,
-
         batchCode: b.batchCode,
-
         quantity: b.quantity,
-
         validFrom: b.validFrom,
-
         validTo: b.validTo,
-
         activatedAt: b.activatedAt,
-
       })),
-
     };
-
   });
 
+  app.post("/stickers/activate", { preHandler: ownerStickers }, async (request, reply) => {
+    const body = z
+      .object({
+        batchCode: z.string().min(4),
+        restaurantId: z.string().uuid().optional(),
+      })
+      .safeParse(request.body);
 
+    if (!body.success) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "batchCode required",
+          correlationId: request.id,
+        },
+      });
+    }
 
+    const restaurantId = body.data.restaurantId ?? request.staff?.restaurantId;
+    if (!restaurantId) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "restaurantId required",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    await enforceRestaurantScope(request, reply, restaurantId);
+    if (reply.sent) return;
+
+    const [batch] = await db
+      .select()
+      .from(stickerBatches)
+      .where(eq(stickerBatches.batchCode, body.data.batchCode.trim().toUpperCase()))
+      .limit(1);
+
+    if (!batch) {
+      return reply.status(404).send({
+        error: {
+          code: "BATCH_NOT_FOUND",
+          message: "Unknown batch code",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    if (batch.restaurantId !== restaurantId) {
+      return reply.status(403).send({
+        error: {
+          code: "FORBIDDEN",
+          message: "Batch belongs to another kitchen",
   app.get("/stickers/batches", { preHandler: ownerStickers }, async (request, reply) => {
     const query = z
       .object({
@@ -224,195 +224,46 @@ export async function registerStickerRoutes(app: FastifyInstance) {
 
 
 
-  app.post("/stickers/activate", { preHandler: ownerStickers }, async (request, reply) => {
-
-    const body = z
-
-      .object({
-
-        batchCode: z.string().min(4),
-
-        restaurantId: z.string().uuid().optional(),
-
-      })
-
-      .safeParse(request.body);
-
-
-
-    if (!body.success) {
-
-      return reply.status(400).send({
-
-        error: {
-
-          code: "INVALID_REQUEST",
-
-          message: "batchCode required",
-
           correlationId: request.id,
-
         },
-
       });
-
     }
-
-
-
-    const restaurantId = body.data.restaurantId ?? request.staff?.restaurantId;
-
-    if (!restaurantId) {
-
-      return reply.status(400).send({
-
-        error: {
-
-          code: "INVALID_REQUEST",
-
-          message: "restaurantId required",
-
-          correlationId: request.id,
-
-        },
-
-      });
-
-    }
-
-
-
-    await enforceRestaurantScope(request, reply, restaurantId);
-
-    if (reply.sent) return;
-
-
-
-    const [batch] = await db
-
-      .select()
-
-      .from(stickerBatches)
-
-      .where(eq(stickerBatches.batchCode, body.data.batchCode.trim()))
-
-      .limit(1);
-
-
-
-    if (!batch) {
-
-      return reply.status(404).send({
-
-        error: {
-
-          code: "BATCH_NOT_FOUND",
-
-          message: "Unknown batch code",
-
-          correlationId: request.id,
-
-        },
-
-      });
-
-    }
-
-
-
-    if (batch.restaurantId !== restaurantId) {
-
-      return reply.status(403).send({
-
-        error: {
-
-          code: "FORBIDDEN",
-
-          message: "Batch belongs to another kitchen",
-
-          correlationId: request.id,
-
-        },
-
-      });
-
-    }
-
-
 
     if (batch.revokedAt) {
-
       return reply.status(410).send({
-
         error: {
-
           code: "BATCH_REVOKED",
-
           message: "This batch was revoked",
-
           correlationId: request.id,
-
         },
-
       });
-
     }
-
-
 
     if (batch.activatedAt) {
-
       return {
-
         alreadyActive: true,
-
         batchId: batch.id,
-
         batchCode: batch.batchCode,
-
         validFrom: batch.validFrom,
-
         validTo: batch.validTo,
-
         activatedAt: batch.activatedAt,
-
       };
-
     }
 
-
-
     const activatedAt = new Date();
-
     const [updated] = await db
-
       .update(stickerBatches)
-
       .set({ activatedAt, validFrom: activatedAt })
-
       .where(eq(stickerBatches.id, batch.id))
-
       .returning();
 
-
-
     return {
-
       activated: true,
-
       batchId: updated.id,
-
       batchCode: updated.batchCode,
-
       validFrom: updated.validFrom,
-
       validTo: updated.validTo,
-
       activatedAt: updated.activatedAt,
-
     };
-
   });
-
 }
-

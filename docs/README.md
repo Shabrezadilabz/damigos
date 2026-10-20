@@ -1,8 +1,8 @@
 # D'aMigo's — Product & Engineering Documentation Hub
 
-**Last updated:** 2026-10-15  
+**Last updated:** 2026-10-18 (v2.0 planning suite)  
 **Owner:** Product / Engineering  
-**Status:** Living docs — update on every scope or integration change
+**Status:** Living docs — **PLANNING LOCK in progress; no new build scope until MASTER-PLAN-V2 §9 sign-off**
 
 This folder is the **single source of truth** for building, testing, and releasing the D'aMigo's platform (guest webview + restaurant CRM + shared backend).
 
@@ -10,15 +10,26 @@ This folder is the **single source of truth** for building, testing, and releasi
 
 ---
 
+## Start here (v2.0)
+
+1. **[MASTER-PLAN-V2.md](./MASTER-PLAN-V2.md)** — ✅ FINALIZED phased plan + sign-off
+2. **[design/APPLE-DESIGN-SYSTEM.md](./design/APPLE-DESIGN-SYSTEM.md)** — SF Pro + 17 Apple principles
+3. **[design/WA-OWNLY-GUEST-UI-REFERENCE.md](./design/WA-OWNLY-GUEST-UI-REFERENCE.md)** — WhatsApp Ownly UI pack (DEC-016)
+4. **[design/STITCH-SCREEN-MAP.md](./design/STITCH-SCREEN-MAP.md)** — `g*` / `crm_*` → routes
+5. **[tracking/DECISION-LOG.md](./tracking/DECISION-LOG.md)** — DEC-001…016
+6. PRD overlays: [GUEST-APP-PRD-V2-ADDENDUM.md](./prd/GUEST-APP-PRD-V2-ADDENDUM.md) · [CRM-APP-PRD-V2-ADDENDUM.md](./prd/CRM-APP-PRD-V2-ADDENDUM.md)
+
+---
+
 ## Quick start (team workflow)
 
 1. Read **[harness/DEVELOPMENT-HARNESS.md](./harness/DEVELOPMENT-HARNESS.md)** — how we use these docs day to day.
 2. Pick your app PRD:
-   - **[prd/GUEST-APP-PRD.md](./prd/GUEST-APP-PRD.md)** → `guest-web` + guest API surface
-   - **[prd/CRM-APP-PRD.md](./prd/CRM-APP-PRD.md)** → `crm-web` + CRM API surface
-3. Check **[architecture/SYSTEM-ARCHITECTURE.md](./architecture/SYSTEM-ARCHITECTURE.md)** for services, boundaries, and flows.
+   - **[prd/GUEST-APP-PRD.md](./prd/GUEST-APP-PRD.md)** + v2 addendum → `guest-web` + guest API
+   - **[prd/CRM-APP-PRD.md](./prd/CRM-APP-PRD.md)** + v2 addendum → `crm-web` + CRM API
+3. Check **[architecture/SYSTEM-ARCHITECTURE.md](./architecture/SYSTEM-ARCHITECTURE.md)** + **DATA-MODEL-V2** / **INTEGRATIONS-V2**.
 4. Implement against **[tracking/FEATURE-TRACEABILITY.md](./tracking/FEATURE-TRACEABILITY.md)** (feature ID → phase → test case).
-5. Execute tests from **[testing/TEST-STRATEGY.md](./testing/TEST-STRATEGY.md)** and mark cases in `testing/test-cases/`.
+5. Execute tests from **[testing/TEST-CASE-INDEX.md](./testing/TEST-CASE-INDEX.md)** and mark cases in `testing/test-cases/`.
 6. Log bugs in **[tracking/BUG-LOG.md](./tracking/BUG-LOG.md)**; release via **[tracking/RELEASE-CHECKLIST.md](./tracking/RELEASE-CHECKLIST.md)**.
 
 ---

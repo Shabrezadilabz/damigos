@@ -1,9 +1,19 @@
 import { eq } from "drizzle-orm";
-import { carts, db, orderItems, orders, paymentIntents, rewardClaims } from "@damigos/db";
+import {
+  carts,
+  customers,
+  db,
+  orderItems,
+  orders,
+  paymentIntents,
+  restaurants,
+  rewardClaims,
+} from "@damigos/db";
 import type { CheckoutCartSnapshot } from "./checkout-from-cart.js";
 import { CONVENIENCE_FEE_PAISE } from "./checkout-from-cart.js";
+import { creditLoyaltyPayback, debitLoyaltyCredits } from "./guest-loyalty.js";
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
-import { createMockShipmentIfNeeded } from "./create-mock-shipment.js";
+import { guestWebOrigin, sendFoodOrderConfirmed } from "./kapso.js";
 
 export async function insertPendingOrder(
   snapshot: CheckoutCartSnapshot,
@@ -18,7 +28,7 @@ export async function insertPendingOrder(
       status: "PAYMENT_PENDING",
       subtotalPaise: snapshot.subtotalPaise,
       convenienceFeePaise: CONVENIENCE_FEE_PAISE,
-      discountPaise: snapshot.discountPaise,
+      discountPaise: snapshot.discountPaise + snapshot.loyaltyAppliedPaise,
       deliveryPincode: snapshot.deliveryPincode,
       deliveryFeePaise: snapshot.deliveryFeePaise,
       totalPaise: snapshot.totalPaise,
@@ -76,13 +86,58 @@ export async function captureOrderPayment(
 
   await db
     .update(carts)
-    .set({ status: "CHECKED_OUT", appliedClaimId: null })
+    .set({
+      status: "CHECKED_OUT",
+      appliedClaimId: null,
+      autoRewardDeclined: false,
+      loyaltyAppliedPaise: 0,
+    })
     .where(eq(carts.id, intent.cartId));
 
-  await createMockShipmentIfNeeded(orderId);
+  // Shiprocket AWB is created on kitchen Accept (C-05.06), not at payment.
 
   const [paidOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
-  if (paidOrder) void publishKitchenRefresh(paidOrder.restaurantId);
+  if (paidOrder) {
+    const loyaltyUsed = intent.loyaltyAppliedPaise ?? 0;
+    if (loyaltyUsed > 0) {
+      await debitLoyaltyCredits(paidOrder.customerId, paidOrder.restaurantId, loyaltyUsed);
+    }
+    const merchandise = Math.max(
+      0,
+      paidOrder.subtotalPaise - paidOrder.discountPaise,
+    );
+    await creditLoyaltyPayback(paidOrder.customerId, paidOrder.restaurantId, merchandise);
+
+    void publishKitchenRefresh(paidOrder.restaurantId);
+    void notifyFoodOrderPaid(paidOrder).catch((err) => {
+      console.warn("[kapso:food] order confirm failed", err);
+    });
+  }
 
   return { captured: true, orderId };
+}
+
+async function notifyFoodOrderPaid(paidOrder: typeof orders.$inferSelect) {
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, paidOrder.customerId))
+    .limit(1);
+  const phone = customer?.phoneE164;
+  if (!phone) return;
+
+  const [kitchen] = await db
+    .select()
+    .from(restaurants)
+    .where(eq(restaurants.id, paidOrder.restaurantId))
+    .limit(1);
+
+  const shortId = paidOrder.id.replace(/-/g, "").slice(0, 8).toUpperCase();
+  await sendFoodOrderConfirmed({
+    toPhone: phone,
+    kitchenName: kitchen?.name ?? "Kitchen",
+    totalPaise: paidOrder.totalPaise,
+    trackUrl: `${guestWebOrigin()}/orders/${paidOrder.id}`,
+    orderShortId: shortId,
+  });
 }

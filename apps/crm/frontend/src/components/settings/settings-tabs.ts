@@ -1,7 +1,8 @@
 export const SETTINGS_TABS = [
   { id: "profile", label: "Profile & theme", icon: "badge" },
+  { id: "location", label: "Kitchen location", icon: "location_on" },
   { id: "team", label: "Team", icon: "group" },
-  { id: "payout", label: "Payout & POS", icon: "point_of_sale" },
+  { id: "payout", label: "Banking & payout", icon: "account_balance" },
   { id: "stickers", label: "Stickers", icon: "qr_code_2" },
   { id: "admin", label: "Admin", icon: "admin_panel_settings", badge: "Platform" },
 ] as const;

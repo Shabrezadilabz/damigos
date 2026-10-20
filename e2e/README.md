@@ -43,7 +43,8 @@ Maps to [P0-EXIT-SMOKE.md](../docs/testing/P0-EXIT-SMOKE.md) and `e2e/guest/*.sp
 
 | Spec | Cases |
 |------|--------|
-| `guest/scan.spec.ts` | TC-G-001, TC-G-002 |
+| `guest/scan.spec.ts` | TC-G-001, TC-G-002 (Spark bridge → play) |
+| `guest/spark-flow.spec.ts` | TC-G-027 Spark unlock webhook + redeem menu |
 | `guest/spin-daily-limit.spec.ts` | TC-G-021 daily spin cap |
 | `guest/checkout-reward-claim.spec.ts` | TC-G-023 scratch, TC-G-024 checkout offer |
 | `guest/checkout.spec.ts` | TC-G-040/046/050 (mock pay) |

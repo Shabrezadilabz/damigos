@@ -22,12 +22,12 @@ import {
 import { captureOrderPayment, insertPendingOrder } from "../lib/capture-order-payment.js";
 import { loadOpenCheckoutCart } from "../lib/checkout-from-cart.js";
 import { CONVENIENCE_FEE_PAISE } from "../lib/cart-totals.js";
+import { creditLoyaltyPayback, debitLoyaltyCredits } from "../lib/guest-loyalty.js";
 
 import { paymentMode, razorpayKeyId } from "../lib/payment-mode.js";
 import { createRazorpayOrder, verifyPaymentSignature } from "../lib/razorpay.js";
 
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
-import { createMockShipmentIfNeeded } from "../lib/create-mock-shipment.js";
 import { requireGuest } from "../lib/require-guest.js";
 
 
@@ -198,6 +198,8 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
       cartId: snapshot.cart.id,
 
       appliedClaimId: snapshot.appliedClaimId,
+
+      loyaltyAppliedPaise: snapshot.loyaltyAppliedPaise,
 
       idempotencyKey: key,
 
@@ -420,8 +422,19 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
 
 
-    const { cart, lines, subtotalPaise, discountPaise, deliveryFeePaise, deliveryPincode, totalPaise } =
-      snapshot;
+    const {
+      cart,
+      lines,
+      subtotalPaise,
+      discountPaise,
+      loyaltyAppliedPaise,
+      deliveryFeePaise,
+      deliveryPincode,
+      totalPaise,
+      appliedClaimId,
+    } = snapshot;
+
+    const combinedDiscount = discountPaise + loyaltyAppliedPaise;
 
     const [order] = await db
 
@@ -439,7 +452,7 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
         convenienceFeePaise: CONVENIENCE_FEE_PAISE,
 
-        discountPaise,
+        discountPaise: combinedDiscount,
 
         deliveryPincode,
 
@@ -453,7 +466,7 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
 
 
-    if (cart.appliedClaimId && discountPaise > 0) {
+    if (appliedClaimId && discountPaise > 0) {
 
       await db
 
@@ -461,7 +474,7 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
         .set({ redeemedOrderId: order.id })
 
-        .where(eq(rewardClaims.id, cart.appliedClaimId));
+        .where(eq(rewardClaims.id, appliedClaimId));
 
     }
 
@@ -491,11 +504,24 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
       .update(carts)
 
-      .set({ status: "CHECKED_OUT", appliedClaimId: null })
+      .set({
+        status: "CHECKED_OUT",
+        appliedClaimId: null,
+        autoRewardDeclined: false,
+        loyaltyAppliedPaise: 0,
+      })
 
       .where(eq(carts.id, cart.id));
 
-    await createMockShipmentIfNeeded(order.id);
+    if (loyaltyAppliedPaise > 0) {
+      await debitLoyaltyCredits(customerId, restaurantId, loyaltyAppliedPaise);
+    }
+    await creditLoyaltyPayback(
+      customerId,
+      restaurantId,
+      Math.max(0, subtotalPaise - combinedDiscount),
+    );
+
     void publishKitchenRefresh(restaurantId);
 
     return {
@@ -564,8 +590,27 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
       .where(eq(shipments.orderId, order.id))
       .limit(1);
 
-    return { order, items, shipment: shipment ?? null };
-
+    return {
+      order: {
+        ...order,
+        prepDeadlineAt: order.prepDeadlineAt?.toISOString() ?? null,
+        riderArrivedAt: order.riderArrivedAt?.toISOString() ?? null,
+        readyForPickupAt: order.readyForPickupAt?.toISOString() ?? null,
+        createdAt: order.createdAt.toISOString(),
+      },
+      items,
+      shipment: shipment
+        ? {
+            awb: shipment.awb,
+            status: shipment.status,
+            carrier: shipment.carrier,
+            trackingUrl: shipment.trackingUrl ?? null,
+            lastTrackingStatus: shipment.lastTrackingStatus ?? null,
+            lastTrackingAt: shipment.lastTrackingAt?.toISOString() ?? null,
+            foodDelivery: shipment.foodDelivery ?? true,
+          }
+        : null,
+    };
   });
 
 
@@ -607,13 +652,23 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
         totalPaise: orders.totalPaise,
         createdAt: orders.createdAt,
         restaurantName: restaurants.name,
+        checkoutGroupId: orders.checkoutGroupId,
+        legIndex: orders.legIndex,
+        prepDeadlineAt: orders.prepDeadlineAt,
+        discountPaise: orders.discountPaise,
       })
       .from(orders)
       .innerJoin(restaurants, eq(orders.restaurantId, restaurants.id))
       .where(and(...conditions))
       .orderBy(desc(orders.createdAt));
 
-    return { orders: rows };
+    return {
+      orders: rows.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        prepDeadlineAt: r.prepDeadlineAt?.toISOString() ?? null,
+      })),
+    };
   });
 
 }

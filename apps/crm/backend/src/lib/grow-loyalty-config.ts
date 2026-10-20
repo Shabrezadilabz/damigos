@@ -30,6 +30,8 @@ const spinSegmentSchema = z.object({
   prizeType: z.string().min(1),
   prizeValue: z.number().int().min(0),
   weight: z.number().int().min(1).max(10_000),
+  /** RESTAURANT_SCOPED (default) | PLATFORM_WIDE — G-04.08 */
+  scope: z.enum(["RESTAURANT_SCOPED", "PLATFORM_WIDE"]).default("RESTAURANT_SCOPED"),
 });
 
 const ruleWithOfferSchema = z.object({
@@ -78,10 +80,38 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
     minCartPaise: 24900,
     paybackPercent: 5,
     spinSegments: [
-      { localId: "s1", title: "15% off total", prizeType: "percent", prizeValue: 15, weight: 40 },
-      { localId: "s2", title: "Free mocktail", prizeType: "free_item", prizeValue: 0, weight: 30 },
-      { localId: "s3", title: "₹50 voucher", prizeType: "flat_off_paise", prizeValue: 5000, weight: 20 },
-      { localId: "s4", title: "Royal feast", prizeType: "free_item", prizeValue: 0, weight: 10 },
+      {
+        localId: "s1",
+        title: "15% off total",
+        prizeType: "percent",
+        prizeValue: 15,
+        weight: 35,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s2",
+        title: "Free mocktail",
+        prizeType: "free_item",
+        prizeValue: 0,
+        weight: 25,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s3",
+        title: "₹50 kitchen voucher",
+        prizeType: "flat_off_paise",
+        prizeValue: 5000,
+        weight: 20,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s4",
+        title: "₹20 D'aMigo platform off",
+        prizeType: "flat_off_paise",
+        prizeValue: 2000,
+        weight: 20,
+        scope: "PLATFORM_WIDE",
+      },
     ],
     scratch: { minOrderPaise: 59900, offerPresetId: "flat_100" },
     dineIn: { enabled: true, offerPresetId: "pct_10" },
@@ -116,15 +146,25 @@ export function validateSpinWeights(config: GrowLoyaltyConfig): { ok: boolean; w
 }
 
 export function configToOffersRows(restaurantId: string, config: GrowLoyaltyConfig) {
-  return config.spinSegments.map((seg) => ({
-    restaurantId,
-    title: seg.title,
-    description: "Spin wheel segment",
-    prizeType: seg.prizeType,
-    prizeValue: seg.prizeValue,
-    weight: seg.weight,
-    active: config.engineEnabled,
-    minOrderPaise: config.minCartPaise,
-    terms: "Configured in Grow → Offers & game",
-  }));
+  return config.spinSegments.map((seg) => {
+    const scope = seg.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED";
+    return {
+      restaurantId,
+      scope,
+      title: seg.title,
+      description:
+        scope === "PLATFORM_WIDE"
+          ? "D'aMigo platform offer — applies across kitchens"
+          : "Spin wheel segment (restaurant scoped)",
+      prizeType: seg.prizeType,
+      prizeValue: seg.prizeValue,
+      weight: seg.weight,
+      active: config.engineEnabled,
+      minOrderPaise: config.minCartPaise,
+      terms:
+        scope === "PLATFORM_WIDE"
+          ? "Platform offer · Sponsored by D'aMigo's · Grow → Offers & game"
+          : "Configured in Grow → Offers & game",
+    };
+  });
 }

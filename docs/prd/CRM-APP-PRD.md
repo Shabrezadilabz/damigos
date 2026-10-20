@@ -2,12 +2,13 @@
 
 | Field | Value |
 |-------|--------|
-| **Document ID** | PRD-CRM-1.0 |
+| **Document ID** | PRD-CRM-1.0 (+ v2.0 addendum) |
 | **App** | `crm-web` (desktop-first; responsive tablet for kitchen) |
 | **API** | `crm-api` (REST + WebSocket kitchen channel) |
-| **Version** | 1.0 |
-| **Date** | 2026-10-15 |
+| **Version** | 1.0 base · **2.0 planning overlay** |
+| **Date** | 2026-10-15 · v2 addendum 2026-10-18 |
 | **Companion** | [GUEST-APP-PRD.md](./GUEST-APP-PRD.md), [SYSTEM-ARCHITECTURE.md](../architecture/SYSTEM-ARCHITECTURE.md) |
+| **v2.0 LOCKED overlay** | **[CRM-APP-PRD-V2-ADDENDUM.md](./CRM-APP-PRD-V2-ADDENDUM.md)** — GPS, prep category, Accept→rider+timer, waiting penalty |
 
 ---
 
@@ -54,9 +55,11 @@ Enforce RBAC on every `crm-api` route.
 
 ## 4. Design system
 
+> **v2.0 override:** Apple SF Pro + 17 principles ([APPLE-DESIGN-SYSTEM.md](../design/APPLE-DESIGN-SYSTEM.md)); Stitch map [STITCH-SCREEN-MAP.md](../design/STITCH-SCREEN-MAP.md).
+
 - Stitch folders `crm_1` … `crm_6` + Grow/Orders sub-screens
 - Layout: **left sidebar** — Home, Menu, Grow, Orders, Settings
-- Shell type: `web_dashboard` 1440×900
+- Shell type: `web_dashboard` 1440×900; kitchen tablet 1024×768 feel gate
 - Fix copy: sidebar subtitle **"Restaurant CRM"** (not "Guest OS")
 
 ---

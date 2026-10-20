@@ -1,4 +1,23 @@
 export { loadMonorepoEnv } from "./load-env.js";
+export {
+  assignShiprocketAwb,
+  checkShiprocketServiceability,
+  createShiprocketAdhocOrder,
+  createShiprocketShipmentBundle,
+  deliveryMode,
+  deliveryQuoteRequired,
+  generateShiprocketPickup,
+  isFoodFriendlyCourier,
+  shiprocketApiBase,
+  shiprocketCredentialsConfigured,
+  shiprocketLogin,
+  shiprocketPickupLocationName,
+  shiprocketPickupPostcode,
+  shiprocketTrackingUrl,
+  type CreateAdhocOrderInput,
+  type ServiceabilityResult,
+  type ShiprocketMode,
+} from "./shiprocket.js";
 
 /** Shared domain types — align with docs/architecture/DATA-MODEL.md */
 
@@ -36,7 +55,11 @@ export interface ApiErrorBody {
 export const GUEST_API_PREFIX = "/v1" as const;
 export const CRM_API_PREFIX = "/v1" as const;
 
-export { brandKitForGuestFromJson, type GuestRestaurantBrand } from "./brand-kit.js";
+export {
+  brandKitForGuestFromJson,
+  isPlausibleRestaurantDisplayName,
+  type GuestRestaurantBrand,
+} from "./brand-kit.js";
 
 export {
   aiTextProvider,

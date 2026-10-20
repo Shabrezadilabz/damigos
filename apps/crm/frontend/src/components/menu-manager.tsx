@@ -180,14 +180,37 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
   async function onPublish() {
     if (draftTotal <= 0) return;
+    const drafts = draftMode ? items : await fetchMenuItems(restaurantId, true);
+    const missingPrep = drafts.filter((d) => {
+      const cat = d.prepCategory;
+      const mins = d.prepMinutes;
+      const aligned =
+        (cat === "READY_10M" && mins === 10) || (cat === "COOKED_15M" && mins === 15);
+      return !aligned;
+    });
+    if (missingPrep.length > 0) {
+      setError(
+        `Set prep SLA (⚡ 10m or 🔥 15m) on ${missingPrep.length} draft item(s) before publish: ${missingPrep
+          .slice(0, 5)
+          .map((i) => i.name)
+          .join(", ")}${missingPrep.length > 5 ? "…" : ""}`,
+      );
+      setStage("draft");
+      if (missingPrep[0]) setSelectedId(missingPrep[0].id);
+      return;
+    }
     const ok = window.confirm(
       `Publish ${draftTotal} draft item(s) to Live? Guests will see them on WhatsApp menu after publish.`,
     );
     if (!ok) return;
-    await publishMenu(restaurantId);
-    setStage("live");
-    setSelectedId(null);
-    await load();
+    try {
+      await publishMenu(restaurantId);
+      setStage("live");
+      setSelectedId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Publish failed");
+    }
   }
 
   async function onRevertDrafts() {
@@ -577,6 +600,11 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="truncate text-sm font-bold">{item.name}</span>
+                              <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-on-surface-variant">
+                                {item.prepCategory === "READY_10M" || item.prepMinutes === 10
+                                  ? "10m"
+                                  : "15m"}
+                              </span>
                               {item.importJobId && !low && (
                                 <span className="rounded bg-tertiary/10 px-1.5 py-0.5 text-[10px] font-semibold text-tertiary">
                                   AI Edited

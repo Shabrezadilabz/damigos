@@ -107,7 +107,9 @@ npm run dev
 
 **Razorpay live (pilot):** `PAYMENT_MODE=razorpay`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` — guest checkout opens Razorpay Checkout.js; server verifies via `POST /v1/checkout/verify-razorpay`. `RAZORPAY_WEBHOOK_SECRET` required in prod; terminate TLS at a proxy that forwards **unmodified body** to guest-api (or use the same raw-body parser pattern).
 
-**Delivery (Shiprocket mock):** `DELIVERY_MODE=mock` — checkout asks for pincode; `560xxx` serviceable with mock rate + ₹5 platform line. Run `npm run db:migrate` for `0007_delivery_fees`. E2E defaults to `DELIVERY_MODE=off` unless set.
+**Delivery:** `DELIVERY_MODE=mock` — fake 560xxx rates + ₹5. `sandbox` / `live` — real Shiprocket API (`SHIPROCKET_EMAIL` / `PASSWORD`); see [docs/architecture/SHIPROCKET-RAZORPAY-SETUP.md](./docs/architecture/SHIPROCKET-RAZORPAY-SETUP.md). E2E defaults to `off` unless set.
+
+**Razorpay test:** `PAYMENT_MODE=razorpay` + `RAZORPAY_KEY_ID` / `SECRET` (Test Mode `rzp_test_…`). Same setup doc.
 
 **Grow scheduler:** `CAMPAIGN_SCHEDULER_ENABLED=true` on **crm-api** — polls due `Scheduled` campaigns and runs mock Kapso dispatch (7-day cap already applied when recipients were built).
 

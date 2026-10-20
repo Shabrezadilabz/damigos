@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { fetchMe, saveGuestConsents, saveGuestProfile, verifyGuestOtp } from "@/lib/api";
+import {
+  fetchMe,
+  saveGuestConsents,
+  saveGuestProfile,
+  sparkOptIn,
+  verifyGuestOtp,
+} from "@/lib/api";
 import { setGuestToken } from "@/lib/session";
 
 type Props = {
   open: boolean;
   onComplete: () => void;
+  restaurantId?: string;
+  scanId?: string | null;
 };
 
-/** G-02 — one-time profile + separate consents */
-export function ProfileConsentSheet({ open, onComplete }: Props) {
+/** G-02 — one-time profile + separate consents (+ Spark WA opt-in when marketing) */
+export function ProfileConsentSheet({ open, onComplete, restaurantId, scanId }: Props) {
   const [step, setStep] = useState<"otp" | "profile">("otp");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -55,6 +63,14 @@ export function ProfileConsentSheet({ open, onComplete }: Props) {
     try {
       await saveGuestProfile(token, name.trim());
       await saveGuestConsents(token, { transactional, marketing, game });
+      if (marketing && restaurantId) {
+        try {
+          const spark = await sparkOptIn({ phone, restaurantId, scanId });
+          if (spark.token) setGuestToken(spark.token);
+        } catch {
+          /* consents already saved; Spark invite is best-effort */
+        }
+      }
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");

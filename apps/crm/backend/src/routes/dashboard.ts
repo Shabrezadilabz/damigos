@@ -7,6 +7,7 @@ import {
   db,
   menuItems,
   orders,
+  restaurantPayoutLedger,
   rewardPlays,
   scanEvents,
 } from "@damigos/db";
@@ -84,14 +85,30 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
     if (reply.sent) return;
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [ordersToday, scans7d, wallet, draftMenuCount] = await Promise.all([
+    const [ordersToday, scans7d, wallet, draftMenuCount, settlement] = await Promise.all([
       countOrdersToday(restaurantId),
       countScansSince(restaurantId, sevenDaysAgo),
       getWalletSnapshot(restaurantId),
       countDraftMenuItems(restaurantId),
+      db
+        .select({
+          grossPaise: sql<number>`coalesce(sum(${orders.totalPaise}), 0)::int`,
+          penaltyPaise: sql<number>`coalesce(sum(${orders.waitingPenaltyPaise}), 0)::int`,
+          orderCount: count(),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            gte(orders.createdAt, sevenDaysAgo),
+            inArray(orders.status, [...paidOrderStatuses]),
+          ),
+        ),
     ]);
 
     const campaignSendsRemaining = Math.floor(wallet.balancePaise / WHATSAPP_MSG_COST_PAISE);
+    const gross7d = Number(settlement[0]?.grossPaise ?? 0);
+    const penalties7d = Number(settlement[0]?.penaltyPaise ?? 0);
 
     const alerts: Array<{ code: string; severity: "info" | "warning"; message: string }> = [];
     if (wallet.balancePaise < WALLET_LOW_BALANCE_PAISE) {
@@ -109,6 +126,19 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
       });
     }
 
+    const [ledgerDebits] = await db
+      .select({
+        n: sql<number>`coalesce(sum(abs(${restaurantPayoutLedger.amountPaise})), 0)::int`,
+      })
+      .from(restaurantPayoutLedger)
+      .where(
+        and(
+          eq(restaurantPayoutLedger.restaurantId, restaurantId),
+          eq(restaurantPayoutLedger.entryType, "WAITING_PENALTY_DEBIT"),
+          gte(restaurantPayoutLedger.createdAt, sevenDaysAgo),
+        ),
+      );
+
     return {
       restaurantId,
       kpis: {
@@ -116,6 +146,13 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
         scans7d,
         walletBalancePaise: wallet.balancePaise,
         campaignSendsRemaining,
+      },
+      settlement7d: {
+        paidOrders: Number(settlement[0]?.orderCount ?? 0),
+        grossSalesPaise: gross7d,
+        waitingPenaltyPaise: penalties7d,
+        ledgerPenaltyDebitsPaise: Number(ledgerDebits?.n ?? 0),
+        netEstimatePaise: Math.max(0, gross7d - penalties7d),
       },
       alerts,
     };

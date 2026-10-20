@@ -46,6 +46,10 @@ function CampaignCard({
               <MaterialIcon name="groups" className="text-[14px]" />
               ~{c.estimatedRecipients} guests
             </span>
+            <span>•</span>
+            <span className="tabular-nums">
+              ~{formatInr(c.estimatedRecipients * 250)} est.
+            </span>
             {c.skippedSevenDayCap > 0 ? (
               <>
                 <span>•</span>

@@ -1,9 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import type { FastifyRequest } from "fastify";
 import { cartItems, carts, db, menuItems } from "@damigos/db";
-import { deliveryMode } from "./delivery-mode.js";
+import { deliveryQuoteRequired } from "./delivery-mode.js";
 import { mockServiceable } from "./shiprocket-mock.js";
+import { deliveryMode } from "@damigos/domain";
+import { ensureBestClaimApplied } from "./auto-apply-claim.js";
 import { cartTotalPaise, CONVENIENCE_FEE_PAISE, resolveAppliedClaimDiscount } from "./cart-totals.js";
+import { clampLoyaltyApplyPaise } from "./guest-loyalty.js";
 
 export type CheckoutCartSnapshot = {
   cart: typeof carts.$inferSelect;
@@ -16,6 +19,7 @@ export type CheckoutCartSnapshot = {
   }[];
   subtotalPaise: number;
   discountPaise: number;
+  loyaltyAppliedPaise: number;
   totalPaise: number;
   deliveryFeePaise: number;
   deliveryPincode: string | null;
@@ -60,42 +64,69 @@ export async function loadOpenCheckoutCart(
   }
 
   const subtotalPaise = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0);
+
+  const appliedClaimId = await ensureBestClaimApplied({
+    cartId: cart.id,
+    customerId,
+    restaurantId,
+    subtotalPaise,
+    appliedClaimId: cart.appliedClaimId,
+    autoRewardDeclined: cart.autoRewardDeclined ?? false,
+  });
+
   const claimInfo = await resolveAppliedClaimDiscount(
-    cart.appliedClaimId,
+    appliedClaimId,
     customerId,
     restaurantId,
     subtotalPaise,
   );
   const discountPaise = claimInfo.discountPaise;
+  const loyaltyAppliedPaise = clampLoyaltyApplyPaise(
+    cart.loyaltyAppliedPaise ?? 0,
+    subtotalPaise,
+    discountPaise,
+  );
   const deliveryFeePaise = cart.deliveryFeePaise ?? 0;
 
   const pin = cart.deliveryPincode ?? null;
-  if (deliveryMode() === "mock") {
-    if (deliveryFeePaise <= 0 || !pin || !mockServiceable(pin)) {
+  if (deliveryQuoteRequired()) {
+    if (!pin) {
       return {
         error: {
-          code: pin && !mockServiceable(pin) ? "NOT_SERVICEABLE" : "DELIVERY_QUOTE_REQUIRED",
-          message:
-            pin && !mockServiceable(pin)
-              ? "We cannot deliver to this pincode yet. Try another address or pick up."
-              : "Enter a deliverable pincode to continue",
-          status: pin && !mockServiceable(pin) ? 422 : 400,
+          code: "DELIVERY_QUOTE_REQUIRED",
+          message: "Enter a deliverable pincode to continue",
+          status: 400,
+        },
+      };
+    }
+    if (deliveryMode() === "mock" && !mockServiceable(pin)) {
+      return {
+        error: {
+          code: "NOT_SERVICEABLE",
+          message: "We cannot deliver to this pincode yet. Try another address or pick up.",
+          status: 422,
         },
       };
     }
   }
 
-  const totalPaise = cartTotalPaise(subtotalPaise, discountPaise, deliveryFeePaise);
+  const totalPaise = cartTotalPaise(
+    subtotalPaise,
+    discountPaise,
+    deliveryFeePaise,
+    loyaltyAppliedPaise,
+  );
 
   return {
     cart,
     lines,
     subtotalPaise,
     discountPaise,
+    loyaltyAppliedPaise,
     deliveryFeePaise,
     deliveryPincode: cart.deliveryPincode ?? null,
     totalPaise,
-    appliedClaimId: discountPaise > 0 ? cart.appliedClaimId : null,
+    appliedClaimId: discountPaise > 0 ? appliedClaimId : null,
   };
 }
 

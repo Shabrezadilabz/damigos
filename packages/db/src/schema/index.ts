@@ -1,10 +1,12 @@
 import {
   boolean,
+  doublePrecision,
   integer,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -29,12 +31,25 @@ export const restaurants = pgTable("restaurants", {
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 128 }).notNull().unique(),
   city: varchar("city", { length: 128 }).default("Bangalore"),
+  /** Kitchen GPS — Cross-By Haversine + Shiprocket pickup */
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  geoUpdatedAt: timestamp("geo_updated_at", { withTimezone: true }),
   orderingEnabled: boolean("ordering_enabled").default(true).notNull(),
   hubListed: boolean("hub_listed").default(false).notNull(),
   razorpayLinkedAccountId: varchar("razorpay_linked_account_id", { length: 64 }),
   razorpayKycStatus: varchar("razorpay_kyc_status", { length: 32 }).default("not_linked").notNull(),
   petpoojaOutletId: varchar("petpooja_outlet_id", { length: 64 }),
   restroworksLocationId: varchar("restroworks_location_id", { length: 64 }),
+  /** Settlement bank (masked in UI; full in DB for ops) */
+  bankAccountName: varchar("bank_account_name", { length: 128 }),
+  bankAccountNumber: varchar("bank_account_number", { length: 32 }),
+  bankIfsc: varchar("bank_ifsc", { length: 16 }),
+  bankName: varchar("bank_name", { length: 128 }),
+  /** When bank details change — freeze EOD payout until Razorpay Route updated */
+  payoutFrozenUntil: timestamp("payout_frozen_until", { withTimezone: true }),
+  payoutFreezeReason: varchar("payout_freeze_reason", { length: 128 }),
+  bankDetailsUpdatedAt: timestamp("bank_details_updated_at", { withTimezone: true }),
   /** JSON — Grow loyalty rules (spin, scratch, win-back, calendar). CRM C-04.01 */
   growLoyaltyConfig: text("grow_loyalty_config"),
   /** JSON — logo URL, colors, display name from menu/brand AI extract (DeepSeek) */
@@ -65,6 +80,10 @@ export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
   phoneHash: varchar("phone_hash", { length: 64 }).notNull().unique(),
   phoneLast4: varchar("phone_last4", { length: 4 }),
+  /** E.164 digits for Kapso WhatsApp (optional until Spark opt-in) */
+  phoneE164: varchar("phone_e164", { length: 20 }),
+  waOptInSource: varchar("wa_opt_in_source", { length: 32 }),
+  waOptInAt: timestamp("wa_opt_in_at", { withTimezone: true }),
   name: varchar("name", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -142,6 +161,9 @@ export const menuItems = pgTable("menu_items", {
   importJobId: uuid("import_job_id"),
   imageUrl: text("image_url"),
   foodCatalogId: uuid("food_catalog_id").references(() => foodCatalog.id),
+  /** READY_10M | COOKED_15M — kitchen Accept SLA */
+  prepCategory: varchar("prep_category", { length: 16 }).default("COOKED_15M").notNull(),
+  prepMinutes: integer("prep_minutes"),
 });
 
 export const cartStatusEnum = pgEnum("cart_status", ["OPEN", "CHECKED_OUT"]);
@@ -161,6 +183,24 @@ export const orderStatusEnum = pgEnum("order_status", [
   "REFUNDED",
 ]);
 
+export const checkoutGroups = pgTable("checkout_groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id),
+  status: varchar("status", { length: 32 }).default("DRAFT").notNull(),
+  riderMode: varchar("rider_mode", { length: 16 }).default("SINGLE").notNull(),
+  distanceMeters: integer("distance_meters"),
+  deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
+  platformDeliverySubsidyPaise: integer("platform_delivery_subsidy_paise").default(0).notNull(),
+  convenienceFeePaise: integer("convenience_fee_paise").default(200).notNull(),
+  currency: varchar("currency", { length: 8 }).default("INR").notNull(),
+  /** Single Razorpay order for entire Cross-By group (amount = sum of legs) */
+  razorpayOrderId: varchar("razorpay_order_id", { length: 64 }).unique(),
+  idempotencyKey: varchar("idempotency_key", { length: 64 }).unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const carts = pgTable("carts", {
   id: uuid("id").primaryKey().defaultRandom(),
   customerId: uuid("customer_id")
@@ -171,10 +211,31 @@ export const carts = pgTable("carts", {
     .references(() => restaurants.id),
   status: cartStatusEnum("status").default("OPEN").notNull(),
   appliedClaimId: uuid("applied_claim_id").references(() => rewardClaims.id),
+  /** Guest removed auto-applied reward — do not re-apply until they pick one */
+  autoRewardDeclined: boolean("auto_reward_declined").default(false).notNull(),
+  /** Optional restaurant loyalty credits applied this cart (paise) */
+  loyaltyAppliedPaise: integer("loyalty_applied_paise").default(0).notNull(),
   deliveryPincode: varchar("delivery_pincode", { length: 6 }),
   deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Guest loyalty / payback balance per kitchen (restaurant-scoped) */
+export const guestLoyaltyCredits = pgTable(
+  "guest_loyalty_credits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    restaurantId: uuid("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    balancePaise: integer("balance_paise").default(0).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique("guest_loyalty_credits_customer_restaurant").on(t.customerId, t.restaurantId)],
+);
 
 export const cartItems = pgTable("cart_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -203,8 +264,60 @@ export const orders = pgTable("orders", {
   deliveryPincode: varchar("delivery_pincode", { length: 6 }),
   deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
   totalPaise: integer("total_paise").notNull(),
+  /** Cross-By leg (null = single-restaurant checkout) */
+  checkoutGroupId: uuid("checkout_group_id").references(() => checkoutGroups.id, {
+    onDelete: "set null",
+  }),
+  legIndex: integer("leg_index").default(1).notNull(),
+  committedPrepMinutes: integer("committed_prep_minutes"),
+  extendedPrepMinutes: integer("extended_prep_minutes").default(0).notNull(),
+  prepDeadlineAt: timestamp("prep_deadline_at", { withTimezone: true }),
+  riderArrivedAt: timestamp("rider_arrived_at", { withTimezone: true }),
+  readyForPickupAt: timestamp("ready_for_pickup_at", { withTimezone: true }),
+  waitingPenaltyPaise: integer("waiting_penalty_paise").default(0).notNull(),
+  waitingPenaltyFinalized: boolean("waiting_penalty_finalized").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const restaurantPayoutLedger = pgTable("restaurant_payout_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  restaurantId: uuid("restaurant_id")
+    .notNull()
+    .references(() => restaurants.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  entryType: varchar("entry_type", { length: 32 }).notNull(),
+  amountPaise: integer("amount_paise").notNull(),
+  meta: text("meta"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** One EOD settlement row per restaurant per IST business day */
+export const restaurantDailySettlements = pgTable(
+  "restaurant_daily_settlements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    restaurantId: uuid("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    /** YYYY-MM-DD in Asia/Kolkata */
+    businessDate: varchar("business_date", { length: 10 }).notNull(),
+    orderCount: integer("order_count").default(0).notNull(),
+    paymentsCount: integer("payments_count").default(0).notNull(),
+    grossSalesPaise: integer("gross_sales_paise").default(0).notNull(),
+    restaurantSharePaise: integer("restaurant_share_paise").default(0).notNull(),
+    platformFeePaise: integer("platform_fee_paise").default(0).notNull(),
+    deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
+    waitingPenaltyPaise: integer("waiting_penalty_paise").default(0).notNull(),
+    status: varchar("status", { length: 32 }).default("pending").notNull(),
+    /** SETTLED | FROZEN | SKIPPED_NO_BANK | FAILED */
+    invoiceNumber: varchar("invoice_number", { length: 64 }),
+    invoiceJson: text("invoice_json"),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
+    freezeNote: varchar("freeze_note", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique("restaurant_daily_settlements_rid_date").on(t.restaurantId, t.businessDate)],
+);
 
 export const paymentIntents = pgTable("payment_intents", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -216,6 +329,7 @@ export const paymentIntents = pgTable("payment_intents", {
     .notNull()
     .references(() => carts.id),
   appliedClaimId: uuid("applied_claim_id"),
+  loyaltyAppliedPaise: integer("loyalty_applied_paise").default(0).notNull(),
   idempotencyKey: varchar("idempotency_key", { length: 64 }).unique(),
   razorpayOrderId: varchar("razorpay_order_id", { length: 64 }).unique(),
   razorpayPaymentId: varchar("razorpay_payment_id", { length: 64 }),
@@ -230,9 +344,20 @@ export const shipments = pgTable("shipments", {
     .notNull()
     .unique()
     .references(() => orders.id, { onDelete: "cascade" }),
-  carrier: varchar("carrier", { length: 32 }).default("Shiprocket").notNull(),
+  carrier: varchar("carrier", { length: 64 }).default("Shiprocket").notNull(),
   awb: varchar("awb", { length: 64 }),
-  status: varchar("status", { length: 32 }).default("created").notNull(),
+  status: varchar("status", { length: 64 }).default("created").notNull(),
+  /** SINGLE multi-pickup vs SPLIT dual AWB (Cross-By) */
+  pickupMode: varchar("pickup_mode", { length: 16 }).default("SPLIT").notNull(),
+  checkoutGroupId: uuid("checkout_group_id"),
+  /** Shiprocket External / Quick hyperlocal metadata */
+  shiprocketOrderId: varchar("shiprocket_order_id", { length: 64 }),
+  shiprocketShipmentId: varchar("shiprocket_shipment_id", { length: 64 }),
+  courierCompanyId: integer("courier_company_id"),
+  trackingUrl: text("tracking_url"),
+  lastTrackingStatus: varchar("last_tracking_status", { length: 128 }),
+  lastTrackingAt: timestamp("last_tracking_at", { withTimezone: true }),
+  foodDelivery: boolean("food_delivery").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -273,9 +398,12 @@ export const rewardPlayModeEnum = pgEnum("reward_play_mode", ["spin", "scratch"]
 
 export const offers = pgTable("offers", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** Issuing kitchen (still set for PLATFORM_WIDE — scope controls apply rules) */
   restaurantId: uuid("restaurant_id")
     .notNull()
     .references(() => restaurants.id),
+  /** RESTAURANT_SCOPED | PLATFORM_WIDE — G-04.08 */
+  scope: varchar("scope", { length: 32 }).default("RESTAURANT_SCOPED").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   prizeType: varchar("prize_type", { length: 32 }).notNull(),
@@ -321,6 +449,25 @@ export const rewardClaims = pgTable("reward_claims", {
     .references(() => offers.id),
   claimedAt: timestamp("claimed_at", { withTimezone: true }).defaultNow().notNull(),
   redeemedOrderId: uuid("redeemed_order_id").references(() => orders.id),
+  /** Spark nudge after claim if guest has not ordered yet */
+  orderNudgeSentAt: timestamp("order_nudge_sent_at", { withTimezone: true }),
+});
+
+/**
+ * Pending Spark play context after packaging scan / invite.
+ * unlock_reward webhook looks up by phone_e164 to send the correct play URL.
+ */
+export const sparkPlaySessions = pgTable("spark_play_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  phoneE164: varchar("phone_e164", { length: 20 }),
+  restaurantId: uuid("restaurant_id")
+    .notNull()
+    .references(() => restaurants.id, { onDelete: "cascade" }),
+  scanEventId: uuid("scan_event_id").references(() => scanEvents.id, { onDelete: "set null" }),
+  playPath: varchar("play_path", { length: 512 }).notNull(),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
 export const walletAccounts = pgTable("wallet_accounts", {

@@ -320,7 +320,7 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
                 <MaterialIcon name="table_bar" className="text-[20px]" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase text-on-surface-variant">Dine-in QR Scan</p>
+                <p className="text-[10px] font-bold uppercase text-on-surface-variant">Packaging QR Scan</p>
                 <p className="text-sm font-bold">
                   68.4% <span className="text-xs font-normal text-on-surface-variant">(6,539 orders)</span>
                 </p>

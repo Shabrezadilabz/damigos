@@ -34,3 +34,10 @@
 | ID | Task | Owner | Status |
 |----|------|-------|--------|
 | P0-T30 | Execute TC-G-001, 030, 040, 046, 050, TC-C-002, 020, 027 | QA | ✅ | `npm run test:e2e` (5 pass + stub skip) |
+
+## v2.0 residual (planning → small polish only after PLAN sign-off)
+
+| ID | Task | Owner | Status | Feature IDs |
+|----|------|-------|--------|-------------|
+| P0-T40 | Wire Apple SF Pro CSS tokens (no full screen rebuild) | FE | ⬜ | P-DES-01 |
+| P0-T41 | Remove Table 04 / Dine-in copy from guest shells | FE-G | ⬜ | STITCH-SCREEN-MAP |

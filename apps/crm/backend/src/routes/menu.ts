@@ -12,6 +12,7 @@ import {
 } from "@damigos/db";
 import { ensureDemoMenuItems } from "../lib/menu-demo-seed.js";
 import { ensureFoodCatalogSchema } from "../lib/ensure-food-catalog-schema.js";
+import { ensureKitchenSchema } from "../lib/ensure-kitchen-schema.js";
 import { ensureMenuSchema } from "../lib/ensure-menu-schema.js";
 import { parseDishNameAndPrices } from "../lib/ai/menu-dish-quality.js";
 import { resolveMenuItemImageUrl } from "../lib/menu-item-thumb.js";
@@ -47,6 +48,8 @@ function menuItemDto(row: typeof menuItems.$inferSelect, catalog: FoodCatalogRow
       row.foodCatalogId ??
       (catalogImage && matched ? matched.id : null),
     imageUrl: stored || catalogImage || fallbackKeyword,
+    prepCategory: row.prepCategory ?? "COOKED_15M",
+    prepMinutes: row.prepMinutes ?? null,
   };
 }
 
@@ -72,6 +75,7 @@ export async function registerMenuRoutes(app: FastifyInstance) {
     if (reply.sent) return;
 
     await ensureMenuSchema();
+    await ensureKitchenSchema();
 
     try {
       await ensureDemoMenuItems(query.restaurantId);
@@ -147,6 +151,8 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         referencePricePaise: body.data.referencePricePaise ?? null,
         draft: true,
         available: true,
+        prepCategory: "COOKED_15M",
+        prepMinutes: 15,
       })
       .returning();
     const catalog = await loadFoodCatalogCache();
@@ -245,7 +251,40 @@ export async function registerMenuRoutes(app: FastifyInstance) {
     await enforceRestaurantScope(request, reply, body.data.restaurantId);
     if (reply.sent) return;
 
+    await ensureKitchenSchema();
+
     const scope = eq(menuItems.restaurantId, body.data.restaurantId);
+    const drafts = await db
+      .select()
+      .from(menuItems)
+      .where(and(scope, eq(menuItems.draft, true)));
+
+    const candidates = body.data.itemIds?.length
+      ? drafts.filter((d) => body.data.itemIds!.includes(d.id))
+      : drafts;
+
+    const missingPrep = candidates.filter((d) => {
+      const cat = d.prepCategory;
+      const mins = d.prepMinutes;
+      const catOk = cat === "READY_10M" || cat === "COOKED_15M";
+      const minsOk = mins === 10 || mins === 15;
+      const aligned =
+        (cat === "READY_10M" && mins === 10) || (cat === "COOKED_15M" && mins === 15);
+      return !catOk || !minsOk || !aligned;
+    });
+
+    if (missingPrep.length > 0) {
+      return reply.status(400).send({
+        error: {
+          code: "PREP_CATEGORY_REQUIRED",
+          message: `Set prep SLA (10m ready / 15m cooked) on ${missingPrep.length} draft item(s) before publish`,
+          correlationId: request.id,
+          itemIds: missingPrep.map((i) => i.id),
+          itemNames: missingPrep.slice(0, 8).map((i) => i.name),
+        },
+      });
+    }
+
     if (body.data.itemIds?.length) {
       await db
         .update(menuItems)
@@ -255,7 +294,7 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       await db.update(menuItems).set({ draft: false }).where(and(scope, eq(menuItems.draft, true)));
     }
 
-    return { published: true, restaurantId: body.data.restaurantId };
+    return { published: true, restaurantId: body.data.restaurantId, count: candidates.length };
   });
 
   app.patch("/menu/items/:id", { preHandler: staffMenu }, async (request, reply) => {
@@ -270,6 +309,8 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         importConfidence: z.number().int().min(0).max(100).nullable().optional(),
         available: z.boolean().optional(),
         referencePricePaise: z.number().int().positive().nullable().optional(),
+        prepCategory: z.enum(["READY_10M", "COOKED_15M"]).optional(),
+        prepMinutes: z.union([z.literal(10), z.literal(15), z.null()]).optional(),
       })
       .safeParse(request.body);
 
@@ -312,7 +353,15 @@ export async function registerMenuRoutes(app: FastifyInstance) {
     if (body.data.isVeg !== undefined) patch.isVeg = body.data.isVeg;
     if (body.data.importConfidence !== undefined) patch.importConfidence = body.data.importConfidence;
     if (body.data.available !== undefined) patch.available = body.data.available;
+    if (body.data.prepCategory !== undefined) {
+      patch.prepCategory = body.data.prepCategory;
+      if (body.data.prepMinutes === undefined) {
+        patch.prepMinutes = body.data.prepCategory === "READY_10M" ? 10 : 15;
+      }
+    }
+    if (body.data.prepMinutes !== undefined) patch.prepMinutes = body.data.prepMinutes;
 
+    await ensureKitchenSchema();
     const catalog = await loadFoodCatalogCache();
     if (body.data.name !== undefined || body.data.description !== undefined || body.data.isVeg !== undefined) {
       const nextName = body.data.name ?? existing.name;

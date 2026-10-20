@@ -2,17 +2,55 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   createCrmCampaign,
   fetchCampaignAudiencePreview,
   fetchCampaignTemplates,
   fetchGrowPoster,
+  formatInr,
   scheduleCrmCampaign,
   type AudiencePreview,
   type CampaignTemplate,
   type CrmCampaign,
 } from "@/lib/api";
 import type { PosterCampaignDraft } from "./poster-campaign-bridge";
+
+function WalletCostCard({ preview }: { preview: AudiencePreview }) {
+  const cost = preview.estimatedCostPaise ?? 0;
+  const balance = preview.balancePaise ?? 0;
+  const after = preview.balanceAfterPaise ?? balance - cost;
+  const canAfford = preview.canAfford ?? after >= 0;
+  const perMsg = preview.costPerMessagePaise ?? 250;
+
+  return (
+    <div
+      className={`rounded-lg p-3 text-sm ${
+        canAfford ? "bg-muted/50" : "bg-amber-50 text-amber-950 ring-1 ring-amber-200"
+      }`}
+    >
+      <p>
+        Will send to <strong>{preview.willSend}</strong> guests (
+        {preview.skippedSevenDayCap} skipped — 7-day cap
+        {preview.skippedOptIn ? `; ${preview.skippedOptIn} no opt-in` : ""})
+      </p>
+      <p className="mt-2 tabular-nums">
+        Est. debit{" "}
+        <strong>{formatInr(cost)}</strong>{" "}
+        <span className="text-foreground/55">
+          ({preview.willSend} × {formatInr(perMsg)})
+        </span>
+      </p>
+      <p className="mt-1 tabular-nums text-xs text-foreground/70">
+        Wallet {formatInr(balance)} → after send {formatInr(Math.max(0, after))}
+        {!canAfford ? " · shortfall" : ""}
+      </p>
+      <span className="mt-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-900">
+        1 msg / 7 days enabled
+      </span>
+    </div>
+  );
+}
 
 const STEPS = ["Audience", "Message", "Schedule", "Review"] as const;
 
@@ -198,17 +236,16 @@ export function GrowCampaignWizard({ restaurantId, onClose, onCreated, posterDra
                   Marketing opt-in only
                 </label>
               </fieldset>
-              {preview && (
-                <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                  <p>
-                    Will send to <strong>{preview.willSend}</strong> guests (
-                    {preview.skippedSevenDayCap} skipped — 7-day cap)
-                  </p>
-                  <span className="mt-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-900">
-                    1 msg / 7 days enabled
-                  </span>
-                </div>
-              )}
+              {preview ? <WalletCostCard preview={preview} /> : null}
+              {preview && preview.canAfford === false ? (
+                <Link
+                  href="/grow?tab=wallet"
+                  className="inline-flex text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                  onClick={onClose}
+                >
+                  Top up wallet before scheduling →
+                </Link>
+              ) : null}
             </>
           )}
 
@@ -273,15 +310,32 @@ export function GrowCampaignWizard({ restaurantId, onClose, onCreated, posterDra
                 <span className="text-foreground/60">Send:</span>{" "}
                 {scheduledLocal ? new Date(scheduledLocal).toLocaleString("en-IN") : "—"}
               </p>
-              {preview && (
-                <p>
-                  <span className="text-foreground/60">Recipients:</span> {preview.willSend}
-                </p>
-              )}
-              {walletBlock && (
-                <p className="rounded-lg bg-amber-50 p-3 text-amber-900">
-                  Insufficient wallet — top up under Wallet before scheduling (TC-C-049).
-                </p>
+              {preview ? (
+                <>
+                  <p>
+                    <span className="text-foreground/60">Recipients:</span> {preview.willSend}
+                  </p>
+                  <p className="tabular-nums">
+                    <span className="text-foreground/60">Est. wallet debit:</span>{" "}
+                    {formatInr(preview.estimatedCostPaise ?? 0)}
+                  </p>
+                  <p className="tabular-nums">
+                    <span className="text-foreground/60">Balance after:</span>{" "}
+                    {formatInr(Math.max(0, preview.balanceAfterPaise ?? 0))}
+                  </p>
+                </>
+              ) : null}
+              {(walletBlock || preview?.canAfford === false) && (
+                <div className="space-y-2 rounded-lg bg-amber-50 p-3 text-amber-900">
+                  <p>Insufficient wallet — top up before scheduling (TC-C-049).</p>
+                  <Link
+                    href="/grow?tab=wallet"
+                    className="inline-flex font-semibold underline-offset-2 hover:underline"
+                    onClick={onClose}
+                  >
+                    Open Wallet & top up →
+                  </Link>
+                </div>
               )}
             </div>
           )}

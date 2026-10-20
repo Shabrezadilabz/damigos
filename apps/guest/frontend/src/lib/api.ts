@@ -49,6 +49,9 @@ export type RewardOutcome = {
   prizeValue: number;
   terms: string | null;
   expiresDays: number;
+  minOrderPaise?: number;
+  scope?: "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
+  billLabel?: string;
 };
 
 export async function fetchActiveOffers(restaurantId: string) {
@@ -108,6 +111,7 @@ export type GuestMenuItem = {
   referencePricePaise: number | null;
   isVeg: boolean;
   available: boolean;
+  imageUrl?: string | null;
 };
 
 export async function fetchGuestMenu(restaurantId: string) {
@@ -156,6 +160,63 @@ export async function verifyGuestOtp(phone: string, code: string) {
   return data as { token: string; customerId: string };
 }
 
+/** Spark marketing opt-in — stores phone_e164 + consent; returns play URL */
+export async function sparkOptIn(input: {
+  phone: string;
+  restaurantId: string;
+  scanId?: string | null;
+}) {
+  const res = await fetch(`${base}/v1/wa/spark/opt-in`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      phone: input.phone,
+      restaurantId: input.restaurantId,
+      scanId: input.scanId || undefined,
+    }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Spark opt-in failed"));
+  return data as {
+    ok: boolean;
+    playUrl: string;
+    playPath?: string;
+    token: string;
+    customerId: string;
+    restaurantName?: string;
+  };
+}
+
+export async function sparkInvite(input: {
+  phone: string;
+  restaurantId: string;
+  scanId?: string | null;
+}) {
+  const res = await fetch(`${base}/v1/wa/spark/invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      phone: input.phone,
+      restaurantId: input.restaurantId,
+      scanId: input.scanId || undefined,
+    }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Spark invite failed"));
+  return data as { ok: boolean; playUrl: string; mode: string; messageId: string | null };
+}
+
+export async function fetchWaStatus() {
+  const res = await fetch(`${base}/v1/wa/status`, { cache: "no-store" });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "WA status failed"));
+  return data as {
+    mode: string;
+    sparkWaMeE164?: string | null;
+    sandbox: boolean;
+  };
+}
+
 export async function fetchMe(token: string) {
   const res = await fetch(`${base}/v1/me`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -186,6 +247,8 @@ export type CartAppliedClaim = {
   discountPaise: number;
   eligible: boolean;
   minOrderPaise: number;
+  scope?: "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
+  billLabel?: string;
 };
 
 export type CartResponse = {
@@ -201,6 +264,8 @@ export type CartResponse = {
   }[];
   subtotalPaise: number;
   discountPaise: number;
+  loyaltyAvailablePaise?: number;
+  loyaltyAppliedPaise?: number;
   deliveryFeePaise?: number;
   deliveryPincode?: string | null;
   convenienceFeePaise: number;
@@ -216,6 +281,8 @@ export type RewardClaimOption = {
   prizeType: string;
   minOrderPaise: number;
   claimedAt: string;
+  scope?: "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
+  billLabel?: string;
 };
 
 export async function fetchRewardClaims(restaurantId: string) {
@@ -239,6 +306,21 @@ export async function applyCartClaim(restaurantId: string, claimId: string | nul
   return data;
 }
 
+export async function applyCartLoyalty(restaurantId: string, apply: boolean) {
+  const res = await fetch(`${base}/v1/cart/loyalty`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ restaurantId, apply }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Loyalty apply failed"));
+  return data as {
+    loyaltyAvailablePaise: number;
+    loyaltyAppliedPaise: number;
+    apply: boolean;
+  };
+}
+
 export async function fetchCart(restaurantId: string) {
   const res = await fetch(`${base}/v1/cart?restaurantId=${restaurantId}`, {
     headers: authHeaders(),
@@ -247,6 +329,29 @@ export async function fetchCart(restaurantId: string) {
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cart failed"));
   return data as CartResponse;
+}
+
+export type CrossByNearby = {
+  restaurantId: string;
+  name: string;
+  distanceKm: number;
+  distanceMeters: number;
+  riderMode: "SINGLE" | "SPLIT";
+  menuPath: string;
+};
+
+export async function fetchCrossByNearby(restaurantId: string, radiusKm = 1) {
+  const q = new URLSearchParams({ restaurantId, radiusKm: String(radiusKm) });
+  const res = await fetch(`${base}/v1/cart/cross-by/nearby?${q}`, { cache: "no-store" });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By nearby failed"));
+  return data as {
+    restaurantId: string;
+    radiusKm: number;
+    pinMissing: boolean;
+    singleRiderMaxKm?: number;
+    nearby: CrossByNearby[];
+  };
 }
 
 export async function addCartItem(restaurantId: string, menuItemId: string, quantity: number) {
@@ -276,9 +381,16 @@ export async function requestDeliveryQuote(restaurantId: string, pincode: string
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Delivery quote failed"));
   return data as {
     carrier: string;
+    courierName?: string | null;
+    foodFriendly?: boolean;
+    foodDeliveryLabel?: string | null;
     shiprocketRatePaise: number;
     platformMarkupPaise: number;
+    grossDeliveryFeePaise?: number;
     deliveryFeePaise: number;
+    firstOrderFree?: boolean;
+    platformSubsidyPaise?: number;
+    subsidyLabel?: string | null;
     etaMinutes: number;
     pincode: string;
   };
@@ -291,6 +403,29 @@ export type HubRestaurant = {
   city: string | null;
   orderingEnabled: boolean;
   menuPath: string;
+  coverImageUrl?: string | null;
+  vegFriendly?: boolean;
+  pureVeg?: boolean;
+  sampleDishes?: Array<{
+    id: string;
+    name: string;
+    pricePaise: number;
+    isVeg: boolean;
+    imageUrl: string | null;
+  }>;
+};
+
+export type HubBestsellerItem = {
+  id: string;
+  name: string;
+  pricePaise: number;
+  isVeg: boolean;
+  imageUrl: string | null;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantSlug: string;
+  menuPath: string;
+  bestseller?: boolean;
 };
 
 export type OpenCartSummary = {
@@ -301,25 +436,184 @@ export type OpenCartSummary = {
   subtotalPaise: number;
 };
 
-export async function fetchOpenCart(): Promise<OpenCartSummary | null> {
+export type CrossBySession = {
+  kitchenCount: number;
+  maxKitchens: number;
+  distanceMeters: number | null;
+  riderMode: "SINGLE" | "SPLIT";
+  canAddKitchen: boolean;
+};
+
+export async function fetchOpenCartSession(): Promise<{
+  openCart: OpenCartSummary | null;
+  openCarts: OpenCartSummary[];
+  crossBy: CrossBySession;
+}> {
   const res = await fetch(`${base}/v1/cart/open`, {
     cache: "no-store",
     headers: authHeaders(),
   });
-  if (res.status === 401) return null;
+  if (res.status === 401) {
+    return {
+      openCart: null,
+      openCarts: [],
+      crossBy: {
+        kitchenCount: 0,
+        maxKitchens: 2,
+        distanceMeters: null,
+        riderMode: "SINGLE",
+        canAddKitchen: true,
+      },
+    };
+  }
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Open cart failed"));
-  return (data.openCart as OpenCartSummary | null) ?? null;
+  const openCarts = (data.openCarts as OpenCartSummary[] | undefined) ?? [];
+  return {
+    openCart: (data.openCart as OpenCartSummary | null) ?? openCarts[0] ?? null,
+    openCarts,
+    crossBy: (data.crossBy as CrossBySession) ?? {
+      kitchenCount: openCarts.length,
+      maxKitchens: 2,
+      distanceMeters: null,
+      riderMode: "SINGLE",
+      canAddKitchen: openCarts.length < 2,
+    },
+  };
 }
 
-export async function clearOpenCart() {
-  const res = await fetch(`${base}/v1/cart/open`, {
+export async function fetchOpenCart(): Promise<OpenCartSummary | null> {
+  const session = await fetchOpenCartSession();
+  return session.openCart;
+}
+
+export async function clearOpenCart(restaurantId?: string) {
+  const q = restaurantId ? `?restaurantId=${encodeURIComponent(restaurantId)}` : "";
+  const res = await fetch(`${base}/v1/cart/open${q}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Clear cart failed"));
   return data as { cleared: boolean };
+}
+
+export type CheckoutGroupPreview = {
+  legs: {
+    restaurantId: string;
+    restaurantName: string;
+    legIndex: number;
+    itemCount: number;
+    subtotalPaise: number;
+    discountPaise: number;
+    loyaltyAppliedPaise?: number;
+    appliedClaimTitle?: string | null;
+    appliedClaimBillLabel?: string | null;
+    deliveryFeePaise: number;
+    lines: { name: string; quantity: number; unitPricePaise: number }[];
+  }[];
+  crossBy: CrossBySession;
+  convenienceFeePaise: number;
+  deliveryFeePaise: number;
+  grossDeliveryFeePaise?: number;
+  firstOrderFree?: boolean;
+  platformSubsidyPaise?: number;
+  subsidyLabel?: string | null;
+  totalPaise: number;
+};
+
+export async function fetchCheckoutGroupPreview() {
+  const res = await fetch(`${base}/v1/checkout-groups/preview`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By preview failed"));
+  return data as CheckoutGroupPreview;
+}
+
+export async function mockPayCheckoutGroup() {
+  const res = await fetch(`${base}/v1/checkout-groups/mock-pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({}),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By pay failed"));
+  return data as {
+    checkoutGroupId: string;
+    orderIds: string[];
+    status: string;
+    trackPath: string;
+    riderMode: string;
+  };
+}
+
+export async function prepareCheckoutGroup() {
+  const res = await fetch(`${base}/v1/checkout-groups/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({}),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By prepare failed"));
+  return data as {
+    checkoutGroupId: string;
+    orderIds: string[];
+    totalPaise: number;
+    razorpayOrderId: string;
+    razorpayKeyId: string | null;
+    paymentMode: string;
+    trackPath: string;
+    riderMode: string;
+  };
+}
+
+export async function confirmStubCheckoutGroup(checkoutGroupId: string) {
+  const res = await fetch(`${base}/v1/checkout-groups/confirm-stub`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ checkoutGroupId }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By stub confirm failed"));
+  return data as { checkoutGroupId: string; orderIds: string[]; trackPath: string; status: string };
+}
+
+export async function verifyRazorpayCheckoutGroup(input: {
+  checkoutGroupId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}) {
+  const res = await fetch(`${base}/v1/checkout-groups/verify-razorpay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(input),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cross-By verify failed"));
+  return data as { checkoutGroupId: string; orderIds: string[]; trackPath: string; status: string };
+}
+
+export type HubPerkRailItem = {
+  id: string;
+  kitchenName: string;
+  title: string;
+  badge: string;
+  coinsHint: number;
+  href: string;
+  kind: "claim" | "kitchen" | "platform";
+};
+
+export async function fetchHubPerks() {
+  const res = await fetch(`${base}/v1/hub/perks`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Perks failed"));
+  return data as { rail: HubPerkRailItem[] };
 }
 
 export async function fetchHubRestaurants(city = "bangalore", q?: string) {
@@ -331,6 +625,13 @@ export async function fetchHubRestaurants(city = "bangalore", q?: string) {
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Hub failed"));
   return data.restaurants as HubRestaurant[];
+}
+
+export async function fetchHubBestsellers() {
+  const res = await fetch(`${base}/v1/hub/bestsellers`, { cache: "no-store" });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Bestsellers failed"));
+  return data as { title: string; maxPricePaise: number; items: HubBestsellerItem[] };
 }
 
 export async function fetchCheckoutConfig() {
@@ -415,6 +716,10 @@ export type GuestOrderSummary = {
   status: string;
   totalPaise: number;
   createdAt: string;
+  checkoutGroupId?: string | null;
+  legIndex?: number | null;
+  prepDeadlineAt?: string | null;
+  discountPaise?: number | null;
 };
 
 export async function fetchMyOrders(status?: "active" | "past") {
@@ -423,6 +728,34 @@ export async function fetchMyOrders(status?: "active" | "past") {
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Orders failed"));
   return data.orders as GuestOrderSummary[];
+}
+
+export type CheckoutGroupTrack = {
+  group: {
+    id: string;
+    status: string;
+    riderMode: string;
+    distanceMeters: number | null;
+  };
+  orders: {
+    id: string;
+    restaurantId: string;
+    status: string;
+    legIndex: number | null;
+    totalPaise: number;
+    prepDeadlineAt: string | null;
+    trackPath: string;
+  }[];
+};
+
+export async function fetchOrderGroup(groupId: string) {
+  const res = await fetch(`${base}/v1/orders/group/${groupId}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Group load failed"));
+  return data as CheckoutGroupTrack;
 }
 
 export async function saveGuestConsents(

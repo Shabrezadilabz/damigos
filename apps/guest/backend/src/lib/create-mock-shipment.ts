@@ -17,9 +17,13 @@ export async function createMockShipmentIfNeeded(orderId: string) {
     .insert(shipments)
     .values({
       orderId,
-      carrier: "Shiprocket",
+      carrier: "Shiprocket/Instant (mock)",
       awb,
       status: "pickup_scheduled",
+      foodDelivery: true,
+      trackingUrl: `https://shiprocket.co/tracking/${awb}`,
+      lastTrackingStatus: "Mock · food delivery scheduled",
+      lastTrackingAt: new Date(),
     })
     .returning();
 

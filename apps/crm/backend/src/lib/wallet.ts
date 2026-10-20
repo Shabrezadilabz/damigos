@@ -37,6 +37,9 @@ export async function getWalletSnapshot(restaurantId: string) {
 
   return {
     balancePaise: account.balancePaise,
+    /** Approx WhatsApp broadcast sends remaining at WHATSAPP_MSG_COST_PAISE */
+    approxBroadcastCredits: Math.floor(account.balancePaise / WHATSAPP_MSG_COST_PAISE),
+    msgCostPaise: WHATSAPP_MSG_COST_PAISE,
     lowBalance: account.balancePaise < WALLET_LOW_BALANCE_PAISE,
     ledger: ledger.map((row) => ({
       id: row.id,
@@ -74,7 +77,7 @@ export async function creditTopUp(input: {
       walletAccountId: account.id,
       kind: "topup",
       amountPaise: input.amountPaise,
-      reference: "pack_999",
+      reference: `pack_${Math.round(input.amountPaise / 100)}`,
       idempotencyKey: input.idempotencyKey,
     });
   });

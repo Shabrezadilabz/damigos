@@ -1,8 +1,7 @@
 import type { OrderStatus } from "@damigos/domain";
 
-/** G-06.01 — in-flight delivery / kitchen pipeline */
+/** G-06.01 — in-flight kitchen / delivery (paid+). Unpaid prepares stay out so concurrent carts stay clear. */
 export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
-  "PAYMENT_PENDING",
   "PAID",
   "ACCEPTED",
   "PREPARING",

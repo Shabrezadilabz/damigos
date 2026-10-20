@@ -32,12 +32,12 @@ Dummy seed data ([UI-DEMO-ACCOUNTS.md](./UI-DEMO-ACCOUNTS.md)) fills **APIs**; i
 
 | Stitch folder | Route | Status | Notes |
 |---------------|-------|--------|-------|
-| `g17_hero_hub_discovery` | `/hub` | 🟡 | **In progress** — header, location, perks strip |
-| `g2_menu_shop_dish_customizer` | `/r/:id/menu` | 🔴 | List + ADD; no hero dish grid |
+| `g17_hero_hub_discovery` | `/hub` | 🟢 | Ownly WA IA: crimson header, festival poster, Pick Cravings, Delivery Promise + Known & Loved rails, Bestsellers ₹149, mind circles, All Restaurants filters, Direct Perks, sticky dock — D'aMigo tokens (DEC-016). Collections routes (`/hub/collections/*`) still P2. |
+| `g2_menu_shop_dish_customizer` | `/r/:id/menu` | 🟢 | Ownly menu: back/search/share, rating+ETA, Best Value seal, Veg/Non-Veg/Egg chips, Top Picks 2-col + food photos + crimson Add + green ₹ + Other Apps range, Menu FAB, sticky dock |
 | `g1_*` landing / spin | `/r/:id`, `/s/:token` | 🔴 | Game/profile not Stitch composition |
-| `g9`–`g12` checkout | checkout flow | 🔴 | Step flow ok; not bill/UPI visuals |
-| `g13` tracking | `/orders/:id` | 🔴 | Status text; no live timeline |
-| `g16` orders home | `/orders` | 🔴 | List shell |
+| `g9`–`g12` checkout | checkout flow | 🟢 | Ownly honesty banner + FREE delivery + Direct D2C seal; location sheet |
+| `g13` tracking | `/orders/:id` | 🟡 | Live status + timers; timeline polish ongoing |
+| `g16` orders home | `/orders` | 🟡 | Active/Past shells; Ownly sticky patterns via dock |
 
 ## How to validate
 
@@ -45,4 +45,4 @@ Dummy seed data ([UI-DEMO-ACCOUNTS.md](./UI-DEMO-ACCOUNTS.md)) fills **APIs**; i
 2. Compare **chrome** (header, nav, cards, typography), not only data.  
 3. Track fixes in this file; target **🟢** per screen in dedicated UI PRs.
 
-**Next recommended UI pass:** Guest Hub 🟢 → Menu g2 → CRM Orders kitchen → CRM Settings.
+**Next recommended UI pass:** CRM Orders kitchen → CRM Settings → Guest checkout bill polish.

@@ -30,8 +30,10 @@
   --color-tertiary-container: #966e00;
   --color-inverse-surface: #313030;
   --color-inverse-on-surface: #f3f0ef;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui,
+    sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, system-ui,
+    sans-serif;
 }
 
 .material-symbols-outlined {
@@ -42,6 +44,30 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.018em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Apple press response — DEC-009 */
+.pressable {
+  transition: transform 100ms ease-out;
+  touch-action: manipulation;
+}
+.pressable:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active {
+    transform: none;
+  }
 }
 
 @media print {

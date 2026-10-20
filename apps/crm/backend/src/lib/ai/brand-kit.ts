@@ -1,3 +1,4 @@
+import { isPlausibleRestaurantDisplayName } from "@damigos/domain";
 import { z } from "zod";
 
 export const brandDishSchema = z.object({
@@ -34,6 +35,7 @@ export function parseBrandKit(raw: string | null | undefined): RestaurantBrandKi
 
 export function brandKitForGuest(kit: RestaurantBrandKit | null) {
   if (!kit) return null;
+  if (!isPlausibleRestaurantDisplayName(kit.displayName)) return null;
   return {
     displayName: kit.displayName,
     primaryColor: kit.primaryColor,

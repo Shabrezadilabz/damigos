@@ -153,6 +153,19 @@ export async function registerDevFixtureRoutes(app: FastifyInstance) {
     };
   });
 
+  /** Run Spark claim-without-order nudges once (E2E / local). */
+  app.post("/dev/spark-claim-nudges", async () => {
+    const { processClaimOrderNudges } = await import("../lib/claim-order-nudge.js");
+    const prev = process.env.SPARK_CLAIM_NUDGE_MINUTES;
+    process.env.SPARK_CLAIM_NUDGE_MINUTES = "0";
+    try {
+      return await processClaimOrderNudges(50);
+    } finally {
+      if (prev === undefined) delete process.env.SPARK_CLAIM_NUDGE_MINUTES;
+      else process.env.SPARK_CLAIM_NUDGE_MINUTES = prev;
+    }
+  });
+
   /** Idempotent UI demo pack — same as `npm run db:seed` (Neon / Vercel testing). */
   app.post("/dev/reseed", async (request, reply) => {
     try {

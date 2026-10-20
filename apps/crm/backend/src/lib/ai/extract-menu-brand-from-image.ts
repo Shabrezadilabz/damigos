@@ -1,4 +1,4 @@
-import { aiTextProvider, deepseekApiKey } from "@damigos/domain";
+import { aiTextProvider, deepseekApiKey, isPlausibleRestaurantDisplayName } from "@damigos/domain";
 
 import { z } from "zod";
 
@@ -498,9 +498,12 @@ export async function extractMenuBrandFromImage(
 
 
 
+  const rawName = parsed.restaurantName.trim() || "Restaurant";
+  const safeName = isPlausibleRestaurantDisplayName(rawName) ? rawName : "Restaurant";
+
   const kit: RestaurantBrandKit = {
 
-    displayName: clampVarchar(parsed.restaurantName.trim() || "Restaurant", 250),
+    displayName: clampVarchar(safeName, 80),
 
     primaryColor: normalizeHex(parsed.primaryColor),
 

@@ -3,7 +3,9 @@ import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { hashPhone, phoneLast4 } from "@damigos/auth";
 import {
+  customers,
   db,
+  guestLoyaltyCredits,
   menuItems,
   offers,
   restaurants,
@@ -13,6 +15,7 @@ import {
   users,
 } from "./index.ts";
 import { seedUiDemo } from "./seed-ui-demo.ts";
+import { seedPilotDummy } from "./seed-pilot-dummy.ts";
 
 export type AppSeedSummary = {
   restaurantId: string;
@@ -22,6 +25,7 @@ export type AppSeedSummary = {
   devAdminPhone: string;
   devGuestPhone: string;
   uiDemo: Record<string, unknown> | null;
+  pilotDummy: Record<string, unknown> | null;
 };
 
 export async function runAppSeed(): Promise<AppSeedSummary> {
@@ -30,6 +34,10 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
     .from(restaurants)
     .where(eq(restaurants.slug, "biryani-box-koramangala"))
     .limit(1);
+
+  /** Koramangala pilot pin — Cross-By Haversine demos */
+  const BIRYANI_LAT = 12.9352;
+  const BIRYANI_LNG = 77.6245;
 
   if (!r) {
     const orderingEnabled = process.env.DEV_ORDERING_ENABLED !== "false";
@@ -41,12 +49,26 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
         orderingEnabled,
         hubListed: true,
         razorpayKycStatus: "pending",
+        lat: BIRYANI_LAT,
+        lng: BIRYANI_LNG,
+        geoUpdatedAt: new Date(),
       })
       .returning();
   } else {
-    const patch: { hubListed?: boolean; razorpayKycStatus?: string } = {};
+    const patch: {
+      hubListed?: boolean;
+      razorpayKycStatus?: string;
+      lat?: number;
+      lng?: number;
+      geoUpdatedAt?: Date;
+    } = {};
     if (!r.hubListed) patch.hubListed = true;
     if (r.razorpayKycStatus === "not_linked") patch.razorpayKycStatus = "pending";
+    if (r.lat == null || r.lng == null) {
+      patch.lat = BIRYANI_LAT;
+      patch.lng = BIRYANI_LNG;
+      patch.geoUpdatedAt = new Date();
+    }
     if (Object.keys(patch).length > 0) {
       [r] = await db.update(restaurants).set(patch).where(eq(restaurants.id, r.id)).returning();
     }
@@ -298,6 +320,10 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
     .from(restaurants)
     .where(eq(restaurants.slug, "masala-trail-indiranagar"))
     .limit(1);
+  /** ~400m from Biryani Box — Cross-By single-rider demo */
+  const MASALA_LAT = 12.9378;
+  const MASALA_LNG = 77.6271;
+
   if (!hub2) {
     [hub2] = await db
       .insert(restaurants)
@@ -307,6 +333,9 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
         city: "Bangalore",
         orderingEnabled: true,
         hubListed: true,
+        lat: MASALA_LAT,
+        lng: MASALA_LNG,
+        geoUpdatedAt: new Date(),
       })
       .returning();
     await db.insert(menuItems).values([
@@ -329,8 +358,22 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
         available: true,
       },
     ]);
-  } else if (!hub2.hubListed) {
-    await db.update(restaurants).set({ hubListed: true }).where(eq(restaurants.id, hub2.id));
+  } else {
+    const hub2Patch: {
+      hubListed?: boolean;
+      lat?: number;
+      lng?: number;
+      geoUpdatedAt?: Date;
+    } = {};
+    if (!hub2.hubListed) hub2Patch.hubListed = true;
+    if (hub2.lat == null || hub2.lng == null) {
+      hub2Patch.lat = MASALA_LAT;
+      hub2Patch.lng = MASALA_LNG;
+      hub2Patch.geoUpdatedAt = new Date();
+    }
+    if (Object.keys(hub2Patch).length > 0) {
+      await db.update(restaurants).set(hub2Patch).where(eq(restaurants.id, hub2.id));
+    }
   }
 
   /** E2E — G-15 kitchen paused (read-only menu) */
@@ -375,7 +418,46 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
     });
   }
 
+  /** ~8 more hub kitchens + 10 offers + 5 loyalty configs (with Biryani+Masala ≈ 10 kitchens) */
+  const pilotDummy = await seedPilotDummy();
+
   const guestPhone = process.env.DEV_GUEST_PHONE ?? "9123456780";
+
+  /** Demo kitchen loyalty balance for Priya (optional add at checkout) */
+  try {
+    const guestHash = hashPhone(guestPhone);
+    const [guest] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.phoneHash, guestHash))
+      .limit(1);
+    if (guest) {
+      const [existingCredit] = await db
+        .select()
+        .from(guestLoyaltyCredits)
+        .where(
+          and(
+            eq(guestLoyaltyCredits.customerId, guest.id),
+            eq(guestLoyaltyCredits.restaurantId, r.id),
+          ),
+        )
+        .limit(1);
+      if (!existingCredit) {
+        await db.insert(guestLoyaltyCredits).values({
+          customerId: guest.id,
+          restaurantId: r.id,
+          balancePaise: 7500,
+        });
+      } else if (existingCredit.balancePaise < 1000) {
+        await db
+          .update(guestLoyaltyCredits)
+          .set({ balancePaise: 7500, updatedAt: new Date() })
+          .where(eq(guestLoyaltyCredits.id, existingCredit.id));
+      }
+    }
+  } catch (err) {
+    console.warn("[seed] guest loyalty credits skipped", err);
+  }
 
   const summary: AppSeedSummary = {
     restaurantId: r.id,
@@ -401,6 +483,10 @@ export async function runAppSeed(): Promise<AppSeedSummary> {
           doc: "docs/UI-DEMO-ACCOUNTS.md",
         }
       : null,
+    pilotDummy: {
+      ...pilotDummy,
+      note: "8 pilot kitchens + Biryani/Masala ≈ 10 hub; 10 offers; 5 growLoyaltyConfig payback %",
+    },
   };
 
   return summary;

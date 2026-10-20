@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
 export const metadata: Metadata = {
   title: "D'aMigo's CRM",
   description: "Restaurant CRM — menu, grow, orders",
 };
 
+/** Apple SF Pro system stack — DEC-009 */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -19,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.variable} ${jakarta.variable} antialiased min-h-dvh`}>{children}</body>
+      <body className="font-sans antialiased min-h-dvh">{children}</body>
     </html>
   );
 }

@@ -8,6 +8,7 @@ import { SettingsPayoutPanel } from "@/components/settings-payout-panel";
 import { SettingsStickersAdminPane, SettingsStickersOwnerPeek } from "@/components/settings-stickers";
 import { useCrmRestaurant } from "@/components/use-crm-restaurant";
 import { cn } from "@/lib/utils";
+import { SettingsLocationPanel } from "./settings-location-panel";
 import { SETTINGS_TABS, parseSettingsTab, type SettingsTabId } from "./settings-tabs";
 
 function StatusRibbon() {
@@ -20,10 +21,10 @@ function StatusRibbon() {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-semibold text-on-surface">Payout &amp; POS</span>
+              <span className="text-base font-semibold text-on-surface">Banking &amp; payout</span>
               <MaterialIcon name="verified" className="text-[16px] text-[#24963F]" />
             </div>
-            <p className="text-xs text-on-surface-variant">Razorpay linked · Auto EOD settlement (stub)</p>
+            <p className="text-xs text-on-surface-variant">Bank · daily earnings · EOD invoice after midnight IST</p>
           </div>
         </div>
         <span className="rounded-md border border-[#24963F]/20 bg-[#24963F]/10 px-2.5 py-1 text-[10px] font-bold text-[#24963F]">
@@ -199,6 +200,8 @@ export function SettingsPageClient({ tabParam }: { tabParam?: string }) {
             <SettingsPayoutPanel embedded />
           </div>
         ) : null}
+
+        {tab === "location" ? <SettingsLocationPanel /> : null}
 
         {tab === "profile" ? (
           <PlaceholderPanel

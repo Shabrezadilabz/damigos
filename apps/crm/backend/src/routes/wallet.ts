@@ -2,10 +2,18 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 import {
+  createRazorpayOrder,
+  razorpayConfigured,
+  razorpayKeyId,
+  verifyPaymentSignature,
+} from "../lib/razorpay.js";
+import {
   creditTopUp,
   getWalletSnapshot,
   WALLET_TOPUP_PACK_PAISE,
 } from "../lib/wallet.js";
+
+const TOPUP_PACKS = [49900, 99900, 249900] as const;
 
 /** C-04.06 — prepaid WhatsApp broadcast wallet */
 export async function registerWalletRoutes(app: FastifyInstance) {
@@ -16,7 +24,13 @@ export async function registerWalletRoutes(app: FastifyInstance) {
     const query = z.object({ restaurantId: z.string().uuid() }).parse(request.query);
     await enforceRestaurantScope(request, reply, query.restaurantId);
     if (reply.sent) return;
-    return getWalletSnapshot(query.restaurantId);
+    const wallet = await getWalletSnapshot(query.restaurantId);
+    const mode = process.env.WALLET_TOPUP_MODE ?? "stub";
+    return {
+      ...wallet,
+      topupMode: mode === "live" && razorpayConfigured() ? "live" : "stub",
+      packsPaise: [...TOPUP_PACKS],
+    };
   });
 
   app.post("/wallet/topup", { preHandler: staffTopUp }, async (request, reply) => {
@@ -34,7 +48,14 @@ export async function registerWalletRoutes(app: FastifyInstance) {
     const body = z
       .object({
         restaurantId: z.string().uuid(),
-        amountPaise: z.number().int().positive().default(WALLET_TOPUP_PACK_PAISE),
+        amountPaise: z
+          .number()
+          .int()
+          .positive()
+          .default(WALLET_TOPUP_PACK_PAISE)
+          .refine((n) => (TOPUP_PACKS as readonly number[]).includes(n), {
+            message: "amountPaise must be a listed pack",
+          }),
       })
       .parse(request.body);
 
@@ -42,11 +63,11 @@ export async function registerWalletRoutes(app: FastifyInstance) {
     if (reply.sent) return;
 
     const mode = process.env.WALLET_TOPUP_MODE ?? "stub";
-    if (mode !== "stub") {
-      return reply.status(501).send({
+    if (mode === "live" && razorpayConfigured()) {
+      return reply.status(400).send({
         error: {
-          code: "NOT_IMPLEMENTED",
-          message: "Live Razorpay wallet top-up not wired yet (WALLET_TOPUP_MODE=stub for pilot)",
+          code: "USE_PREPARE",
+          message: "Use POST /wallet/topup/prepare for live Razorpay top-up",
           correlationId: request.id,
         },
       });
@@ -58,6 +79,93 @@ export async function registerWalletRoutes(app: FastifyInstance) {
       idempotencyKey,
     });
 
-    return { wallet };
+    return { wallet, mode: "stub" };
+  });
+
+  /** Prepare Razorpay order for live wallet credit (WALLET_TOPUP_MODE=live). */
+  app.post("/wallet/topup/prepare", { preHandler: staffTopUp }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        amountPaise: z
+          .number()
+          .int()
+          .positive()
+          .default(WALLET_TOPUP_PACK_PAISE)
+          .refine((n) => (TOPUP_PACKS as readonly number[]).includes(n), {
+            message: "amountPaise must be a listed pack",
+          }),
+      })
+      .parse(request.body);
+
+    await enforceRestaurantScope(request, reply, body.restaurantId);
+    if (reply.sent) return;
+
+    const mode = process.env.WALLET_TOPUP_MODE ?? "stub";
+    if (mode !== "live" || !razorpayConfigured()) {
+      return reply.status(400).send({
+        error: {
+          code: "STUB_MODE",
+          message: "Set WALLET_TOPUP_MODE=live and Razorpay keys, or use POST /wallet/topup stub",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const receipt = `wlt_${body.restaurantId.slice(0, 8)}_${Date.now().toString(36)}`;
+    const razorpayOrderId = await createRazorpayOrder({
+      amountPaise: body.amountPaise,
+      receipt,
+      notes: {
+        restaurantId: body.restaurantId,
+        purpose: "crm_wallet_topup",
+      },
+    });
+
+    return {
+      mode: "live" as const,
+      amountPaise: body.amountPaise,
+      razorpayOrderId,
+      razorpayKeyId: razorpayKeyId(),
+    };
+  });
+
+  app.post("/wallet/topup/verify", { preHandler: staffTopUp }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        amountPaise: z.number().int().positive(),
+        razorpayOrderId: z.string().min(1),
+        razorpayPaymentId: z.string().min(1),
+        razorpaySignature: z.string().min(1),
+      })
+      .parse(request.body);
+
+    await enforceRestaurantScope(request, reply, body.restaurantId);
+    if (reply.sent) return;
+
+    if (
+      !verifyPaymentSignature({
+        orderId: body.razorpayOrderId,
+        paymentId: body.razorpayPaymentId,
+        signature: body.razorpaySignature,
+      })
+    ) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_SIGNATURE",
+          message: "Razorpay payment signature invalid",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const wallet = await creditTopUp({
+      restaurantId: body.restaurantId,
+      amountPaise: body.amountPaise,
+      idempotencyKey: `rzp_${body.razorpayPaymentId}`,
+    });
+
+    return { wallet, mode: "live" as const };
   });
 }

@@ -1,4 +1,4 @@
-import { menuImportMode } from "@damigos/domain";
+import { isPlausibleRestaurantDisplayName, menuImportMode } from "@damigos/domain";
 import { eq } from "drizzle-orm";
 import {
   catalogImageForMatch,
@@ -147,9 +147,18 @@ export async function runMenuImportJob(jobId: string): Promise<void> {
       }
 
       await patchJob(jobId, { progressPct: 90 });
+      const [restRow] = await db
+        .select({ name: restaurants.name })
+        .from(restaurants)
+        .where(eq(restaurants.id, job.restaurantId))
+        .limit(1);
+      const displayName = isPlausibleRestaurantDisplayName(kit.displayName)
+        ? kit.displayName
+        : (restRow?.name ?? "Restaurant");
+      const safeKit = { ...kit, displayName };
       await db
         .update(restaurants)
-        .set({ brandKit: JSON.stringify(kit) })
+        .set({ brandKit: JSON.stringify(safeKit) })
         .where(eq(restaurants.id, job.restaurantId));
 
       let created = 0;

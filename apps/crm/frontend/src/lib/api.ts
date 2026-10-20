@@ -101,6 +101,37 @@ export async function patchRestaurantOperations(restaurantId: string, orderingEn
   return data as RestaurantOperations;
 }
 
+export type RestaurantLocation = {
+  restaurantId: string;
+  name?: string;
+  lat: number | null;
+  lng: number | null;
+  geoUpdatedAt: string | null;
+  pinRequired?: boolean;
+};
+
+export async function fetchRestaurantLocation(restaurantId: string) {
+  const q = new URLSearchParams({ restaurantId });
+  const res = await fetch(`${base}/v1/settings/location?${q}`, {
+    cache: "no-store",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to load location"));
+  return data as RestaurantLocation;
+}
+
+export async function patchRestaurantLocation(restaurantId: string, lat: number, lng: number) {
+  const res = await fetch(`${base}/v1/settings/location`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({ restaurantId, lat, lng }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to save location"));
+  return data as RestaurantLocation;
+}
+
 export async function fetchCrmMe() {
   const res = await fetch(`${base}/v1/me`, {
     cache: "no-store",
@@ -278,6 +309,9 @@ export type MenuItemRow = {
   importConfidence: number | null;
   importJobId: string | null;
   imageUrl?: string | null;
+  /** Kitchen Accept SLA — READY_10M | COOKED_15M */
+  prepCategory?: "READY_10M" | "COOKED_15M";
+  prepMinutes?: number | null;
 };
 
 export const MENU_IMPORT_LOW_CONFIDENCE = 70;
@@ -429,6 +463,8 @@ export async function updateMenuItem(
     importConfidence?: number | null;
     available?: boolean;
     referencePricePaise?: number | null;
+    prepCategory?: "READY_10M" | "COOKED_15M";
+    prepMinutes?: 10 | 15 | null;
   },
 ) {
   const res = await fetch(`${base}/v1/menu/items/${itemId}`, {
@@ -463,6 +499,24 @@ export type CrmOrder = {
   createdAt: string;
   customerPhoneLast4: string | null;
   items: CrmOrderLine[];
+  committedPrepMinutes?: number | null;
+  extendedPrepMinutes?: number | null;
+  prepDeadlineAt?: string | null;
+  /** Pre-Accept SLA from menu lines (10 | 15) */
+  suggestedPrepMinutes?: 10 | 15 | null;
+  waitingPenaltyPaise?: number | null;
+  riderArrivedAt?: string | null;
+  readyForPickupAt?: string | null;
+  shipment?: {
+    awb: string | null;
+    status: string;
+    carrier: string;
+    trackingUrl?: string | null;
+    lastTrackingStatus?: string | null;
+    lastTrackingAt?: string | null;
+    foodDelivery?: boolean | null;
+    shiprocketShipmentId?: string | null;
+  } | null;
 };
 
 export type DashboardOverview = {
@@ -472,6 +526,13 @@ export type DashboardOverview = {
     scans7d: number;
     walletBalancePaise: number;
     campaignSendsRemaining: number;
+  };
+  settlement7d?: {
+    paidOrders: number;
+    grossSalesPaise: number;
+    waitingPenaltyPaise: number;
+    ledgerPenaltyDebitsPaise: number;
+    netEstimatePaise: number;
   };
   alerts: Array<{ code: string; severity: "info" | "warning"; message: string }>;
 };
@@ -532,14 +593,56 @@ export async function fetchCrmOrders(restaurantId: string, activeKitchen?: boole
   return data.orders as CrmOrder[];
 }
 
-export async function acceptCrmOrder(orderId: string) {
+export async function acceptCrmOrder(orderId: string, prepMinutes?: 10 | 15) {
   const res = await fetch(`${base}/v1/orders/${orderId}/accept`, {
     method: "POST",
-    headers: crmAuthHeaders(),
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify(prepMinutes ? { prepMinutes } : {}),
   });
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Accept failed"));
   return data.order as CrmOrder;
+}
+
+export async function extendCrmOrderPrep(orderId: string) {
+  const res = await fetch(`${base}/v1/orders/${orderId}/extend-prep`, {
+    method: "POST",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Extend failed"));
+  return data.order as CrmOrder;
+}
+
+export async function markCrmRiderArrived(orderId: string) {
+  const res = await fetch(`${base}/v1/orders/${orderId}/rider-arrived`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({}),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Rider arrived failed"));
+  return data.order as CrmOrder;
+}
+
+/** Mirrors BE waiting-penalty.ts — ₹2/min after grace, cap ₹60 */
+export function computeWaitingPenaltyPaiseClient(input: {
+  riderArrivedAt: string | null | undefined;
+  readyForPickupAt: string | null | undefined;
+  committedPrepMinutes: number | null | undefined;
+  extendedPrepMinutes: number | null | undefined;
+  nowMs?: number;
+}): { penaltyPaise: number; overtimeMin: number; graceMin: number } {
+  if (!input.riderArrivedAt || input.readyForPickupAt) {
+    return { penaltyPaise: 0, overtimeMin: 0, graceMin: 0 };
+  }
+  const committed = input.committedPrepMinutes ?? 15;
+  const graceMin = committed + (input.extendedPrepMinutes || 0) + 3;
+  const now = input.nowMs ?? Date.now();
+  const waitedMin = Math.floor((now - new Date(input.riderArrivedAt).getTime()) / 60_000);
+  const overtimeMin = Math.max(0, waitedMin - graceMin);
+  const penaltyPaise = Math.min(overtimeMin * 200, 6000);
+  return { penaltyPaise, overtimeMin, graceMin };
 }
 
 export async function patchCrmOrderStatus(orderId: string, status: string) {
@@ -659,6 +762,8 @@ export async function fetchCrmCustomerDetail(restaurantId: string, customerId: s
 
 export type CrmWallet = {
   balancePaise: number;
+  approxBroadcastCredits?: number;
+  msgCostPaise?: number;
   lowBalance: boolean;
   ledger: {
     id: string;
@@ -667,6 +772,8 @@ export type CrmWallet = {
     reference: string | null;
     createdAt: string;
   }[];
+  topupMode?: "stub" | "live";
+  packsPaise?: number[];
 };
 
 export type GrowPosterJob = {
@@ -743,7 +850,11 @@ export async function fetchCrmWallet(restaurantId: string) {
   return data as CrmWallet;
 }
 
-export async function topUpCrmWallet(restaurantId: string, idempotencyKey: string) {
+export async function topUpCrmWallet(
+  restaurantId: string,
+  idempotencyKey: string,
+  amountPaise = 99900,
+) {
   const res = await fetch(`${base}/v1/wallet/topup`, {
     method: "POST",
     headers: {
@@ -751,10 +862,43 @@ export async function topUpCrmWallet(restaurantId: string, idempotencyKey: strin
       "Idempotency-Key": idempotencyKey,
       ...crmAuthHeaders(),
     },
-    body: JSON.stringify({ restaurantId, amountPaise: 99900 }),
+    body: JSON.stringify({ restaurantId, amountPaise }),
   });
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Top-up failed"));
+  return data.wallet as CrmWallet;
+}
+
+export async function prepareCrmWalletTopUp(restaurantId: string, amountPaise: number) {
+  const res = await fetch(`${base}/v1/wallet/topup/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({ restaurantId, amountPaise }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Prepare top-up failed"));
+  return data as {
+    mode: "live";
+    amountPaise: number;
+    razorpayOrderId: string;
+    razorpayKeyId: string | null;
+  };
+}
+
+export async function verifyCrmWalletTopUp(input: {
+  restaurantId: string;
+  amountPaise: number;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}) {
+  const res = await fetch(`${base}/v1/wallet/topup/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify(input),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Verify top-up failed"));
   return data.wallet as CrmWallet;
 }
 
@@ -836,8 +980,14 @@ export type AudiencePreview = {
   audience: string;
   eligibleCount: number;
   skippedSevenDayCap: number;
+  skippedOptIn?: number;
   willSend: number;
   sevenDayCapEnabled: boolean;
+  costPerMessagePaise?: number;
+  estimatedCostPaise?: number;
+  balancePaise?: number;
+  balanceAfterPaise?: number;
+  canAfford?: boolean;
 };
 
 export async function fetchCampaignAudiencePreview(
@@ -902,6 +1052,34 @@ export async function scheduleCrmCampaign(
   return data.campaign as CrmCampaign;
 }
 
+export type DayEarnings = {
+  businessDate: string;
+  orderCount: number;
+  paymentsCount: number;
+  grossSalesPaise: number;
+  restaurantSharePaise: number;
+  platformFeePaise: number;
+  deliveryFeePaise: number;
+  waitingPenaltyPaise: number;
+};
+
+export type PayoutSettlementRow = {
+  id: string;
+  businessDate: string;
+  orderCount: number;
+  paymentsCount: number;
+  grossSalesPaise: number;
+  restaurantSharePaise: number;
+  platformFeePaise: number;
+  deliveryFeePaise: number;
+  waitingPenaltyPaise: number;
+  status: string;
+  invoiceNumber: string | null;
+  invoice: unknown;
+  settledAt: string | null;
+  freezeNote: string | null;
+};
+
 export type PayoutSettings = {
   restaurantId: string;
   razorpay: {
@@ -910,6 +1088,22 @@ export type PayoutSettings = {
     kycLabel: string;
     mode: string;
   };
+  bank?: {
+    accountName: string | null;
+    accountNumberMasked: string | null;
+    accountNumberLast4: string | null;
+    ifsc: string | null;
+    bankName: string | null;
+    updatedAt: string | null;
+    hasBank: boolean;
+  };
+  payout?: {
+    frozen: boolean;
+    frozenUntil: string | null;
+    freezeReason: string | null;
+    eodNote: string;
+  };
+  today?: DayEarnings;
   pos: {
     petpoojaOutletId: string | null;
     restroworksLocationId: string | null;
@@ -930,7 +1124,14 @@ export async function fetchPayoutSettings(restaurantId: string) {
 
 export async function patchPayoutPos(
   restaurantId: string,
-  input: { petpoojaOutletId?: string | null; restroworksLocationId?: string | null },
+  input: {
+    petpoojaOutletId?: string | null;
+    restroworksLocationId?: string | null;
+    bankAccountName?: string | null;
+    bankAccountNumber?: string | null;
+    bankIfsc?: string | null;
+    bankName?: string | null;
+  },
 ) {
   const res = await fetch(`${base}/v1/settings/payout`, {
     method: "PATCH",
@@ -940,4 +1141,15 @@ export async function patchPayoutPos(
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Save failed"));
   return data as PayoutSettings;
+}
+
+export async function fetchPayoutSettlements(restaurantId: string, limit = 14) {
+  const q = new URLSearchParams({ restaurantId, limit: String(limit) });
+  const res = await fetch(`${base}/v1/settings/payout/settlements?${q}`, {
+    cache: "no-store",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to load settlements"));
+  return data as { settlements: PayoutSettlementRow[] };
 }

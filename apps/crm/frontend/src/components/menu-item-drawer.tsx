@@ -28,7 +28,9 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
   );
   const [isVeg, setIsVeg] = useState(item.isVeg);
   const [available, setAvailable] = useState(item.available);
-  const [category, setCategory] = useState("Artisan Pies");
+  const [prepCategory, setPrepCategory] = useState<"READY_10M" | "COOKED_15M">(
+    item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     setReferencePrice(item.referencePricePaise != null ? String(item.referencePricePaise / 100) : "");
     setIsVeg(item.isVeg);
     setAvailable(item.available);
+    setPrepCategory(item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M");
   }, [item]);
 
   function resetFormFromItem() {
@@ -48,6 +51,7 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     setReferencePrice(item.referencePricePaise != null ? String(item.referencePricePaise / 100) : "");
     setIsVeg(item.isVeg);
     setAvailable(item.available);
+    setPrepCategory(item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M");
     setError(null);
   }
 
@@ -70,6 +74,8 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
         referencePricePaise: refRupees === null ? null : Math.round(refRupees * 100),
         isVeg,
         available,
+        prepCategory,
+        prepMinutes: prepCategory === "READY_10M" ? 10 : 15,
       });
       onSaved(updated);
       if (layout === "overlay") onClose();
@@ -177,17 +183,19 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Category</label>
+          <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
+            Prep SLA
+          </label>
           <select
             className="w-full rounded-lg bg-surface-container-low px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            value={prepCategory}
+            onChange={(e) =>
+              setPrepCategory(e.target.value === "READY_10M" ? "READY_10M" : "COOKED_15M")
+            }
+            data-testid="menu-item-prep-category"
           >
-            <option>Artisan Pies</option>
-            <option>Starters</option>
-            <option>Mains</option>
-            <option>Desserts</option>
-            <option>Beverages</option>
+            <option value="COOKED_15M">Cooked · 15 min</option>
+            <option value="READY_10M">Ready · 10 min</option>
           </select>
         </div>
       </div>

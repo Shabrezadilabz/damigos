@@ -9,8 +9,8 @@ test.describe("G-06 orders home", () => {
     await guestMockCheckoutUi(page, fx);
 
     await page.goto("/orders");
-    await expect(page.getByRole("heading", { name: "Your orders" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Active", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Your Orders/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Active/i })).toBeVisible();
     await expect(page.getByRole("listitem").first()).toContainText("Biryani Box Koramangala", {
       timeout: 10_000,
     });
@@ -20,7 +20,7 @@ test.describe("G-06 orders home", () => {
     await expect(page.getByText("Hyderabadi Chicken Biryani", { exact: true })).toBeVisible();
 
     await page.goto("/orders");
-    await page.getByRole("button", { name: "Past", exact: true }).click();
-    await expect(page.getByText("No past orders yet.")).toBeVisible({ timeout: 5000 });
+    await page.getByRole("button", { name: /Past/i }).click();
+    await expect(page.getByText(/No past orders/i)).toBeVisible({ timeout: 5000 });
   });
 });

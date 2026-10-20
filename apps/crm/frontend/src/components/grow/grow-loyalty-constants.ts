@@ -20,6 +20,8 @@ export const MIN_ORDER_DROPDOWN = [
   { paise: 99900, label: "₹999 minimum order" },
 ] as const;
 
+export type OfferScope = "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
+
 export type GrowLoyaltyConfig = {
   version: 1;
   engineEnabled: boolean;
@@ -33,6 +35,7 @@ export type GrowLoyaltyConfig = {
     prizeType: string;
     prizeValue: number;
     weight: number;
+    scope?: OfferScope;
   }[];
   scratch: { minOrderPaise: number; offerPresetId: OfferPresetId };
   dineIn: { enabled: boolean; offerPresetId: OfferPresetId };
@@ -64,10 +67,38 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
     minCartPaise: 24900,
     paybackPercent: 5,
     spinSegments: [
-      { localId: "s1", title: "15% off total", prizeType: "percent", prizeValue: 15, weight: 40 },
-      { localId: "s2", title: "Free mocktail", prizeType: "free_item", prizeValue: 0, weight: 30 },
-      { localId: "s3", title: "₹50 voucher", prizeType: "flat_off_paise", prizeValue: 5000, weight: 20 },
-      { localId: "s4", title: "Royal feast", prizeType: "free_item", prizeValue: 0, weight: 10 },
+      {
+        localId: "s1",
+        title: "15% off total",
+        prizeType: "percent",
+        prizeValue: 15,
+        weight: 35,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s2",
+        title: "Free mocktail",
+        prizeType: "free_item",
+        prizeValue: 0,
+        weight: 25,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s3",
+        title: "₹50 kitchen voucher",
+        prizeType: "flat_off_paise",
+        prizeValue: 5000,
+        weight: 20,
+        scope: "RESTAURANT_SCOPED",
+      },
+      {
+        localId: "s4",
+        title: "₹20 D'aMigo platform off",
+        prizeType: "flat_off_paise",
+        prizeValue: 2000,
+        weight: 20,
+        scope: "PLATFORM_WIDE",
+      },
     ],
     scratch: { minOrderPaise: 59900, offerPresetId: "flat_100" },
     dineIn: rule("pct_10"),
@@ -115,6 +146,7 @@ export function normalizeGrowLoyaltyConfig(raw: unknown): GrowLoyaltyConfig {
             prizeType: s.prizeType || "flat_off_paise",
             prizeValue: Number.isFinite(s.prizeValue) ? s.prizeValue : 5000,
             weight: Number.isFinite(s.weight) && s.weight > 0 ? s.weight : 10,
+            scope: s.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED",
           }))
         : base.spinSegments,
     scratch: {

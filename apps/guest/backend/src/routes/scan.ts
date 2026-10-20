@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, scanEvents, stickerBatches, stickerTokens } from "@damigos/db";
+import { playPathFor, upsertSparkPlaySession } from "../lib/spark-play-session.js";
 
 const resolveQuery = z.object({
   token: z.string().min(8),
@@ -98,11 +99,30 @@ export async function registerScanRoutes(app: FastifyInstance) {
       })
       .returning();
 
+    const playPath = playPathFor(row.restaurantId, scanEvent.id);
+    await upsertSparkPlaySession({
+      restaurantId: row.restaurantId,
+      scanEventId: scanEvent.id,
+      playPath,
+    });
+
+    /** DEC-010 — Spark marketing opt-in bridge before play webview */
+    const sparkBridgePath = `/wa/spark?restaurantId=${row.restaurantId}&scan=${scanEvent.id}`;
+
     return {
       restaurantId: row.restaurantId,
       scanEventId: scanEvent.id,
       scanLogged: true,
-      redirectPath: `/r/${row.restaurantId}?scan=${scanEvent.id}`,
+      redirectPath: sparkBridgePath,
+      playPath,
+      /** Spark agent entry — web play URL + invite endpoint for WA opt-in */
+      spark: {
+        agent: "spark",
+        playPath,
+        bridgePath: sparkBridgePath,
+        optInPath: "/v1/wa/spark/opt-in",
+        invitePath: "/v1/wa/spark/invite",
+      },
     };
   });
 }

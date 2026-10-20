@@ -2,12 +2,13 @@
 
 | Field | Value |
 |-------|--------|
-| **Document ID** | PRD-GUEST-1.0 |
+| **Document ID** | PRD-GUEST-1.0 (+ v2.0 addendum) |
 | **App** | `guest-web` (mobile webview; WhatsApp in-app browser primary) |
 | **API** | `guest-api` (REST + optional WebSocket for order status) |
-| **Version** | 1.0 |
-| **Date** | 2026-10-15 |
+| **Version** | 1.0 base · **2.0 planning overlay** |
+| **Date** | 2026-10-15 · v2 addendum 2026-10-18 |
 | **Companion** | [CRM-APP-PRD.md](./CRM-APP-PRD.md), [SYSTEM-ARCHITECTURE.md](../architecture/SYSTEM-ARCHITECTURE.md) |
+| **v2.0 LOCKED overlay** | **[GUEST-APP-PRD-V2-ADDENDUM.md](./GUEST-APP-PRD-V2-ADDENDUM.md)** — supersedes fonts, G-R01, and adds Spark/Cross-By/timers/HI |
 
 ---
 
@@ -50,11 +51,13 @@ The guest app is a **restaurant-scoped ordering webview** opened from **packagin
 
 ## 4. Design system
 
-- **Reference:** Stitch export `crimson_guest_experience/DESIGN.md`
+> **v2.0 override:** See [APPLE-DESIGN-SYSTEM.md](../design/APPLE-DESIGN-SYSTEM.md). SF Pro Display/Text/Mono replaces Plus Jakarta Sans / Inter. 17 Apple Design principles are mandatory.
+
+- **Reference:** Stitch export `crimson_guest_experience/DESIGN.md` + folders `g1`–`g18` ([STITCH-SCREEN-MAP.md](../design/STITCH-SCREEN-MAP.md))
 - **Viewport:** 390×844 baseline; safe areas `env(safe-area-inset-*)`
-- **Fonts:** Plus Jakarta Sans (headings), Inter (body, tabular nums for ₹)
-- **Primary CTA:** `#E23744` / crimson family (align CRM accent in Phase 1.1 if consolidating with navy `#10233F`)
-- **WhatsApp chrome:** Mock header `d-amigos.in` — do not duplicate OS back when WA provides close
+- **Fonts (v2):** `-apple-system, BlinkMacSystemFont, "SF Pro Display"|"SF Pro Text"|"SF Mono"` + `tabular-nums` on ₹/timers
+- **Primary CTA:** `#E23744` / `#B7122A` crimson; game zone CRED charcoal `#161616` + gold `#F3BF51`
+- **WhatsApp chrome:** `lock` + `d-amigos.in` + `verified` + refresh/close — do not duplicate OS back when WA provides close
 
 ---
 
@@ -79,7 +82,7 @@ The guest app is a **restaurant-scoped ordering webview** opened from **packagin
 
 | ID | Rule | Implementation |
 |----|------|----------------|
-| G-R01 | One cart = one `restaurant_id` | Server rejects mixed cart |
+| G-R01 | ~~One cart = one `restaurant_id`~~ | **Superseded by G-R01b (v2):** max **2** restaurants (Cross-By); see addendum |
 | G-R02 | Back from menu → `/orders` | Not to spin screen |
 | G-R03 | Credits label | "Credits with {Restaurant}" — not "WhatsApp wallet" |
 | G-R04 | Game optional | "View menu without offer" always available Phase 1 |

@@ -4,10 +4,14 @@ import {
   campaignRecipients,
   campaigns,
   consentRecords,
+  customers,
   db,
   messageDeliveryLog,
   orders,
+  restaurants,
 } from "@damigos/db";
+import { kapsoMode as kapsoModeFromLib, sendSparkMarketingText } from "./kapso.js";
+import { getWalletSnapshot, WHATSAPP_MSG_COST_PAISE } from "./wallet.js";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -102,6 +106,10 @@ export async function previewCampaignAudience(restaurantId: string, audience: Ca
     willSend += 1;
   }
 
+  const wallet = await getWalletSnapshot(restaurantId);
+  const estimatedCostPaise = willSend * WHATSAPP_MSG_COST_PAISE;
+  const balanceAfterPaise = wallet.balancePaise - estimatedCostPaise;
+
   return {
     audience,
     eligibleCount: customerIds.length,
@@ -109,6 +117,11 @@ export async function previewCampaignAudience(restaurantId: string, audience: Ca
     skippedOptIn,
     willSend,
     sevenDayCapEnabled: true,
+    costPerMessagePaise: WHATSAPP_MSG_COST_PAISE,
+    estimatedCostPaise,
+    balancePaise: wallet.balancePaise,
+    balanceAfterPaise,
+    canAfford: balanceAfterPaise >= 0,
   };
 }
 
@@ -226,18 +239,34 @@ export async function markCampaignScheduled(
   return getCampaignById(campaignId, restaurantId);
 }
 
-export function kapsoMode(): "mock" | "off" {
-  const mode = (process.env.KAPSO_MODE ?? "mock").toLowerCase();
-  return mode === "off" ? "off" : "mock";
+export function kapsoMode(): "mock" | "live" | "off" {
+  return kapsoModeFromLib();
 }
 
-/** Mock Kapso send — P1-T06 pilot (live API in follow-up) */
+function guestWebOrigin(): string {
+  return (
+    process.env.GUEST_WEB_URL?.replace(/\/$/, "") ||
+    process.env.GUEST_WEB_ORIGIN?.replace(/\/$/, "") ||
+    "http://localhost:3000"
+  );
+}
+
+/** Dispatch Grow campaign via Spark Kapso (mock or live). */
 export async function dispatchCampaignMock(campaignId: string, restaurantId: string) {
+  const mode = kapsoMode();
+  if (mode === "off") return { ok: false as const, reason: "kapso_off" };
+
   const campaign = await getCampaignById(campaignId, restaurantId);
   if (!campaign) return { ok: false as const, reason: "not_found" };
   if (campaign.status !== "Scheduled" && campaign.status !== "Sending") {
     return { ok: false as const, reason: "invalid_status" };
   }
+
+  const [kitchen] = await db
+    .select()
+    .from(restaurants)
+    .where(eq(restaurants.id, restaurantId))
+    .limit(1);
 
   await db.update(campaigns).set({ status: "Sending" }).where(eq(campaigns.id, campaignId));
 
@@ -248,7 +277,40 @@ export async function dispatchCampaignMock(campaignId: string, restaurantId: str
 
   let sent = 0;
   for (const recipient of pending) {
-    const kapsoId = `kapso_mock_${randomUUID().slice(0, 8)}`;
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, recipient.customerId))
+      .limit(1);
+
+    const phone = customer?.phoneE164;
+    if (!phone) {
+      await db
+        .update(campaignRecipients)
+        .set({ status: "skipped_no_phone", errorMessage: "No phone_e164" })
+        .where(eq(campaignRecipients.id, recipient.id));
+      continue;
+    }
+
+    const body =
+      `📣 *${kitchen?.name ?? "Your kitchen"}*\n\n` +
+      `${campaign.name}\n` +
+      (campaign.templateKey ? `Offer: ${campaign.templateKey}\n\n` : "\n") +
+      `Order direct: ${guestWebOrigin()}/r/${restaurantId}`;
+
+    const result = await sendSparkMarketingText(phone, body);
+    if (!result.ok) {
+      await db
+        .update(campaignRecipients)
+        .set({
+          status: "failed",
+          errorMessage: (result.error ?? "send failed").slice(0, 255),
+        })
+        .where(eq(campaignRecipients.id, recipient.id));
+      continue;
+    }
+
+    const kapsoId = result.messageId ?? `kapso_${mode}_${randomUUID().slice(0, 8)}`;
     await db
       .update(campaignRecipients)
       .set({ status: "sent", kapsoMessageId: kapsoId })
@@ -270,5 +332,5 @@ export async function dispatchCampaignMock(campaignId: string, restaurantId: str
     .set({ status: "Sent", sentCount: sent })
     .where(eq(campaigns.id, campaignId));
 
-  return { ok: true as const, sent, campaign: await getCampaignById(campaignId, restaurantId) };
+  return { ok: true as const, sent, mode, campaign: await getCampaignById(campaignId, restaurantId) };
 }
