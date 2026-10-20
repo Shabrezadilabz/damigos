@@ -31,7 +31,7 @@ function SparkBridgeInner() {
 
   useEffect(() => {
     void fetchWaStatus()
-      .then((s) => setWaMe(s.sparkWaMeE164))
+      .then((s) => setWaMe(s.sparkWaMeE164 ?? null))
       .catch(() => undefined);
   }, []);
 
