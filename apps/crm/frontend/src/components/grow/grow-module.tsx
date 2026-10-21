@@ -18,7 +18,15 @@ const TAB_SUB: Record<GrowTabId, { title: string; sub: string }> = {
   poster: { title: "AI Poster Copilot & Creative Studio", sub: "Generate WhatsApp-ready food creatives" },
 };
 
-export function GrowModule({ restaurantId, tab }: { restaurantId: string; tab: GrowTabId }) {
+export function GrowModule({
+  restaurantId,
+  tab,
+  openCustomerId,
+}: {
+  restaurantId: string;
+  tab: GrowTabId;
+  openCustomerId?: string | null;
+}) {
   const meta = TAB_SUB[tab];
 
   return (
@@ -36,7 +44,9 @@ export function GrowModule({ restaurantId, tab }: { restaurantId: string; tab: G
       </header>
       <GrowTabs active={tab} />
       {tab === "offers" && <GrowOffersPanel restaurantId={restaurantId} />}
-      {tab === "customers" && <GrowCustomersPanel restaurantId={restaurantId} />}
+      {tab === "customers" && (
+        <GrowCustomersPanel restaurantId={restaurantId} openCustomerId={openCustomerId} />
+      )}
       {tab === "campaigns" && <GrowCampaignsPanel restaurantId={restaurantId} />}
       {tab === "wallet" && <GrowWalletPanel restaurantId={restaurantId} />}
       {tab === "poster" && <GrowPosterPanel restaurantId={restaurantId} />}

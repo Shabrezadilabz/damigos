@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { CrmOrderDetailDialog } from "@/components/crm-order-detail-dialog";
 import { formatInr, type CrmOrder } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -56,51 +58,76 @@ function statusPill(status: string) {
 }
 
 export function DashboardRecentOrdersTable({ orders }: { orders: CrmOrder[] }) {
+  const [selected, setSelected] = useState<CrmOrder | null>(null);
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead>
-          <tr className="rounded-xl bg-surface-container-low/80 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-            <th className="rounded-l-xl px-3 py-2.5">Order ID</th>
-            <th className="px-3 py-2.5">Table / guest</th>
-            <th className="px-3 py-2.5">Items</th>
-            <th className="px-3 py-2.5">Amount</th>
-            <th className="rounded-r-xl px-3 py-2.5 text-right">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-surface-container-high/40">
-          {orders.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-3 py-6 text-center text-on-surface-variant">
-                No orders yet.
-              </td>
+    <>
+      <CrmOrderDetailDialog order={selected} onClose={() => setSelected(null)} />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead>
+            <tr className="rounded-xl bg-surface-container-low/80 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+              <th className="rounded-l-xl px-3 py-2.5">Order ID</th>
+              <th className="px-3 py-2.5">Table / guest</th>
+              <th className="px-3 py-2.5">Items</th>
+              <th className="px-3 py-2.5">Amount</th>
+              <th className="rounded-r-xl px-3 py-2.5 text-right">Status</th>
             </tr>
-          ) : (
-            orders.map((o) => {
-              const items = itemSummary(o);
-              const guest = o.customerPhoneLast4 ? `+91 ••••${o.customerPhoneLast4}` : "WhatsApp guest";
-              return (
-                <tr key={o.id} data-testid="dashboard-order-row" className="transition-colors hover:bg-surface-container-low/60">
-                  <td className="px-3 py-3">
-                    <span className="font-[family-name:var(--font-display)] text-sm font-semibold">{orderDisplayId(o.id)}</span>
-                    <span className="block text-[10px] font-semibold text-on-surface-variant">{relativeWhen(o.createdAt)}</span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="text-xs font-semibold">Direct checkout</div>
-                    <div className="text-xs text-on-surface-variant">{guest}</div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <span>{items.count} items</span>
-                    <span className="block max-w-[140px] truncate text-xs text-on-surface-variant">{items.line}</span>
-                  </td>
-                  <td className="px-3 py-3 font-semibold tabular-nums">{formatInr(o.totalPaise)}</td>
-                  <td className="px-3 py-3 text-right">{statusPill(o.status)}</td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-surface-container-high/40">
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-center text-on-surface-variant">
+                  No orders yet.
+                </td>
+              </tr>
+            ) : (
+              orders.map((o) => {
+                const items = itemSummary(o);
+                const guest = o.customerPhoneLast4 ? `+91 ••••${o.customerPhoneLast4}` : "WhatsApp guest";
+                return (
+                  <tr
+                    key={o.id}
+                    data-testid="dashboard-order-row"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open order ${orderDisplayId(o.id)}`}
+                    onClick={() => setSelected(o)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelected(o);
+                      }
+                    }}
+                    className="cursor-pointer transition-colors hover:bg-surface-container-low/60 focus-visible:bg-surface-container-low/80 focus-visible:outline-none"
+                  >
+                    <td className="px-3 py-3">
+                      <span className="font-[family-name:var(--font-display)] text-sm font-semibold">
+                        {orderDisplayId(o.id)}
+                      </span>
+                      <span className="block text-[10px] font-semibold text-on-surface-variant">
+                        {relativeWhen(o.createdAt)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="text-xs font-semibold">Direct checkout</div>
+                      <div className="text-xs text-on-surface-variant">{guest}</div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span>{items.count} items</span>
+                      <span className="block max-w-[140px] truncate text-xs text-on-surface-variant">
+                        {items.line}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 font-semibold tabular-nums">{formatInr(o.totalPaise)}</td>
+                    <td className="px-3 py-3 text-right">{statusPill(o.status)}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

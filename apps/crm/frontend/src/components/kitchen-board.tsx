@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,13 @@ import {
   type CrmOrder,
 } from "@/lib/api";
 import { useCrmRestaurant } from "@/components/use-crm-restaurant";
+import { subscribeCrmRefresh } from "@/lib/crm-refresh-bus";
+import {
+  playKitchenRing,
+  readKitchenSoundOn,
+  stopKitchenRing,
+} from "@/lib/kitchen-alert-audio";
+import { resolveMenuItemImageUrl } from "@/lib/menu-item-thumb";
 import { getCrmToken } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -147,17 +154,33 @@ function OrderCard({
       </div>
 
       <div className="flex flex-col gap-2 rounded-xl bg-surface-container-low p-3">
-        {order.items.map((line) => (
-          <div key={line.id} className="flex items-center justify-between text-sm text-on-surface">
-            <div className="flex items-center gap-2">
-              <VegDot />
-              <span>
-                {line.quantity}× {line.name}
+        {order.items.map((line) => {
+          const vegGuess = !/\b(chicken|mutton|lamb|fish|prawn|egg|non[\s-]?veg)\b/i.test(
+            line.name,
+          );
+          const thumb = resolveMenuItemImageUrl(line.name, null, vegGuess);
+          return (
+            <div key={line.id} className="flex items-center justify-between gap-2 text-sm text-on-surface">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="group/line relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-surface-container">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumb} alt="" className="h-full w-full object-cover" />
+                  <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-28 overflow-hidden rounded-lg border border-border bg-background shadow-lg group-hover/line:block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb} alt="" className="h-28 w-full object-cover" />
+                  </div>
+                </div>
+                <VegDot />
+                <span className="truncate">
+                  {line.quantity}× {line.name}
+                </span>
+              </div>
+              <span className="shrink-0 font-semibold tabular-nums">
+                {formatInr(line.unitPricePaise * line.quantity)}
               </span>
             </div>
-            <span className="font-semibold tabular-nums">{formatInr(line.unitPricePaise * line.quantity)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex items-center justify-between px-1">
@@ -408,14 +431,101 @@ function Column({
 
 type KitchenConnection = "live" | "reconnecting" | "polling";
 
+function SlaBreachDialog({
+  order,
+  onDismiss,
+  onExtend,
+  onMarkReady,
+}: {
+  order: CrmOrder;
+  onDismiss: () => void;
+  onExtend: () => Promise<void>;
+  onMarkReady: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const shortId = order.id.slice(0, 8).toUpperCase();
+  const overdueSec = order.prepDeadlineAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(order.prepDeadlineAt).getTime()) / 1000))
+    : 0;
+
+  async function run(fn: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="sla-breach-title"
+      data-testid="kitchen-sla-breach-dialog"
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-surface-container-lowest shadow-2xl">
+        <div className="bg-primary px-5 py-4 text-on-primary">
+          <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Prep SLA breached</p>
+          <h2 id="sla-breach-title" className="font-[family-name:var(--font-display)] text-2xl font-bold">
+            #{shortId} is overdue
+          </h2>
+          <p className="mt-1 text-sm opacity-90">
+            +{formatMmSs(overdueSec)} past committed {order.committedPrepMinutes ?? 15}m · guest waiting
+          </p>
+        </div>
+        <div className="space-y-3 p-5">
+          <ul className="rounded-xl bg-surface-container-low px-3 py-2 text-sm">
+            {order.items.slice(0, 4).map((line) => (
+              <li key={line.id} className="flex justify-between gap-2 py-1">
+                <span className="truncate">
+                  {line.quantity}× {line.name}
+                </span>
+                <span className="shrink-0 tabular-nums">{formatInr(line.unitPricePaise * line.quantity)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-on-surface-variant">
+            A 5-second urgent ring played for this breach. Acknowledge once the station has eyes on it.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy || (order.extendedPrepMinutes ?? 0) > 0}
+              onClick={() => void run(onExtend)}
+            >
+              +5 min extend
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#24963F] text-white hover:bg-[#1E7D34]"
+              disabled={busy}
+              onClick={() => void run(onMarkReady)}
+            >
+              Mark ready
+            </Button>
+          </div>
+          <Button type="button" className="w-full" disabled={busy} onClick={onDismiss}>
+            Acknowledge alert
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function KitchenBoard({
   chrome = "legacy",
   hideTopBar = false,
+  soundEnabled: soundEnabledProp,
   onConnectionLabel,
   registerRefresh,
 }: {
   chrome?: "legacy" | "stitch";
   hideTopBar?: boolean;
+  soundEnabled?: boolean;
   onConnectionLabel?: (label: string) => void;
   registerRefresh?: (fn: () => void) => void;
 }) {
@@ -423,7 +533,10 @@ export function KitchenBoard({
   const [orders, setOrders] = useState<CrmOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connection, setConnection] = useState<KitchenConnection>("polling");
-  const [prevPaidCount, setPrevPaidCount] = useState<number | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [slaBreachOrder, setSlaBreachOrder] = useState<CrmOrder | null>(null);
+  const seenPaidIdsRef = useRef<Set<string> | null>(null);
+  const alertedSlaIdsRef = useRef<Set<string>>(new Set());
 
   const reload = useCallback(async () => {
     if (!restaurantId) return;
@@ -433,32 +546,74 @@ export function KitchenBoard({
   }, [restaurantId]);
 
   useEffect(() => {
-    const paid = orders.filter((o) => o.status === "PAID").length;
-    if (prevPaidCount != null && paid > prevPaidCount) {
-      try {
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = 880;
-        gain.gain.value = 0.08;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.18);
-        if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate([40, 60, 40]);
-      } catch {
-        /* ignore audio errors */
+    if (typeof soundEnabledProp === "boolean") {
+      setSoundEnabled(soundEnabledProp);
+      return;
+    }
+    setSoundEnabled(readKitchenSoundOn());
+    const onEvt = (e: Event) => {
+      const detail = (e as CustomEvent<{ on: boolean }>).detail;
+      if (typeof detail?.on === "boolean") setSoundEnabled(detail.on);
+    };
+    window.addEventListener("damigos-kitchen-sound", onEvt);
+    return () => window.removeEventListener("damigos-kitchen-sound", onEvt);
+  }, [soundEnabledProp]);
+
+  // New PAID order → 5s ring (skip first load so refresh doesn't alarm)
+  useEffect(() => {
+    const paidIds = orders.filter((o) => o.status === "PAID").map((o) => o.id);
+    if (seenPaidIdsRef.current === null) {
+      seenPaidIdsRef.current = new Set(paidIds);
+      return;
+    }
+    const seen = seenPaidIdsRef.current;
+    const newcomers = paidIds.filter((id) => !seen.has(id));
+    for (const id of paidIds) seen.add(id);
+    for (const id of [...seen]) {
+      if (!paidIds.includes(id) && !orders.some((o) => o.id === id && o.status === "PAID")) {
+        // keep id in set so re-PAID won't false-trigger; still fine
       }
     }
-    setPrevPaidCount(paid);
-  }, [orders, prevPaidCount]);
+    if (newcomers.length > 0 && soundEnabled) {
+      playKitchenRing("new_order", 5000);
+    }
+  }, [orders, soundEnabled]);
+
+  // Prep SLA breach → dialog + different 5s ring (once per order)
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      for (const o of orders) {
+        if (o.status !== "ACCEPTED" && o.status !== "PREPARING") continue;
+        if (!o.prepDeadlineAt) continue;
+        if (new Date(o.prepDeadlineAt).getTime() >= now) continue;
+        if (alertedSlaIdsRef.current.has(o.id)) continue;
+        alertedSlaIdsRef.current.add(o.id);
+        setSlaBreachOrder(o);
+        if (soundEnabled) playKitchenRing("sla_breach", 5000);
+        break;
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [orders, soundEnabled]);
+
+  useEffect(() => {
+    return () => stopKitchenRing();
+  }, []);
 
   useEffect(() => {
     registerRefresh?.(() => {
       void reload();
     });
   }, [registerRefresh, reload]);
+
+  useEffect(() => {
+    return subscribeCrmRefresh(() => {
+      void reload().catch(() => undefined);
+    });
+  }, [reload]);
 
   useEffect(() => {
     const label =
@@ -538,6 +693,27 @@ export function KitchenBoard({
 
   return (
     <div className="space-y-4">
+      {slaBreachOrder ? (
+        <SlaBreachDialog
+          order={slaBreachOrder}
+          onDismiss={() => {
+            stopKitchenRing();
+            setSlaBreachOrder(null);
+          }}
+          onExtend={async () => {
+            await extendCrmOrderPrep(slaBreachOrder.id);
+            await reload();
+            stopKitchenRing();
+            setSlaBreachOrder(null);
+          }}
+          onMarkReady={async () => {
+            await patchCrmOrderStatus(slaBreachOrder.id, "READY");
+            await reload();
+            stopKitchenRing();
+            setSlaBreachOrder(null);
+          }}
+        />
+      ) : null}
       {!hideTopBar && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-foreground/60" data-testid="kitchen-connection-status">

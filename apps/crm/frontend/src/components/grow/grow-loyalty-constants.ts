@@ -25,6 +25,8 @@ export type OfferScope = "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
 export type GrowLoyaltyConfig = {
   version: 1;
   engineEnabled: boolean;
+  /** Spin wheel UI — if both spin + scratch on, guest randomly gets one; same prize pool */
+  spinEnabled: boolean;
   dailySpinLimit: number;
   scratchEnabled: boolean;
   minCartPaise: number;
@@ -36,6 +38,8 @@ export type GrowLoyaltyConfig = {
     prizeValue: number;
     weight: number;
     scope?: OfferScope;
+    menuItemId?: string | null;
+    menuItemName?: string | null;
   }[];
   scratch: { minOrderPaise: number; offerPresetId: OfferPresetId };
   dineIn: { enabled: boolean; offerPresetId: OfferPresetId };
@@ -62,6 +66,7 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
   return {
     version: 1,
     engineEnabled: true,
+    spinEnabled: true,
     dailySpinLimit: 1,
     scratchEnabled: true,
     minCartPaise: 24900,
@@ -132,6 +137,7 @@ export function normalizeGrowLoyaltyConfig(raw: unknown): GrowLoyaltyConfig {
   return {
     version: 1,
     engineEnabled: typeof c.engineEnabled === "boolean" ? c.engineEnabled : base.engineEnabled,
+    spinEnabled: typeof c.spinEnabled === "boolean" ? c.spinEnabled : base.spinEnabled,
     dailySpinLimit:
       typeof c.dailySpinLimit === "number" && c.dailySpinLimit >= 0 ? c.dailySpinLimit : base.dailySpinLimit,
     scratchEnabled: typeof c.scratchEnabled === "boolean" ? c.scratchEnabled : base.scratchEnabled,
@@ -147,6 +153,8 @@ export function normalizeGrowLoyaltyConfig(raw: unknown): GrowLoyaltyConfig {
             prizeValue: Number.isFinite(s.prizeValue) ? s.prizeValue : 5000,
             weight: Number.isFinite(s.weight) && s.weight > 0 ? s.weight : 10,
             scope: s.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED",
+            menuItemId: typeof s.menuItemId === "string" ? s.menuItemId : null,
+            menuItemName: typeof s.menuItemName === "string" ? s.menuItemName : null,
           }))
         : base.spinSegments,
     scratch: {

@@ -85,8 +85,11 @@ export function isMenuDemoSeedEnabled() {
   return process.env.NODE_ENV !== "production";
 }
 
-/** Inserts demo rows when the restaurant has fewer than `minItems` menu records. Idempotent by item name. Never throws. */
-export async function ensureDemoMenuItems(restaurantId: string, minItems = 8) {
+/**
+ * Seed Stitch demo dishes only for a brand-new empty restaurant.
+ * Never re-seed after revert/import — that was mixing “old kitchen” drafts back in.
+ */
+export async function ensureDemoMenuItems(restaurantId: string, _minItems = 8) {
   if (!isMenuDemoSeedEnabled()) return { seeded: 0 };
   if (seedInFlight.has(restaurantId)) return { seeded: 0 };
 
@@ -97,7 +100,8 @@ export async function ensureDemoMenuItems(restaurantId: string, minItems = 8) {
       .from(menuItems)
       .where(eq(menuItems.restaurantId, restaurantId));
 
-    if (existing.length >= minItems) return { seeded: 0 };
+    // Only seed when the kitchen has zero rows (not “fewer than 8”).
+    if (existing.length > 0) return { seeded: 0 };
 
     const names = new Set(existing.map((r) => r.name));
     let seeded = 0;

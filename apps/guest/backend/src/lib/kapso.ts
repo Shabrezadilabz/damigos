@@ -362,7 +362,7 @@ export async function sendFoodHiNew(toPhone: string, hubUrl: string) {
   const body =
     `👋 Welcome to *D'aMigo Food*\n\n` +
     `Order direct from local kitchens — *First order FREE delivery* on us.\n\n` +
-    `Tap below to open the hub inside WhatsApp.`;
+    `Tap below to open the hub.`;
   const cta = await sendKapsoCtaUrl("food", toPhone, body, "Open hub", hubUrl);
   if (cta.ok) return cta;
   return sendKapsoText("food", toPhone, `${body}\n\n${hubUrl}`);

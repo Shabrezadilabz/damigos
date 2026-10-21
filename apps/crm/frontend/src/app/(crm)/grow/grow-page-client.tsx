@@ -10,7 +10,13 @@ function parseTab(raw: string | null | undefined): GrowTabId {
   return "offers";
 }
 
-export function GrowPageClient({ tabParam }: { tabParam?: string }) {
+export function GrowPageClient({
+  tabParam,
+  customerId,
+}: {
+  tabParam?: string;
+  customerId?: string;
+}) {
   const { restaurantId, loading, error } = useCrmRestaurant();
   const tab = parseTab(tabParam);
 
@@ -23,5 +29,5 @@ export function GrowPageClient({ tabParam }: { tabParam?: string }) {
     );
   }
 
-  return <GrowModule restaurantId={restaurantId} tab={tab} />;
+  return <GrowModule restaurantId={restaurantId} tab={tab} openCustomerId={customerId} />;
 }

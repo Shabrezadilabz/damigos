@@ -178,17 +178,6 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       });
     }
 
-    const isE2eRow = existing.name.startsWith("E2E Publish");
-    if (existing.draft === false && !isE2eRow) {
-      return reply.status(400).send({
-        error: {
-          code: "LIVE_ITEM",
-          message: "Live items cannot be deleted here — 86 them or edit price. Only drafts can be removed.",
-          correlationId: request.id,
-        },
-      });
-    }
-
     await db
       .delete(menuItems)
       .where(and(eq(menuItems.id, params.id), eq(menuItems.restaurantId, query.restaurantId)));
@@ -311,6 +300,20 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         referencePricePaise: z.number().int().positive().nullable().optional(),
         prepCategory: z.enum(["READY_10M", "COOKED_15M"]).optional(),
         prepMinutes: z.union([z.literal(10), z.literal(15), z.null()]).optional(),
+        /** https URL or data:image/*;data URL (compressed client-side) */
+        imageUrl: z
+          .string()
+          .max(2_500_000)
+          .nullable()
+          .optional()
+          .refine(
+            (v) =>
+              v == null ||
+              v.startsWith("https://") ||
+              v.startsWith("http://") ||
+              v.startsWith("data:image/"),
+            { message: "imageUrl must be http(s) or data:image" },
+          ),
       })
       .safeParse(request.body);
 
@@ -360,10 +363,14 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       }
     }
     if (body.data.prepMinutes !== undefined) patch.prepMinutes = body.data.prepMinutes;
+    if (body.data.imageUrl !== undefined) patch.imageUrl = body.data.imageUrl;
 
     await ensureKitchenSchema();
     const catalog = await loadFoodCatalogCache();
-    if (body.data.name !== undefined || body.data.description !== undefined || body.data.isVeg !== undefined) {
+    if (
+      body.data.imageUrl === undefined &&
+      (body.data.name !== undefined || body.data.description !== undefined || body.data.isVeg !== undefined)
+    ) {
       const nextName = body.data.name ?? existing.name;
       const nextDesc = body.data.description !== undefined ? body.data.description : existing.description;
       const nextVeg = body.data.isVeg ?? existing.isVeg;

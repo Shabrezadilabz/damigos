@@ -1,9 +1,14 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
-import { saveGrowOffersGame, type GrowOffersGamePayload } from "@/lib/api";
+import {
+  fetchMenuItems,
+  saveGrowOffersGame,
+  type GrowOffersGamePayload,
+  type MenuItemRow,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   GROW_FIELD_CLASS,
@@ -126,20 +131,36 @@ type Props = {
   restaurantId: string;
   initial: GrowOffersGamePayload;
   onSaved: (next: GrowOffersGamePayload) => void;
+  onConfigChange?: (config: GrowLoyaltyConfig) => void;
 };
 
-export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) {
+export function GrowOffersConfigForm({ restaurantId, initial, onSaved, onConfigChange }: Props) {
   const [config, setConfig] = useState<GrowLoyaltyConfig>(() =>
     normalizeGrowLoyaltyConfig(initial.config),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItemRow[]>([]);
 
   const weightSum = useMemo(
     () => (config.spinSegments ?? []).reduce((s, x) => s + (x.weight ?? 0), 0),
     [config.spinSegments],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMenuItems(restaurantId, false)
+      .then((items) => {
+        if (!cancelled) setMenuItems(items.filter((i) => i.available));
+      })
+      .catch(() => {
+        if (!cancelled) setMenuItems([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
 
   async function onSave() {
     setBusy(true);
@@ -156,7 +177,11 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
   }
 
   function patch(partial: Partial<GrowLoyaltyConfig>) {
-    setConfig((c) => ({ ...c, ...partial }));
+    setConfig((c) => {
+      const next = { ...c, ...partial };
+      onConfigChange?.(next);
+      return next;
+    });
   }
 
   return (
@@ -183,22 +208,33 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
       <Section
         title="Gamification engine"
         icon="tune"
-        description="Master switch and guardrails before guests see spin / scratch on WhatsApp."
+        description="One prize pool. Guests play either spin or scratch (random when both are on) — not two separate games."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <ToggleRow
             label="Gamification engine live"
-            sub="Spin wheel + scratch on packaging QR / table scan"
+            sub="Master switch for packaging QR / table scan rewards"
             checked={config.engineEnabled}
             onChange={(engineEnabled) => patch({ engineEnabled })}
           />
+          <div className="rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2.5 text-xs text-on-surface-variant sm:col-span-2">
+            Enable one or both game UIs. Same offers apply. If both are on, WhatsApp randomly opens spin{" "}
+            <em>or</em> scratch each play.
+          </div>
           <ToggleRow
-            label="Scratch cards enabled"
+            label="Spin wheel"
+            sub="Fortune wheel animation"
+            checked={config.spinEnabled !== false}
+            onChange={(spinEnabled) => patch({ spinEnabled })}
+          />
+          <ToggleRow
+            label="Scratch card"
+            sub="Scratch-to-reveal animation"
             checked={config.scratchEnabled}
             onChange={(scratchEnabled) => patch({ scratchEnabled })}
           />
           <label className="block text-sm">
-            <span className="font-semibold">Daily spin limit (per guest)</span>
+            <span className="font-semibold">Daily play limit (per guest)</span>
             <input
               type="number"
               min={0}
@@ -228,9 +264,9 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
       </Section>
 
       <Section
-        title="Fortune spin wheel — prizes & weights"
+        title="Shared prize pool — weights"
         icon="casino"
-        description="Each row is a wheel segment. Weights control win probability (must total &gt; 0)."
+        description="Used by both spin and scratch. Weights control win chance (must total &gt; 0). Free-item rows pick a menu dish."
       >
         <p className="mb-3 text-xs text-on-surface-variant">
           Weight sum: <strong className="text-foreground">{weightSum}</strong>
@@ -260,7 +296,13 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                 onChange={(e) => {
                   const [prizeType, prizeValue] = e.target.value.split(":");
                   const spinSegments = [...config.spinSegments];
-                  spinSegments[idx] = { ...seg, prizeType, prizeValue: Number(prizeValue) };
+                  spinSegments[idx] = {
+                    ...seg,
+                    prizeType,
+                    prizeValue: Number(prizeValue),
+                    menuItemId: prizeType === "free_item" ? seg.menuItemId : null,
+                    menuItemName: prizeType === "free_item" ? seg.menuItemName : null,
+                  };
                   patch({ spinSegments });
                 }}
               >
@@ -269,7 +311,7 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                 <option value="percent:20">20% off</option>
                 <option value="flat_off_paise:5000">₹50 off</option>
                 <option value="flat_off_paise:10000">₹100 off</option>
-                <option value="free_item:0">Free item / drink</option>
+                <option value="free_item:0">Free menu item</option>
               </select>
               <label className="sm:col-span-2 text-sm">
                 <span className="text-[10px] font-bold uppercase text-on-surface-variant">Weight</span>
@@ -313,6 +355,40 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
               >
                 Remove
               </button>
+              {seg.prizeType === "free_item" ? (
+                <label className="sm:col-span-12 block text-sm">
+                  <span className="text-[10px] font-bold uppercase text-on-surface-variant">
+                    Menu item (live kitchen)
+                  </span>
+                  <select
+                    className={cn(GROW_FIELD_CLASS, "mt-0")}
+                    value={seg.menuItemId ?? ""}
+                    onChange={(e) => {
+                      const item = menuItems.find((m) => m.id === e.target.value);
+                      const spinSegments = [...config.spinSegments];
+                      spinSegments[idx] = {
+                        ...seg,
+                        menuItemId: item?.id ?? null,
+                        menuItemName: item?.name ?? null,
+                        title: item ? `Free ${item.name}` : seg.title,
+                      };
+                      patch({ spinSegments });
+                    }}
+                  >
+                    <option value="">Select dish…</option>
+                    {menuItems.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} · ₹{(m.pricePaise / 100).toFixed(0)}
+                      </option>
+                    ))}
+                  </select>
+                  {menuItems.length === 0 ? (
+                    <span className="mt-1 block text-[11px] text-amber-800">
+                      No live menu items yet — publish dishes in Menu first.
+                    </span>
+                  ) : null}
+                </label>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -333,6 +409,8 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
                   prizeValue: 5000,
                   weight: 10,
                   scope: "RESTAURANT_SCOPED" as const,
+                  menuItemId: null,
+                  menuItemName: null,
                 },
               ],
             })
@@ -343,9 +421,9 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
       </Section>
 
       <Section
-        title="Scratch card (bill milestone)"
+        title="Scratch unlock threshold"
         icon="redeem"
-        description="When order total crosses the threshold, guest gets a scratch reward."
+        description="Scratch uses the shared prize pool above (same weights). This only sets when the card unlocks."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <MinOrderSelect
@@ -355,11 +433,9 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved }: Props) 
               patch({ scratch: { ...config.scratch, minOrderPaise } })
             }
           />
-          <OfferSelect
-            label="Scratch reward offer"
-            value={config.scratch.offerPresetId}
-            onChange={(offerPresetId) => patch({ scratch: { ...config.scratch, offerPresetId } })}
-          />
+          <p className="self-end text-xs text-on-surface-variant">
+            Prize drawn from the shared pool — no separate scratch-only offer.
+          </p>
         </div>
       </Section>
 

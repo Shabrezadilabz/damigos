@@ -153,7 +153,7 @@ export function renderPosterSvgDataUrl(
   ${moodBlock}
   <rect x="${ctaX}" y="880" width="${ctaW}" height="72" rx="36" fill="${primary}"/>
   <text x="${ctaTextX}" y="928" text-anchor="middle" fill="#fff" font-family="${typo.bodyFamily}" font-size="28" font-weight="700">Scan &amp; Order</text>
-  <text x="${nameX}" y="990" text-anchor="${nameAnchor}" fill="${hasPhoto ? "#ddd" : "#666"}" font-family="${typo.bodyFamily}" font-size="18">D&apos;aMigo&apos;s · WhatsApp ordering</text>
+  <text x="${nameX}" y="990" text-anchor="${nameAnchor}" fill="${hasPhoto ? "#ddd" : "#666"}" font-family="${typo.bodyFamily}" font-size="18">${escapeXml(restaurantName)} · WhatsApp ordering</text>
 </svg>`;
 
   const b64 = Buffer.from(svg, "utf8").toString("base64");

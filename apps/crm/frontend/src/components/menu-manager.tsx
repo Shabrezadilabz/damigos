@@ -46,10 +46,18 @@ function MenuItemThumbCell({ src, alt }: { src: string | null; alt: string }) {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />
+    <div className="group/thumb relative h-full w-full">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />
+      <div className="pointer-events-none absolute bottom-full left-0 z-30 mb-2 hidden w-40 overflow-hidden rounded-xl border border-border bg-background shadow-xl group-hover/thumb:block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" className="h-40 w-full object-cover" />
+      </div>
+    </div>
   );
 }
+
+type MenuFilter = "all" | "needs_review" | "veg" | "non_veg" | "unavailable";
 
 function importJobIsActive(job: MenuImportJobRow | null) {
   return job != null && (job.status === "queued" || job.status === "processing");
@@ -79,11 +87,15 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<MenuFilter>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [isVeg, setIsVeg] = useState(true);
+  const addFormRef = useRef<HTMLFormElement>(null);
   const [importJob, setImportJob] = useState<MenuImportJobRow | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [reviewItems, setReviewItems] = useState<MenuItemRow[] | null>(null);
@@ -119,12 +131,20 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     void load();
   }, [load]);
 
-  const menuTabBootstrapped = useRef(false);
+  // Reset Menu UI when switching kitchens so drafts from another restaurant never linger.
   useEffect(() => {
-    if (menuTabBootstrapped.current) return;
-    menuTabBootstrapped.current = true;
+    setSelectedId(null);
+    setImportJob(null);
+    setReviewItems(null);
+    setOverlayItem(null);
+    setSearch("");
+    setFilter("all");
+    setShowAddForm(false);
+    hydratedImportJobId.current = null;
+    importPollLock.current = false;
     void fetchMenuItems(restaurantId, true).then((drafts) => {
-      if (drafts.length > 0) setStage("draft");
+      setDraftTotal(drafts.length);
+      setStage(drafts.length > 0 ? "draft" : "live");
     });
   }, [restaurantId]);
 
@@ -137,20 +157,25 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
   useEffect(() => {
     setPage(0);
-  }, [stage, search]);
+  }, [stage, search, filter]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = items;
     if (q) {
-      list = list.filter(
-        (i) =>
-          i.name.toLowerCase().includes(q) ||
-          (i.description?.toLowerCase().includes(q) ?? false),
-      );
+      list = list.filter((i) => {
+        const prep =
+          i.prepCategory === "READY_10M" || i.prepMinutes === 10 ? "10m" : "15m";
+        const hay = `${i.name} ${i.description ?? ""} ${prep} ${i.isVeg ? "veg vegetarian" : "non-veg chicken"}`.toLowerCase();
+        return hay.includes(q);
+      });
     }
+    if (filter === "needs_review") list = list.filter(needsReview);
+    if (filter === "veg") list = list.filter((i) => i.isVeg);
+    if (filter === "non_veg") list = list.filter((i) => !i.isVeg);
+    if (filter === "unavailable") list = list.filter((i) => !i.available);
     return list;
-  }, [items, search, stage]);
+  }, [items, search, filter, stage]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -162,20 +187,39 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     const rupees = parseFloat(price);
-    if (!name.trim() || Number.isNaN(rupees) || rupees <= 0) return;
-    const created = await createMenuItem({
-      restaurantId,
-      name: name.trim(),
-      pricePaise: Math.round(rupees * 100),
-      isVeg,
-    });
-    setName("");
-    setPrice("");
+    if (!name.trim() || Number.isNaN(rupees) || rupees <= 0) {
+      setError("Enter a name and a valid price (₹) to add an item.");
+      return;
+    }
+    setError(null);
+    try {
+      const created = await createMenuItem({
+        restaurantId,
+        name: name.trim(),
+        pricePaise: Math.round(rupees * 100),
+        isVeg,
+      });
+      setName("");
+      setPrice("");
+      setShowAddForm(false);
+      setStage("draft");
+      const rows = await fetchMenuItems(restaurantId, true);
+      setItems(rows);
+      setDraftTotal(rows.length);
+      setSelectedId(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Create failed");
+    }
+  }
+
+  function openAddItem() {
+    setShowAddForm(true);
     setStage("draft");
-    const rows = await fetchMenuItems(restaurantId, true);
-    setItems(rows);
-    setSelectedId(created.id);
-    setLoading(false);
+    setFilterOpen(false);
+    window.setTimeout(() => {
+      addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      addFormRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    }, 80);
   }
 
   async function onPublish() {
@@ -220,12 +264,19 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     );
     if (!ok) return;
     try {
-      const { deletedCount } = await revertMenuDrafts(restaurantId);
-      if (deletedCount > 0) {
-        setSelectedId(null);
-        setImportJob(null);
-        await load();
-      }
+      await revertMenuDrafts(restaurantId);
+      setSelectedId(null);
+      setImportJob(null);
+      setReviewItems(null);
+      setSearch("");
+      setFilter("all");
+      hydratedImportJobId.current = null;
+      // Stay on Live after revert so demo seed / old drafts don't look like “redirect to previous kitchen”.
+      setStage("live");
+      const live = await fetchMenuItems(restaurantId, false);
+      const drafts = await fetchMenuItems(restaurantId, true);
+      setItems(live);
+      setDraftTotal(drafts.length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Revert failed");
     }
@@ -508,9 +559,10 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 placeholder="Search items, ingredients, tags..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                data-testid="menu-search"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-surface-container px-3 py-2 text-xs font-semibold hover:bg-surface-container-high">
                 <input
                   type="file"
@@ -524,14 +576,55 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
               </label>
               <button
                 type="button"
+                data-testid="menu-add-item"
+                onClick={openAddItem}
                 className="flex items-center gap-2 rounded-lg bg-surface-container-high px-3.5 py-2 text-xs font-semibold hover:bg-surface-container-highest"
               >
                 <MaterialIcon name="add" className="text-[16px]" />
                 Add Item
               </button>
-              <button type="button" className="rounded-lg bg-surface-container-low p-2 text-on-surface-variant hover:text-foreground">
+              <button
+                type="button"
+                data-testid="menu-filter"
+                aria-expanded={filterOpen}
+                onClick={() => setFilterOpen((v) => !v)}
+                className={cn(
+                  "rounded-lg p-2 hover:text-foreground",
+                  filter !== "all" || filterOpen
+                    ? "bg-primary/10 text-primary"
+                    : "bg-surface-container-low text-on-surface-variant",
+                )}
+              >
                 <MaterialIcon name="tune" className="text-[18px]" />
               </button>
+              {filterOpen ? (
+                <div className="absolute right-0 top-11 z-20 w-48 overflow-hidden rounded-xl border border-border/60 bg-background shadow-xl">
+                  {(
+                    [
+                      ["all", "All items"],
+                      ["needs_review", "Needs review"],
+                      ["veg", "Vegetarian"],
+                      ["non_veg", "Non-veg"],
+                      ["unavailable", "86'd / unavailable"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={cn(
+                        "flex w-full px-3 py-2 text-left text-xs font-semibold hover:bg-surface-container-low",
+                        filter === id && "bg-primary/5 text-primary",
+                      )}
+                      onClick={() => {
+                        setFilter(id);
+                        setFilterOpen(false);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -688,30 +781,31 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                               <MaterialIcon name="edit" className="text-[16px]" />
                             </button>
                           )}
-                          {draftMode && !isLiveMenuItem(item) ? (
-                            <button
-                              type="button"
-                              title="Delete draft"
-                              className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-red-50 hover:text-red-700"
-                              onClick={() => {
-                                if (!window.confirm(`Delete draft "${item.name}"?`)) return;
-                                void deleteMenuItem(restaurantId, item.id)
-                                  .then(() => load())
-                                  .catch((err) =>
-                                    setError(err instanceof Error ? err.message : "Delete failed"),
-                                  );
-                              }}
-                            >
-                              <MaterialIcon name="delete" className="text-[16px]" />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant hover:text-error"
-                            >
-                              <MaterialIcon name="more_vert" className="text-[16px]" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            title={draftMode ? "Delete draft" : "Delete live item"}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-red-50 hover:text-red-700"
+                            onClick={() => {
+                              const label = draftMode ? "draft" : "live";
+                              if (
+                                !window.confirm(
+                                  `Delete ${label} item "${item.name}"? This cannot be undone.`,
+                                )
+                              ) {
+                                return;
+                              }
+                              void deleteMenuItem(restaurantId, item.id)
+                                .then(() => {
+                                  if (selectedId === item.id) setSelectedId(null);
+                                  return load();
+                                })
+                                .catch((err) =>
+                                  setError(err instanceof Error ? err.message : "Delete failed"),
+                                );
+                            }}
+                          >
+                            <MaterialIcon name="delete" className="text-[16px]" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -755,17 +849,30 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
             </div>
           </div>
 
-          {draftMode && (
+          {(draftMode || showAddForm) && (
             <form
+              ref={addFormRef}
               onSubmit={(e) => void onAdd(e)}
               className="grid gap-3 rounded-xl border border-surface-container bg-surface-container-low/50 p-4 md:grid-cols-2"
             >
-              <h2 className="text-sm font-semibold md:col-span-2">Add draft item</h2>
+              <div className="flex items-center justify-between md:col-span-2">
+                <h2 className="text-sm font-semibold">Add draft item</h2>
+                {showAddForm ? (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-on-surface-variant hover:text-foreground"
+                    onClick={() => setShowAddForm(false)}
+                  >
+                    Hide
+                  </button>
+                ) : null}
+              </div>
               <input
                 className="rounded-lg bg-surface-container-lowest px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="Item name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                data-testid="menu-add-name"
               />
               <input
                 className="rounded-lg bg-surface-container-lowest px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
@@ -773,6 +880,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 inputMode="decimal"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                data-testid="menu-add-price"
               />
               <label className="flex items-center gap-2 text-sm md:col-span-2">
                 <input type="checkbox" checked={isVeg} onChange={(e) => setIsVeg(e.target.checked)} />
@@ -780,6 +888,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
               </label>
               <button
                 type="submit"
+                data-testid="menu-add-submit"
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground md:justify-self-start"
               >
                 Add to draft

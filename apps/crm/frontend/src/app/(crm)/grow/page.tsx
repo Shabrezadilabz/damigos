@@ -4,8 +4,8 @@ import { GrowPageClient } from "./grow-page-client";
 export default async function CrmGrowPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; customerId?: string }>;
 }) {
   const sp = await searchParams;
-  return <GrowPageClient tabParam={sp.tab} />;
+  return <GrowPageClient tabParam={sp.tab} customerId={sp.customerId} />;
 }

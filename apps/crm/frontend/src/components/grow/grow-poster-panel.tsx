@@ -241,14 +241,19 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
                     </p>
                   ) : null}
                   {poster.previewNote ? (
-                    <p className="text-center text-xs text-amber-800">{poster.previewNote}</p>
-                  ) : poster.previewSource === "hive" ? (
+                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-900">
+                      {poster.previewNote}
+                    </p>
+                  ) : null}
+                  {poster.previewSource === "hive" ? (
                     <p className="text-center text-xs text-on-surface-variant">
-                      Food photo from Hive Flux with headline overlay.
+                      Food photo from Hive Flux · overlay includes restaurant name + offer.
                     </p>
                   ) : poster.previewSource === "local" ? (
                     <p className="text-center text-xs text-on-surface-variant">
-                      Branded layout preview (no photo). Enable POSTER_IMAGE_PROVIDER=hive for dish-matched images.
+                      Dish-matched food photo under copy (Flux off or failed). Set{" "}
+                      <code className="text-[10px]">POSTER_IMAGE_PROVIDER=hive</code> +{" "}
+                      <code className="text-[10px]">HIVE_API_KEY</code> for AI-generated dishes.
                     </p>
                   ) : null}
                 </>

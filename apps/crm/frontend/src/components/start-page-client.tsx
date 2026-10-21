@@ -27,14 +27,7 @@ const CUISINE_TAGS = [
 const ONBOARDING_STEPS = [
   { label: "Entity Baseline", hint: "Legal entity, zone, and how you fulfill orders." },
   { label: "Compliance", hint: "FSSAI and regulatory checks before go-live." },
-  { label: "POS sync", hint: "Optional POS adapter — upload menus later in Menu after go-live." },
-  { label: "Review", hint: "Confirm details — we will activate your tenant before owner login unlocks." },
-] as const;
-
-const POS_ADAPTERS = [
-  { id: "petpooja", name: "Petpooja", icon: "point_of_sale", color: "from-orange-100 to-orange-50" },
-  { id: "urbanpiper", name: "UrbanPiper", icon: "hub", color: "from-sky-100 to-sky-50" },
-  { id: "restroworks", name: "Restroworks", icon: "sync", color: "from-violet-100 to-violet-50" },
+  { label: "Review", hint: "Confirm details — we will activate your tenant before owner login unlocks. Upload menus later in Menu." },
 ] as const;
 
 type FulfillmentMode = "none" | "in_house" | "partner" | "hybrid";
@@ -115,8 +108,6 @@ export function StartPageClient() {
   const [fulfillmentRadiusKm, setFulfillmentRadiusKm] = useState<string>("6.5");
   const [dpdpAccepted, setDpdpAccepted] = useState(true);
   const [waAccepted, setWaAccepted] = useState(true);
-  const [posChoice, setPosChoice] = useState<string>("petpooja");
-
   const fulfillmentMeta = FULFILLMENT_MODES.find((m) => m.value === fulfillmentMode)!;
   const step1Ready = dpdpAccepted && waAccepted && selectedCuisines.size > 0;
   const canContinue =
@@ -310,7 +301,7 @@ export function StartPageClient() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-primary-fixed px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#410007]">
-                    Step {onboardingStep} of 4
+                    Step {onboardingStep} of {ONBOARDING_STEPS.length}
                   </span>
                   <span className="text-xs text-on-surface-variant">{ONBOARDING_STEPS[onboardingStep - 1].label}</span>
                 </div>
@@ -628,46 +619,11 @@ export function StartPageClient() {
                 ) : null}
 
                 {onboardingStep === 3 ? (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-on-surface-variant">
-                      <p className="font-semibold text-foreground">Menu upload moved to Settings → Menu</p>
-                      <p className="mt-1 text-xs">
-                        After activation, open <strong className="text-foreground">Menu</strong> to import PDF /
-                        photos. Banking &amp; daily settlements live under{" "}
-                        <strong className="text-foreground">Settings → Payout</strong>.
-                      </p>
-                    </div>
-                    <p className="text-xs font-semibold text-on-surface-variant">Preferred POS sync (optional)</p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      {POS_ADAPTERS.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setPosChoice(p.id)}
-                          className={cn(
-                            "flex flex-col items-start gap-2 rounded-xl bg-gradient-to-br p-3 text-left shadow-sm transition ring-2",
-                            p.color,
-                            posChoice === p.id ? "ring-primary" : "ring-transparent hover:ring-primary/30",
-                          )}
-                        >
-                          <MaterialIcon name={p.icon} className="text-[22px] text-foreground/80" />
-                          <span className="text-xs font-bold">{p.name}</span>
-                          <span className="text-[10px] text-on-surface-variant">Hot-standby stub</span>
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-on-surface-variant underline"
-                      onClick={() => setPosChoice("")}
-                    >
-                      Skip POS for now
-                    </button>
-                  </div>
-                ) : null}
-
-                {onboardingStep === 4 ? (
                   <div className="space-y-3">
+                    <p className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-xs text-on-surface-variant">
+                      After activation, import your menu under <strong className="text-foreground">Menu</strong> and
+                      configure payouts in <strong className="text-foreground">Settings → Payout</strong>.
+                    </p>
                     {[
                       {
                         icon: "local_shipping",
@@ -692,12 +648,6 @@ export function StartPageClient() {
                               ? "Skipped — required before hub"
                               : "—",
                         tone: "bg-emerald-50",
-                      },
-                      {
-                        icon: "point_of_sale",
-                        title: "POS",
-                        value: POS_ADAPTERS.find((p) => p.id === posChoice)?.name ?? "—",
-                        tone: "bg-violet-50",
                       },
                     ].map((row) => (
                       <div
@@ -743,7 +693,7 @@ export function StartPageClient() {
                     canContinue ? "bg-primary hover:bg-primary-container" : "cursor-not-allowed bg-primary/40",
                   )}
                   onClick={() => {
-                    if (onboardingStep < 4) {
+                    if (onboardingStep < ONBOARDING_STEPS.length) {
                       setOnboardingStep((s) => s + 1);
                       onboardingTopRef.current?.scrollIntoView({ behavior: "smooth" });
                       return;
@@ -751,8 +701,15 @@ export function StartPageClient() {
                     void submitForActivation();
                   }}
                 >
-                  {onboardingStep < 4 ? "Continue Setup" : submitBusy ? "Activating…" : "Submit & sign in"}
-                  <MaterialIcon name={onboardingStep < 4 ? "arrow_forward" : "hourglass_top"} className="text-[20px]" />
+                  {onboardingStep < ONBOARDING_STEPS.length
+                    ? "Continue Setup"
+                    : submitBusy
+                      ? "Activating…"
+                      : "Submit & sign in"}
+                  <MaterialIcon
+                    name={onboardingStep < ONBOARDING_STEPS.length ? "arrow_forward" : "hourglass_top"}
+                    className="text-[20px]"
+                  />
                 </button>
               </div>
               {!step1Ready && onboardingStep === 1 ? (

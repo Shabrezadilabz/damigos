@@ -32,6 +32,9 @@ const spinSegmentSchema = z.object({
   weight: z.number().int().min(1).max(10_000),
   /** RESTAURANT_SCOPED (default) | PLATFORM_WIDE — G-04.08 */
   scope: z.enum(["RESTAURANT_SCOPED", "PLATFORM_WIDE"]).default("RESTAURANT_SCOPED"),
+  /** Free-item prizes: link a live menu dish */
+  menuItemId: z.string().uuid().optional().nullable(),
+  menuItemName: z.string().max(255).optional().nullable(),
 });
 
 const ruleWithOfferSchema = z.object({
@@ -48,6 +51,8 @@ const orderThresholdRuleSchema = z.object({
 export const growLoyaltyConfigSchema = z.object({
   version: z.literal(1),
   engineEnabled: z.boolean(),
+  /** When both spin + scratch are on, guest randomly gets one UI; same prize pool. */
+  spinEnabled: z.boolean().default(true),
   dailySpinLimit: z.number().int().min(0).max(10),
   scratchEnabled: z.boolean(),
   minCartPaise: z.number().int().min(0),
@@ -55,6 +60,7 @@ export const growLoyaltyConfigSchema = z.object({
   spinSegments: z.array(spinSegmentSchema).min(1).max(8),
   scratch: z.object({
     minOrderPaise: z.number().int().min(0),
+    /** Kept for backwards compat — scratch draws from spinSegments when engine is live */
     offerPresetId: presetId,
   }),
   dineIn: ruleWithOfferSchema,
@@ -75,6 +81,7 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
   return {
     version: 1,
     engineEnabled: true,
+    spinEnabled: true,
     dailySpinLimit: 1,
     scratchEnabled: true,
     minCartPaise: 24900,

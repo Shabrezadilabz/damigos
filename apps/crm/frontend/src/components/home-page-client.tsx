@@ -20,6 +20,10 @@ import {
 
   formatInr,
 
+  pingCrmConnectivity,
+
+  type CrmConnectivityPing,
+
   type CrmOrder,
 
   type DashboardAnalytics,
@@ -48,6 +52,8 @@ export function HomePageClient() {
 
   const [tab, setTab] = useState<HomeTab>("overview");
 
+  const [analyticsScrollTo, setAnalyticsScrollTo] = useState<"hourly-demand" | null>(null);
+
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
 
   const [recentOrders, setRecentOrders] = useState<CrmOrder[]>([]);
@@ -59,6 +65,12 @@ export function HomePageClient() {
   const [exporting, setExporting] = useState(false);
 
   const [draftDismissed, setDraftDismissed] = useState(false);
+
+  const [pingState, setPingState] = useState<"idle" | "running" | "ok" | "fail">("idle");
+
+  const [pingResult, setPingResult] = useState<CrmConnectivityPing | null>(null);
+
+  const [pingError, setPingError] = useState<string | null>(null);
 
 
 
@@ -244,12 +256,6 @@ export function HomePageClient() {
 
                 Analytics
 
-                <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[9px] font-bold uppercase">
-
-                  Live Beta
-
-                </span>
-
               </button>
 
             </div>
@@ -333,12 +339,6 @@ export function HomePageClient() {
               <MaterialIcon name="query_stats" className="text-[18px]" />
 
               Analytics
-
-              <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-bold text-outline">
-
-                Live Beta
-
-              </span>
 
             </button>
 
@@ -686,32 +686,82 @@ export function HomePageClient() {
 
                 <div className="flex items-center gap-3">
 
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-lowest text-primary shadow-sm">
-
-                    <MaterialIcon name="mark_chat_unread" className="text-[20px]" />
-
+                  <div
+                    className={cn(
+                      "relative flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-lowest shadow-sm",
+                      pingState === "ok" && "text-[#24963F]",
+                      pingState === "fail" && "text-red-700",
+                      pingState === "idle" && "text-primary",
+                      pingState === "running" && "text-primary",
+                    )}
+                  >
+                    {pingState === "running" ? (
+                      <span className="absolute inline-flex h-8 w-8 animate-ping rounded-full bg-primary/30" />
+                    ) : null}
+                    <MaterialIcon
+                      name={
+                        pingState === "ok"
+                          ? "check_circle"
+                          : pingState === "fail"
+                            ? "error"
+                            : "mark_chat_unread"
+                      }
+                      className={cn("relative text-[20px]", pingState === "running" && "animate-pulse")}
+                    />
                   </div>
 
                   <div>
 
-                    <p className="text-sm font-semibold">WhatsApp webhook: 100% operational</p>
+                    <p className="text-sm font-semibold">
+                      {pingState === "idle" && "WhatsApp / CRM link — not tested yet"}
+                      {pingState === "running" && "Pinging CRM API…"}
+                      {pingState === "ok" && "WhatsApp webhook path: tested OK"}
+                      {pingState === "fail" && "Connectivity check failed"}
+                    </p>
 
-                    <p className="text-xs text-on-surface-variant">Average latency 420ms · Cloud API connected</p>
+                    <p className="text-xs text-on-surface-variant">
+                      {pingState === "idle" && "Tap Test ping to verify API + Kapso config"}
+                      {pingState === "running" && "Measuring round-trip latency…"}
+                      {pingState === "ok" && pingResult
+                        ? `${pingResult.latencyMs}ms · Kapso ${pingResult.kapso} · Food ${pingResult.foodPhone} · Redis ${pingResult.redis}`
+                        : null}
+                      {pingState === "fail" && (pingError ?? "Try again or check CRM API")}
+                    </p>
 
                   </div>
 
                 </div>
 
                 <button
-
                   type="button"
-
-                  className="rounded-lg bg-surface-container-lowest px-3.5 py-1.5 text-xs font-semibold hover:bg-surface-container-high"
-
+                  disabled={pingState === "running"}
+                  onClick={() => {
+                    setPingState("running");
+                    setPingError(null);
+                    void pingCrmConnectivity()
+                      .then((r) => {
+                        setPingResult(r);
+                        setPingState(r.ok ? "ok" : "fail");
+                        if (!r.ok) setPingError("CRM reported unhealthy (check DATABASE_URL)");
+                      })
+                      .catch((e) => {
+                        setPingResult(null);
+                        setPingState("fail");
+                        setPingError(e instanceof Error ? e.message : "Ping failed");
+                      });
+                  }}
+                  className={cn(
+                    "rounded-lg px-3.5 py-1.5 text-xs font-semibold transition",
+                    pingState === "ok" && "bg-[#24963F]/15 text-[#24963F]",
+                    pingState === "fail" && "bg-red-100 text-red-800",
+                    pingState === "idle" && "bg-surface-container-lowest hover:bg-surface-container-high",
+                    pingState === "running" && "bg-surface-container-lowest opacity-70",
+                  )}
                 >
-
-                  Test ping
-
+                  {pingState === "idle" && "Test ping"}
+                  {pingState === "running" && "Pinging…"}
+                  {pingState === "ok" && "Tested ✓ — ping again"}
+                  {pingState === "fail" && "Failed — retry"}
                 </button>
 
               </div>
@@ -732,7 +782,10 @@ export function HomePageClient() {
 
                 onExportCsv={() => void onExportCsv()}
 
-                onOpenFull={() => setTab("analytics")}
+                onOpenFull={(focus) => {
+                  setAnalyticsScrollTo(focus === "hourly-demand" ? "hourly-demand" : null);
+                  setTab("analytics");
+                }}
 
               />
 
@@ -758,7 +811,14 @@ export function HomePageClient() {
 
           onExportCsv={() => void onExportCsv()}
 
-          onBackOverview={() => setTab("overview")}
+          onBackOverview={() => {
+            setAnalyticsScrollTo(null);
+            setTab("overview");
+          }}
+
+          scrollTo={analyticsScrollTo}
+
+          onScrollToHandled={() => setAnalyticsScrollTo(null)}
 
         />
 

@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CommissionReportDialog, type CommissionReportOverview } from "@/components/commission-report-dialog";
 import { MaterialIcon } from "@/components/material-icon";
 import { formatInr, type CrmOrder, type DashboardAnalytics } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+export const HOURLY_DEMAND_SECTION_ID = "hourly-demand-kitchen-rush";
 
 const STITCH_MENU_ROWS = [
   {
@@ -77,6 +81,8 @@ type Props = {
   exporting?: boolean;
   onBackOverview?: () => void;
   recentOrders?: CrmOrder[];
+  scrollTo?: "hourly-demand" | null;
+  onScrollToHandled?: () => void;
 };
 
 /** Stitch crm_2_home_analytics_full_view */
@@ -87,7 +93,15 @@ const DEMO_FUNNEL = [
   { step: "order", label: "Paid orders", count: 9_560 },
 ];
 
-export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBackOverview }: Props) {
+export function DashboardAnalyticsFull({
+  analytics,
+  onExportCsv,
+  exporting,
+  onBackOverview,
+  scrollTo,
+  onScrollToHandled,
+}: Props) {
+  const [commissionOpen, setCommissionOpen] = useState(false);
   const raw = analytics?.funnel ?? [];
   const funnel = raw.length && raw.some((f) => f.count > 0) ? raw : DEMO_FUNNEL;
   const scans = funnel.find((f) => f.step === "scan")?.count ?? 14_890;
@@ -95,8 +109,38 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
   const conv = scans > 0 ? (orders / scans) * 100 : 64.2;
   const gmvPaise = orders > 0 ? orders * 148_000 : 84_265_000;
   const repeatEst = Math.round(orders * 0.4) || 3_824;
+  const aggregatorRatePct = 26;
+  const commissionReport = useMemo((): CommissionReportOverview => {
+    const avoided = Math.round(gmvPaise * (aggregatorRatePct / 100));
+    const savingsPaise = avoided > 0 ? avoided : 21_840_000;
+    return {
+      hubLabel: "Sector 29 Hub",
+      savingsPaise,
+      aggregatorRatePct,
+      periodLabel: "This month",
+      directGmvPaise: gmvPaise,
+      avoidedCommissionPaise: savingsPaise,
+    };
+  }, [gmvPaise]);
+
+  useEffect(() => {
+    if (scrollTo !== "hourly-demand") return;
+    const el = document.getElementById(HOURLY_DEMAND_SECTION_ID);
+    if (!el) return;
+    const t = window.setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      onScrollToHandled?.();
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [scrollTo, onScrollToHandled]);
 
   return (
+    <>
+    <CommissionReportDialog
+      open={commissionOpen}
+      onClose={() => setCommissionOpen(false)}
+      report={commissionReport}
+    />
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
@@ -254,7 +298,10 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-[0_1px_8px_rgba(0,0,0,0.04)] lg:col-span-7">
+        <section
+          id={HOURLY_DEMAND_SECTION_ID}
+          className="scroll-mt-24 rounded-2xl bg-surface-container-lowest p-6 shadow-[0_1px_8px_rgba(0,0,0,0.04)] lg:col-span-7"
+        >
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-sm font-bold">Hourly Demand &amp; Kitchen Rush Analysis</h2>
@@ -384,9 +431,11 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
                 </span>
                 <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">Sector 29 Hub</span>
               </div>
-              <p className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight">₹2,18,400</p>
+              <p className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight">
+                {formatInr(commissionReport.savingsPaise)}
+              </p>
               <p className="mt-1 text-sm text-inverse-on-surface/80">
-                Net Savings vs 26% 3rd-Party Food Aggregator commissions this month alone.
+                Net Savings vs {aggregatorRatePct}% 3rd-Party Food Aggregator commissions this month alone.
               </p>
             </div>
             <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
@@ -394,7 +443,11 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 Pure bottom-line margin expansion
               </span>
-              <button type="button" className="rounded-lg bg-surface-container-lowest px-3 py-1.5 text-xs font-bold text-foreground hover:bg-surface-container-high">
+              <button
+                type="button"
+                onClick={() => setCommissionOpen(true)}
+                className="rounded-lg bg-surface-container-lowest px-3 py-1.5 text-xs font-bold text-foreground hover:bg-surface-container-high"
+              >
                 Commission Report
               </button>
             </div>
@@ -501,5 +554,6 @@ export function DashboardAnalyticsFull({ analytics, onExportCsv, exporting, onBa
         </div>
       </section>
     </div>
+    </>
   );
 }

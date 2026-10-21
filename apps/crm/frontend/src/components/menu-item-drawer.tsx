@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { type MenuImportJobRow, type MenuItemRow, updateMenuItem } from "@/lib/api";
+import { compressImageFileToDataUrl } from "@/lib/compress-image-file";
 import { menuItemThumb } from "@/lib/menu-item-thumb";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +33,10 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M",
   );
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setName(item.name);
@@ -42,6 +46,8 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     setIsVeg(item.isVeg);
     setAvailable(item.available);
     setPrepCategory(item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M");
+    setPreviewUrl(null);
+    setError(null);
   }, [item]);
 
   function resetFormFromItem() {
@@ -117,6 +123,30 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
       setError(err instanceof Error ? err.message : "Restore failed");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onHighResSelected(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Choose a JPG, PNG, or WebP image");
+      return;
+    }
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const dataUrl = await compressImageFileToDataUrl(file);
+      setPreviewUrl(dataUrl);
+      const updated = await updateMenuItem(item.id, {
+        restaurantId,
+        imageUrl: dataUrl,
+      });
+      onSaved(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image upload failed");
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     }
   }
 
@@ -228,31 +258,46 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
       <div>
         <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Item Media</label>
         <div className="flex items-center gap-3">
-          <div className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {menuItemThumb({ ...item, name, description, isVeg }) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={menuItemThumb({ ...item, name, description, isVeg })!}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-on-surface-variant">
-                <MaterialIcon name="restaurant" className="text-[24px]" />
+          {(() => {
+            const thumbSrc =
+              previewUrl ?? menuItemThumb({ ...item, name, description, isVeg, imageUrl: item.imageUrl });
+            return (
+              <div className="group relative h-16 w-16 shrink-0">
+                <div className="h-16 w-16 overflow-hidden rounded-xl bg-surface-container-low">
+                  {thumbSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumbSrc} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-on-surface-variant">
+                      <MaterialIcon name="restaurant" className="text-[24px]" />
+                    </div>
+                  )}
+                </div>
+                {thumbSrc ? (
+                  <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 hidden w-44 overflow-hidden rounded-xl border border-border bg-background shadow-xl group-hover:block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumbSrc} alt="" className="h-44 w-full object-cover" />
+                  </div>
+                ) : null}
               </div>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              <MaterialIcon name="cached" className="text-[18px] text-white" />
-            </div>
-          </div>
+            );
+          })()}
           <div className="flex-1">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              className="sr-only"
+              onChange={(e) => void onHighResSelected(e.target.files?.[0])}
+            />
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high py-2 px-3 text-xs font-semibold hover:bg-surface-container-highest"
+              disabled={uploadingImage || saving}
+              onClick={() => imageInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high py-2 px-3 text-xs font-semibold hover:bg-surface-container-highest disabled:opacity-60"
             >
               <MaterialIcon name="add_photo_alternate" className="text-[18px]" />
-              Upload High-Res Shot
+              {uploadingImage ? "Uploading…" : "Upload High-Res Shot"}
             </button>
             <span className="mt-1 block text-center text-[10px] text-on-surface-variant">
               Auto-compressed for WhatsApp Webview

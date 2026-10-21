@@ -11,8 +11,13 @@ import {
   restaurants,
   rewardClaims,
 } from "@damigos/db";
-import { generatePosterSpec, localPosterSpec } from "../lib/ai/generate-poster-spec.js";
+import {
+  extractFoodHeroFromBrief,
+  generatePosterSpec,
+  localPosterSpec,
+} from "../lib/ai/generate-poster-spec.js";
 import type { PosterSpec } from "../lib/ai/generate-poster-spec.js";
+import { resolveMenuItemImageUrl } from "../lib/menu-item-thumb.js";
 import { parseBrandKit } from "../lib/ai/brand-kit.js";
 import { aiTextConfigured } from "../lib/ai/ai-text.js";
 import { hiveGenerateImage } from "../lib/ai/hive-client.js";
@@ -124,6 +129,7 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       presets: OFFER_PRESETS,
       minOrderOptions: MIN_ORDER_OPTIONS,
       dailySpinLimit: config.dailySpinLimit,
+      spinEnabled: (config.spinEnabled !== false) && config.engineEnabled,
       scratchEnabled: config.scratchEnabled && config.engineEnabled,
       segments,
       weightSum,
@@ -545,20 +551,51 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     let previewImageDataUrl: string | undefined;
     let previewImageUrl: string | undefined;
 
+    // Always derive dish from headline (ignore AI £ prices / weak heroes) so Flux + stock match the brief.
+    const brandDish = brand?.dishes?.[0]?.name?.replace(/\s*[£$€₹]\s*[\d,.]+/g, "").trim();
+    const brandPrimary = brand?.primaryColor ?? "#B7122A";
+    const brandBg = brand?.backgroundColor ?? "#FCF9F8";
+    const brandAccent = brand?.accentColor ?? "#775600";
+    spec = {
+      ...spec,
+      foodHeroLine: extractFoodHeroFromBrief(body.headline, brandDish),
+      subline: `Scan packaging QR · Order on ${restaurantName}`,
+      headline: body.headline.trim() || spec.headline,
+      offerLine: body.offerLine.trim() || spec.offerLine,
+      // Keep brand red CTA — AI sometimes returns near-black which looks like a “fake” poster.
+      primaryColor: brandPrimary,
+      backgroundColor: brandBg,
+      accentColor: brandAccent,
+    };
+
+    request.log.info(
+      {
+        posterMode,
+        imageProvider,
+        restaurantName,
+        headline: body.headline,
+        foodHeroLine: spec.foodHeroLine,
+      },
+      "poster generate",
+    );
+
     if (imageProvider === "hive") {
       try {
         const prompt = [
-          "Photorealistic hero food photograph for a restaurant poster background.",
-          `The food MUST clearly match this headline: "${spec.headline}".`,
-          spec.foodHeroLine,
-          `Style: ${spec.imageMood}.`,
-          `Context: ${restaurantName}, Indian restaurant.`,
-          "Single appetizing dish or spread, shallow depth of field, warm lighting, steam if hot food.",
-          "No text, no logos, no watermarks, no people, no hands.",
+          "Photorealistic hero food photograph for a restaurant WhatsApp poster background.",
+          `Restaurant brand context: ${restaurantName}.`,
+          `The plated dish MUST match this offer: "${spec.headline}".`,
+          `${spec.foodHeroLine}.`,
+          `Photography: ${spec.imageMood}.`,
+          "Indian restaurant food styling, appetizing, shallow depth of field, warm lighting, steam if hot.",
+          "Fill the frame with food. No text, no logos, no watermarks, no people, no hands, no menus.",
         ].join(" ");
         previewImageUrl = (await hiveGenerateImage({ prompt, width: 1024, height: 1024 })) ?? undefined;
         if (!previewImageUrl) {
-          previewNote = (previewNote ? `${previewNote} ` : "") + "Hive returned no image URL — showing SVG fallback.";
+          previewNote =
+            (previewNote ? `${previewNote} ` : "") +
+            "Hive returned no image URL — using dish-matched stock photo under copy.";
+          request.log.warn({ prompt: prompt.slice(0, 200) }, "Hive poster image empty");
         } else {
           previewSource = "hive";
           const bgData = await fetchImageAsDataUrl(previewImageUrl);
@@ -572,12 +609,28 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         request.log.warn({ err }, "Hive poster image failed");
         previewNote =
           (previewNote ? `${previewNote} ` : "") +
-          (err instanceof Error ? err.message : "Hive image generation failed");
+          (err instanceof Error ? err.message : "Hive image generation failed") +
+          " — using dish-matched stock photo.";
       }
+    } else if (imageProvider === "svg") {
+      previewNote =
+        (previewNote ? `${previewNote} ` : "") +
+        "POSTER_IMAGE_PROVIDER=svg (set hive + HIVE_API_KEY for Flux photos). Using dish-matched stock under copy.";
     }
 
+    // Catalog / keyword food photo so we never show the empty “Visual mood” gradient card.
     if (!previewImageDataUrl && imageProvider !== "none") {
-      previewImageDataUrl = renderPosterSvgDataUrl(spec, restaurantName, renderOpts);
+      const dishQuery = `${spec.foodHeroLine} ${spec.headline}`.replace(/^Hero:\s*/i, "");
+      const vegGuess = !/\b(chicken|mutton|lamb|fish|prawn|egg|non[\s-]?veg)\b/i.test(dishQuery);
+      const stockUrl = resolveMenuItemImageUrl(dishQuery, spec.offerLine, vegGuess);
+      const bgData = await fetchImageAsDataUrl(stockUrl);
+      previewImageDataUrl = renderPosterSvgDataUrl(spec, restaurantName, {
+        ...renderOpts,
+        backgroundDataUrl: bgData ?? undefined,
+        backgroundImageUrl: bgData ? undefined : stockUrl,
+      });
+      if (previewSource !== "hive") previewSource = "local";
+      request.log.info({ stockUrl: stockUrl.slice(0, 80), dishQuery }, "poster stock food background");
     }
 
     const job = createPosterJob({

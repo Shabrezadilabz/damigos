@@ -8,6 +8,15 @@ import {
   menuItems,
   restaurants,
 } from "@damigos/db";
+
+function normalizeDishKey(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\s*\((mini|regular)\)\s*$/i, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 import { aiChatTimeoutMs } from "./ai/ai-fetch-timeout.js";
 import { aiTextConfigured } from "./ai/ai-text.js";
 import { extractMenuBrandFromImage } from "./ai/extract-menu-brand-from-image.js";
@@ -163,6 +172,12 @@ export async function runMenuImportJob(jobId: string): Promise<void> {
 
       let created = 0;
       const rows = dedupeMenuImportDishes(expandEmbeddedPriceDishes(kit.dishes));
+      const existingRows = await db
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.restaurantId, job.restaurantId));
+      const byKey = new Map(existingRows.map((r) => [normalizeDishKey(r.name), r]));
+
       for (const dish of rows) {
         const titled = cleanDishTitle(dish.name);
         const { name, extraDescription } = normalizeMenuItemName(titled.name);
@@ -171,19 +186,39 @@ export async function runMenuImportJob(jobId: string): Promise<void> {
         const catalogName = name.replace(/\s*\((Mini|Regular)\)\s*$/i, "").trim();
         const catalogMatch = await matchFoodCatalog(catalogName, description, dish.isVeg);
         const catalogImage = catalogImageForMatch(catalogMatch);
-        await db.insert(menuItems).values({
-          restaurantId: job.restaurantId,
-          name: clampVarchar(name, 250),
+        const clampedName = clampVarchar(name, 250);
+        const key = normalizeDishKey(clampedName);
+        const prior = byKey.get(key);
+        const payload = {
+          name: clampedName,
           description: description ?? undefined,
           pricePaise: dish.pricePaise ?? 0,
           isVeg: titled.isVegHint ?? dish.isVeg,
-          draft: true,
+          draft: true as const,
           available: true,
           importConfidence: dish.confidence ?? 80,
           importJobId: jobId,
-          imageUrl: catalogImage ?? undefined,
-          foodCatalogId: catalogImage && catalogMatch ? catalogMatch.id : undefined,
-        });
+          imageUrl: catalogImage ?? prior?.imageUrl ?? undefined,
+          foodCatalogId:
+            catalogImage && catalogMatch ? catalogMatch.id : prior?.foodCatalogId ?? undefined,
+        };
+        if (prior) {
+          const [updated] = await db
+            .update(menuItems)
+            .set(payload)
+            .where(eq(menuItems.id, prior.id))
+            .returning();
+          if (updated) byKey.set(key, updated);
+        } else {
+          const [inserted] = await db
+            .insert(menuItems)
+            .values({
+              restaurantId: job.restaurantId,
+              ...payload,
+            })
+            .returning();
+          if (inserted) byKey.set(key, inserted);
+        }
         created += 1;
         await patchJob(jobId, {
           progressPct: 30 + Math.round((created / Math.max(rows.length, 1)) * 65),
@@ -222,17 +257,31 @@ export async function runMenuImportJob(jobId: string): Promise<void> {
   await new Promise((r) => setTimeout(r, 300));
 
   let created = 0;
+  const existingMock = await db
+    .select()
+    .from(menuItems)
+    .where(eq(menuItems.restaurantId, job.restaurantId));
+  const mockByKey = new Map(existingMock.map((r) => [normalizeDishKey(r.name), r]));
   for (const row of MOCK_EXTRACT_ROWS) {
-    await db.insert(menuItems).values({
-      restaurantId: job.restaurantId,
+    const key = normalizeDishKey(row.name);
+    const prior = mockByKey.get(key);
+    const payload = {
       name: row.name,
       description: row.description,
       pricePaise: row.pricePaise,
       isVeg: row.isVeg,
-      draft: true,
+      draft: true as const,
       importConfidence: row.importConfidence,
       importJobId: jobId,
-    });
+    };
+    if (prior) {
+      await db.update(menuItems).set(payload).where(eq(menuItems.id, prior.id));
+    } else {
+      await db.insert(menuItems).values({
+        restaurantId: job.restaurantId,
+        ...payload,
+      });
+    }
     created += 1;
     await patchJob(jobId, { progressPct: 45 + Math.round((created / MOCK_EXTRACT_ROWS.length) * 50) });
   }

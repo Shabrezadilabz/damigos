@@ -9,14 +9,25 @@ type Props = {
   variant: "peek" | "full";
   onExportCsv?: () => void;
   exporting?: boolean;
-  onOpenFull?: () => void;
+  onOpenFull?: (focus?: "hourly-demand") => void;
   onBackOverview?: () => void;
   recentOrders?: CrmOrder[];
+  scrollTo?: "hourly-demand" | null;
+  onScrollToHandled?: () => void;
 };
 
 /** Routes to Stitch-matched peek or full analytics layouts. */
 export function DashboardAnalyticsPanel(props: Props) {
-  const { variant, onExportCsv, exporting, onOpenFull, onBackOverview, analytics } = props;
+  const {
+    variant,
+    onExportCsv,
+    exporting,
+    onOpenFull,
+    onBackOverview,
+    analytics,
+    scrollTo,
+    onScrollToHandled,
+  } = props;
   if (variant === "peek") {
     return (
       <DashboardAnalyticsPeek
@@ -33,6 +44,8 @@ export function DashboardAnalyticsPanel(props: Props) {
       onExportCsv={onExportCsv}
       exporting={exporting}
       onBackOverview={onBackOverview}
+      scrollTo={scrollTo}
+      onScrollToHandled={onScrollToHandled}
     />
   );
 }

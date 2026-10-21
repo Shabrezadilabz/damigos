@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MaterialIcon } from "@/components/material-icon";
 import {
   fetchCrmCustomerDetail,
@@ -9,6 +10,7 @@ import {
   type CrmCustomerRow,
 } from "@/lib/api";
 import { GrowCustomerDrawer } from "@/components/grow/grow-customer-drawer";
+import { subscribeCrmRefresh } from "@/lib/crm-refresh-bus";
 
 function Kpi({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
@@ -22,7 +24,14 @@ function Kpi({ label, value, icon }: { label: string; value: string; icon: strin
   );
 }
 
-export function GrowCustomersPanel({ restaurantId }: { restaurantId: string }) {
+export function GrowCustomersPanel({
+  restaurantId,
+  openCustomerId,
+}: {
+  restaurantId: string;
+  openCustomerId?: string | null;
+}) {
+  const router = useRouter();
   const [rows, setRows] = useState<CrmCustomerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<CrmCustomerDetail | null>(null);
@@ -41,6 +50,33 @@ export function GrowCustomersPanel({ restaurantId }: { restaurantId: string }) {
       cancelled = true;
     };
   }, [restaurantId]);
+
+  useEffect(() => {
+    return subscribeCrmRefresh(() => {
+      void fetchCrmCustomers(restaurantId)
+        .then(setRows)
+        .catch(() => undefined);
+    });
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (!openCustomerId) return;
+    let cancelled = false;
+    setLoadingId(openCustomerId);
+    fetchCrmCustomerDetail(restaurantId, openCustomerId)
+      .then((d) => {
+        if (!cancelled) setDetail(d);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Could not load guest");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, openCustomerId]);
 
   const kpis = useMemo(() => {
     const optIn = rows.filter((r) => r.marketingOptIn === true).length;
@@ -69,7 +105,15 @@ export function GrowCustomersPanel({ restaurantId }: { restaurantId: string }) {
 
   return (
     <>
-      {detail ? <GrowCustomerDrawer detail={detail} onClose={() => setDetail(null)} /> : null}
+      {detail ? (
+        <GrowCustomerDrawer
+          detail={detail}
+          onClose={() => {
+            setDetail(null);
+            if (openCustomerId) router.replace("/grow?tab=customers");
+          }}
+        />
+      ) : null}
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <Kpi label="Directory guests" value={kpis.guests} icon="group" />
         <Kpi label="Marketing opt-in" value={kpis.optIn} icon="campaign" />

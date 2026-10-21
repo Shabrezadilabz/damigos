@@ -10,6 +10,26 @@ Until approved, session messages (HI, buttons) still work as free-form text.
 
 ---
 
+## WhatsApp in-app browser (IAB / webview) — Meta rules
+
+Meta controls this. **There is no Kapso/Damigos toggle to “force webview.”**
+
+| Rule | Detail |
+|------|--------|
+| **What opens in IAB** | Links on a **CTA URL button** (template marketing/utility, or free-form interactive `cta_url`) |
+| **What does NOT** | Plain URLs in message **body** text → device browser / new tab |
+| **Eligibility** | Phone number typically needs **≥ 1,000** business-initiated conversations / day quality limit tier |
+| **Rollout** | Gradual, user/device based; not guaranteed on every phone yet |
+| **Desktop WhatsApp Web** | Still opens a **browser tab** — no in-app webview |
+| **Enablement** | Automatic when eligible — no Meta Business Manager “turn on webview” switch |
+| **Disable** | Cannot turn off per URL; Meta only |
+
+**Damigos code:** Food HI + hub/orders replies use free-form `sendKapsoCtaUrl`. That is correct UX, but Meta IAB often **does not** apply to free-form — users may still get Samsung Internet / Chrome.
+
+**To get real in-app browser:** (1) messaging limit **≥ 1,000**/day on the WABA, (2) send links only via **approved marketing/utility templates** with a **Visit website** CTA (not HI free-form). Check: Meta Business Suite → WhatsApp Manager → Food number → messaging limits / quality.
+
+---
+
 ## A. Guest / Food agent (utility)
 
 | Meta name (suggested) | Category | Body variables | When Damigos sends | Env |

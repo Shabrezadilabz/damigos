@@ -290,7 +290,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
             await sendKapsoCtaUrl(
               "food",
               from,
-              `Reordering from *${last[0].name}* — open menu inside WhatsApp.`,
+              `Reordering from *${last[0].name}* — open menu.`,
               "Open menu",
               url,
             );
@@ -298,7 +298,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
             await sendKapsoCtaUrl(
               "food",
               from,
-              `No past kitchen yet — explore the hub inside WhatsApp.`,
+              `No past kitchen yet — explore the hub.`,
               "Open hub",
               `${hub}/hub`,
             );
@@ -310,7 +310,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
         await sendKapsoCtaUrl(
           "food",
           from,
-          `Tap to open inside WhatsApp.`,
+          `Tap below to open.`,
           label,
           `${hub}${path}`,
         );

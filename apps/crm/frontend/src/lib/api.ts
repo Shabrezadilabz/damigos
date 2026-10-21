@@ -142,6 +142,43 @@ export async function fetchCrmMe() {
   return data as { userId: string; roles: string[]; restaurantId: string | null };
 }
 
+export type CrmConnectivityPing = {
+  ok: boolean;
+  latencyMs: number;
+  kapso: string;
+  foodPhone: string;
+  sparkPhone: string;
+  database: string;
+  redis: string;
+};
+
+/** Home “Test ping” — CRM API health + session round-trip. */
+export async function pingCrmConnectivity(): Promise<CrmConnectivityPing> {
+  const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const healthRes = await fetch(`${base}/health`, { cache: "no-store" });
+  const health = await readCrmApiJson(healthRes);
+  if (!healthRes.ok) {
+    throw new Error(crmApiErrorMessage(health, "CRM health check failed"));
+  }
+  await fetchCrmMe();
+  const t1 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const deps =
+    health.dependencies && typeof health.dependencies === "object"
+      ? (health.dependencies as Record<string, unknown>)
+      : {};
+  const str = (k: string, fallback = "unknown") =>
+    typeof deps[k] === "string" ? (deps[k] as string) : fallback;
+  return {
+    ok: health.ok === true,
+    latencyMs: Math.max(1, Math.round(t1 - t0)),
+    kapso: str("kapso", "unknown"),
+    foodPhone: str("foodPhone", "unknown"),
+    sparkPhone: str("sparkPhone", "unknown"),
+    database: str("database", "unknown"),
+    redis: str("redis", "unknown"),
+  };
+}
+
 export type FssaiVerifyResponse = {
   verified: boolean;
   fssaiNumber: string;
@@ -465,6 +502,7 @@ export async function updateMenuItem(
     referencePricePaise?: number | null;
     prepCategory?: "READY_10M" | "COOKED_15M";
     prepMinutes?: 10 | 15 | null;
+    imageUrl?: string | null;
   },
 ) {
   const res = await fetch(`${base}/v1/menu/items/${itemId}`, {

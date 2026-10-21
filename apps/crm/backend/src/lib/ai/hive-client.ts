@@ -216,15 +216,20 @@ export async function hiveGenerateImage(input: {
   const data = (await res.json()) as {
     message?: string;
     return_code?: number;
-    output?: { url?: string }[];
+    status?: string | number;
+    output?: Array<{ url?: string } | { images?: Array<{ url?: string }> }>;
   };
 
   if (!res.ok) {
     throw new Error(data.message ?? `Hive image HTTP ${res.status}`);
   }
-  if (data.return_code === 451) {
+  if (data.return_code === 451 || data.status === 451) {
     throw new Error("Hive image blocked by moderation — adjust prompt");
   }
 
-  return data.output?.[0]?.url ?? null;
+  const first = data.output?.[0];
+  if (!first) return null;
+  if ("url" in first && typeof first.url === "string" && first.url) return first.url;
+  const nested = "images" in first ? first.images?.[0]?.url : undefined;
+  return nested ?? null;
 }

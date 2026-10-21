@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
+import {
+  readKitchenSoundOn,
+  stopKitchenRing,
+  writeKitchenSoundOn,
+} from "@/lib/kitchen-alert-audio";
 import { cn } from "@/lib/utils";
 
 export type OrdersViewMode = "list" | "kitchen" | "stock";
@@ -11,13 +16,22 @@ export function OrdersActionRail({
   mode,
   connectionLabel,
   onRefresh,
+  soundOn: soundOnProp,
+  onSoundChange,
 }: {
   mode: OrdersViewMode;
   connectionLabel?: string;
   onRefresh?: () => void;
+  soundOn?: boolean;
+  onSoundChange?: (on: boolean) => void;
 }) {
   const [countdown, setCountdown] = useState(30);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOnLocal, setSoundOnLocal] = useState(true);
+  const soundOn = soundOnProp ?? soundOnLocal;
+
+  useEffect(() => {
+    setSoundOnLocal(readKitchenSoundOn());
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -25,6 +39,14 @@ export function OrdersActionRail({
     }, 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  function toggleSound() {
+    const next = !soundOn;
+    writeKitchenSoundOn(next);
+    setSoundOnLocal(next);
+    onSoundChange?.(next);
+    if (!next) stopKitchenRing();
+  }
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -98,7 +120,9 @@ export function OrdersActionRail({
             <button
               type="button"
               className="flex items-center gap-2 rounded-lg bg-surface-container-low px-3 py-2 text-on-surface transition-colors hover:bg-surface-container-high"
-              onClick={() => setSoundOn((v) => !v)}
+              onClick={toggleSound}
+              data-testid="kitchen-sound-toggle"
+              title="5s ring on new order · different 5s ring + dialog on SLA breach"
             >
               <MaterialIcon name={soundOn ? "volume_up" : "volume_off"} className="text-[19px] text-primary" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">

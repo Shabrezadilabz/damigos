@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   analytics: DashboardAnalytics | null;
-  onOpenFull?: () => void;
+  onOpenFull?: (focus?: "hourly-demand") => void;
   onExportCsv?: () => void;
   exporting?: boolean;
 };
@@ -36,7 +36,7 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
       <div className="flex items-center justify-between pb-4">
         <div className="flex items-center gap-2">
           <MaterialIcon name="analytics" className="text-[20px] text-primary" />
-          <span className="font-[family-name:var(--font-display)] text-sm font-semibold">Analytics tab (peek)</span>
+          <span className="font-[family-name:var(--font-display)] text-sm font-semibold">Analytics</span>
         </div>
         <button
           type="button"
@@ -137,7 +137,7 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
           </div>
           <button
             type="button"
-            onClick={onOpenFull}
+            onClick={() => onOpenFull?.("hourly-demand")}
             className="rounded-lg bg-surface-container-lowest px-3 py-1.5 text-[10px] font-semibold text-foreground hover:bg-surface-container-high"
           >
             Insights
