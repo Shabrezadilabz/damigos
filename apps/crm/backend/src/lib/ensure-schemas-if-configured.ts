@@ -5,6 +5,7 @@ import { ensureKitchenSchema } from "./ensure-kitchen-schema.js";
 import { ensureMenuSchema } from "./ensure-menu-schema.js";
 import { ensureOperationsSchema } from "./ensure-operations-schema.js";
 import { ensureSettlementSchema } from "./ensure-settlement-schema.js";
+import { ensureStickerSchema } from "./ensure-sticker-schema.js";
 
 export async function ensureSchemasIfConfigured(app: FastifyInstance) {
   if (!process.env.DATABASE_URL?.trim()) {
@@ -17,4 +18,5 @@ export async function ensureSchemasIfConfigured(app: FastifyInstance) {
   await ensureOperationsSchema();
   await ensureKitchenSchema();
   await ensureSettlementSchema();
+  await ensureStickerSchema();
 }

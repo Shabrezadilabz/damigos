@@ -1,20 +1,18 @@
+import { randomBytes } from "node:crypto";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
-
 import type { FastifyInstance } from "fastify";
-
 import { z } from "zod";
-
 import { db, restaurants, stickerBatches, stickerTokens } from "@damigos/db";
-
+import {
+  fetchQrPngBase64,
+  notifyPartnersEmail,
+} from "../lib/partner-notify.js";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 
-
-
-/** C-06.04 — owner activate batch (P0 API) */
-
+/** C-06.04 — owner activate / generate / print-request (no full download for owners) */
 export async function registerStickerRoutes(app: FastifyInstance) {
-
   const ownerStickers = requireRoles("RESTAURANT_OWNER", "STAFF", "PLATFORM_ADMIN");
+  const ownerMint = requireRoles("RESTAURANT_OWNER", "PLATFORM_ADMIN");
 
 
 
@@ -81,25 +79,18 @@ export async function registerStickerRoutes(app: FastifyInstance) {
 
 
     return {
-
       batches: batches.map((b) => ({
-
         id: b.id,
-
         batchCode: b.batchCode,
-
         quantity: b.quantity,
-
         validFrom: b.validFrom,
-
         validTo: b.validTo,
-
         activatedAt: b.activatedAt,
-
+        printRequestedAt: b.printRequestedAt ?? null,
+        designId: b.designId ?? null,
+        designName: b.designName ?? null,
       })),
-
     };
-
   });
 
 
@@ -159,6 +150,9 @@ export async function registerStickerRoutes(app: FastifyInstance) {
         validTo: b.validTo,
         activatedAt: b.activatedAt,
         revokedAt: b.revokedAt,
+        printRequestedAt: b.printRequestedAt ?? null,
+        designId: b.designId ?? null,
+        designName: b.designName ?? null,
       })),
     };
   });
@@ -184,6 +178,10 @@ export async function registerStickerRoutes(app: FastifyInstance) {
     await enforceRestaurantScope(request, reply, restaurantId);
     if (reply.sent) return;
 
+    // Owners may only preview up to 3 samples — no full sheet download / print gambling.
+    const isPlatformAdmin = (request.staff?.roles ?? []).includes("PLATFORM_ADMIN");
+    const limit = isPlatformAdmin ? query.limit : Math.min(query.limit, 3);
+
     const [batch] = await db
       .select()
       .from(stickerBatches)
@@ -206,7 +204,7 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       .select({ id: stickerTokens.id, publicToken: stickerTokens.publicToken })
       .from(stickerTokens)
       .where(eq(stickerTokens.batchId, batch.id))
-      .limit(query.limit);
+      .limit(limit);
 
     const guestWeb = (process.env.GUEST_WEB_ORIGIN ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -214,11 +212,236 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       restaurantName: restaurant?.name ?? "Restaurant",
       batchCode: batch.batchCode,
       validTo: batch.validTo,
+      sampleOnly: !isPlatformAdmin,
+      quantity: batch.quantity,
       stickers: tokens.map((t, i) => ({
         label: `TBL-${String(i + 1).padStart(2, "0")}`,
         scanPath: `/s/${t.publicToken}`,
         scanUrl: `${guestWeb}/s/${t.publicToken}`,
       })),
+    };
+  });
+
+  /** Owner generates QR batch on their kitchen account (auto-activates for testing). */
+  app.post("/stickers/generate", { preHandler: ownerMint }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        quantity: z.number().int().min(1).max(2000),
+        validDays: z.number().int().min(10).max(15).default(12),
+        designId: z.number().int().min(1).optional(),
+        designName: z.string().max(120).optional(),
+        notes: z.string().max(500).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+
+    const { restaurantId, quantity, validDays, designId, designName, notes } = body.data;
+    await enforceRestaurantScope(request, reply, restaurantId);
+    if (reply.sent) return;
+
+    const validFrom = new Date();
+    const validTo = new Date(validFrom);
+    validTo.setDate(validTo.getDate() + validDays);
+    const batchCode = `B-${randomBytes(4).toString("hex").toUpperCase()}`;
+    const metaNote = [
+      notes?.trim(),
+      designId != null ? `designId=${designId}` : null,
+      designName ? `design=${designName}` : null,
+      "source=owner-generate",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    const [batch] = await db
+      .insert(stickerBatches)
+      .values({
+        restaurantId,
+        batchCode,
+        quantity,
+        validFrom,
+        validTo,
+        activatedAt: validFrom,
+        designId: designId ?? null,
+        designName: designName ?? null,
+      })
+      .returning();
+
+    const tokenRows = Array.from({ length: quantity }, () => ({
+      batchId: batch.id,
+      publicToken: randomBytes(16).toString("base64url"),
+    }));
+    await db.insert(stickerTokens).values(tokenRows);
+
+    const guestWeb = (process.env.GUEST_WEB_ORIGIN ?? "http://localhost:3000").replace(/\/$/, "");
+    const sampleTokens = tokenRows.slice(0, 3);
+    const samples = sampleTokens.map((t, i) => ({
+      label: `TBL-${String(i + 1).padStart(2, "0")}`,
+      scanPath: `/s/${t.publicToken}`,
+      scanUrl: `${guestWeb}/s/${t.publicToken}`,
+    }));
+
+    const [restaurant] = await db
+      .select({ name: restaurants.name })
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId))
+      .limit(1);
+
+    return {
+      batchId: batch.id,
+      batchCode: batch.batchCode,
+      quantity,
+      validFrom: batch.validFrom,
+      validTo: batch.validTo,
+      activated: true,
+      designId: designId ?? null,
+      designName: designName ?? null,
+      notes: metaNote || null,
+      restaurantName: restaurant?.name ?? "Restaurant",
+      samples,
+      sampleOnly: true,
+    };
+  });
+
+  /** Email Damigos ops to print & ship — owners cannot download full sheets. */
+  app.post("/stickers/print-request", { preHandler: ownerMint }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        batchId: z.string().uuid(),
+        quantity: z.number().int().min(1).max(2000),
+        designId: z.number().int().min(1),
+        designName: z.string().min(1).max(120),
+        sampleCount: z.number().int().min(1).max(3).default(3),
+        notes: z.string().max(500).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+
+    const { restaurantId, batchId, quantity, designId, designName, sampleCount, notes } = body.data;
+    await enforceRestaurantScope(request, reply, restaurantId);
+    if (reply.sent) return;
+
+    const [batch] = await db
+      .select()
+      .from(stickerBatches)
+      .where(and(eq(stickerBatches.id, batchId), eq(stickerBatches.restaurantId, restaurantId)))
+      .limit(1);
+
+    if (!batch) {
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Batch not found", correlationId: request.id },
+      });
+    }
+
+    const [restaurant] = await db
+      .select({ name: restaurants.name })
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId))
+      .limit(1);
+
+    const tokens = await db
+      .select({ publicToken: stickerTokens.publicToken })
+      .from(stickerTokens)
+      .where(eq(stickerTokens.batchId, batch.id))
+      .limit(sampleCount);
+
+    const guestWeb = (process.env.GUEST_WEB_ORIGIN ?? "http://localhost:3000").replace(/\/$/, "");
+    const samples = tokens.map((t, i) => ({
+      label: `TBL-${String(i + 1).padStart(2, "0")}`,
+      scanUrl: `${guestWeb}/s/${t.publicToken}`,
+    }));
+
+    const attachments = [];
+    for (const s of samples) {
+      const content = await fetchQrPngBase64(s.scanUrl);
+      if (content) {
+        attachments.push({
+          filename: `${batch.batchCode}-${s.label}.png`,
+          content,
+          contentType: "image/png",
+        });
+      }
+    }
+
+    const kitchen = restaurant?.name ?? restaurantId;
+    const subject = `[Sticker print] ${kitchen} · ${quantity} × ${designName}`;
+    const text = [
+      `Print & ship request from CRM Stickers`,
+      ``,
+      `Restaurant: ${kitchen}`,
+      `Restaurant ID: ${restaurantId}`,
+      `Batch code: ${batch.batchCode}`,
+      `Batch ID: ${batch.id}`,
+      `Quantity to print: ${quantity}`,
+      `Sticker design: ${designName} (id ${designId})`,
+      `Sample QRs attached: ${attachments.length} (testable scan URLs below)`,
+      notes ? `Owner notes: ${notes}` : null,
+      ``,
+      ...samples.map((s) => `${s.label}: ${s.scanUrl}`),
+      ``,
+      `Owner cannot download full sheets — please print and courier physical stickers.`,
+    ]
+      .filter((line) => line !== null)
+      .join("\n");
+
+    const html = `
+      <h2>Sticker print request</h2>
+      <p><strong>${kitchen}</strong> asked Damigos to print and ship stickers.</p>
+      <ul>
+        <li>Quantity: <strong>${quantity}</strong></li>
+        <li>Design: <strong>${designName}</strong> (id ${designId})</li>
+        <li>Batch: <code>${batch.batchCode}</code></li>
+        <li>Restaurant ID: <code>${restaurantId}</code></li>
+      </ul>
+      ${notes ? `<p>Notes: ${notes}</p>` : ""}
+      <p>Sample scan URLs (also attached as PNG):</p>
+      <ol>${samples.map((s) => `<li><a href="${s.scanUrl}">${s.label}</a></li>`).join("")}</ol>
+      <p style="color:#666">Owner CRM blocks full download — print physically and ship.</p>
+    `;
+
+    const result = await notifyPartnersEmail({
+      subject,
+      body: text,
+      html,
+      attachments,
+      meta: {
+        type: "sticker_print_request",
+        restaurantId,
+        batchId: batch.id,
+        batchCode: batch.batchCode,
+        quantity,
+        designId,
+        designName,
+      },
+    });
+
+    const requestedAt = new Date();
+    await db
+      .update(stickerBatches)
+      .set({
+        printRequestedAt: requestedAt,
+        designId,
+        designName,
+      })
+      .where(eq(stickerBatches.id, batch.id));
+
+    return {
+      ok: true,
+      emailed: result.emailed,
+      to: process.env.PARTNERS_NOTIFY_EMAIL?.trim() || "partners@damigos.in",
+      sampleAttached: attachments.length,
+      printRequestedAt: requestedAt.toISOString(),
     };
   });
 

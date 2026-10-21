@@ -1,7 +1,16 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { db, menuItems, restaurantDailySettlements, restaurants } from "@damigos/db";
+import { hashPhone, phoneLast4 } from "@damigos/auth";
+import {
+  db,
+  menuItems,
+  restaurantDailySettlements,
+  restaurants,
+  userRestaurantRoles,
+  users,
+} from "@damigos/db";
+import { parseBrandKit, restaurantBrandKitSchema } from "../lib/ai/brand-kit.js";
 import { ensureKitchenSchema } from "../lib/ensure-kitchen-schema.js";
 import { ensureOperationsSchema } from "../lib/ensure-operations-schema.js";
 import { ensureSettlementSchema } from "../lib/ensure-settlement-schema.js";
@@ -477,5 +486,194 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
     const date = body.date ?? istBusinessDate();
     const row = await settleRestaurantDay(body.restaurantId, date);
     return { settlement: row };
+  });
+
+  /** Team roster for this kitchen */
+  app.get("/settings/team", { preHandler: ownerSettings }, async (request, reply) => {
+    const query = z.object({ restaurantId: z.string().uuid() }).parse(request.query);
+    await enforceRestaurantScope(request, reply, query.restaurantId);
+    if (reply.sent) return;
+
+    const rows = await db
+      .select({
+        userId: users.id,
+        phoneLast4: users.phoneLast4,
+        displayName: users.displayName,
+        role: userRestaurantRoles.role,
+      })
+      .from(userRestaurantRoles)
+      .innerJoin(users, eq(users.id, userRestaurantRoles.userId))
+      .where(eq(userRestaurantRoles.restaurantId, query.restaurantId));
+
+    return {
+      members: rows.map((r) => ({
+        userId: r.userId,
+        phoneLast4: r.phoneLast4,
+        displayName: r.displayName,
+        role: r.role,
+      })),
+    };
+  });
+
+  /** Invite kitchen / redeem staff by phone — they OTP login with bypass code in pilot */
+  app.post("/settings/team/invite", { preHandler: ownerSettings }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        phone: z.string().min(10),
+        role: z.enum(["KITCHEN", "REDEEM"]).default("KITCHEN"),
+        displayName: z.string().min(1).max(80).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+
+    const { restaurantId, role, displayName } = body.data;
+    await enforceRestaurantScope(request, reply, restaurantId);
+    if (reply.sent) return;
+
+    const normalized = body.data.phone.replace(/\D/g, "").slice(-10);
+    if (normalized.length < 10) {
+      return reply.status(400).send({
+        error: { code: "INVALID_PHONE", message: "Enter a 10-digit mobile number", correlationId: request.id },
+      });
+    }
+
+    const phoneHash = hashPhone(normalized);
+    let [user] = await db.select().from(users).where(eq(users.phoneHash, phoneHash)).limit(1);
+    if (!user) {
+      [user] = await db
+        .insert(users)
+        .values({
+          phoneHash,
+          phoneLast4: phoneLast4(normalized),
+          displayName: displayName ?? null,
+        })
+        .returning();
+    } else if (displayName && !user.displayName) {
+      await db.update(users).set({ displayName }).where(eq(users.id, user.id));
+    }
+
+    const existing = await db
+      .select()
+      .from(userRestaurantRoles)
+      .where(
+        and(
+          eq(userRestaurantRoles.userId, user.id),
+          eq(userRestaurantRoles.restaurantId, restaurantId),
+          eq(userRestaurantRoles.role, role),
+        ),
+      )
+      .limit(1);
+
+    if (!existing.length) {
+      await db.insert(userRestaurantRoles).values({
+        userId: user.id,
+        restaurantId,
+        role,
+      });
+    }
+
+    return {
+      invited: true,
+      alreadyMember: existing.length > 0,
+      phoneLast4: user.phoneLast4,
+      displayName: displayName ?? user.displayName,
+      role,
+      loginHint: "They log in at /start with this phone + OTP 000000 (pilot).",
+    };
+  });
+
+  app.get("/settings/brand-kit", { preHandler: staffOps }, async (request, reply) => {
+    const query = z.object({ restaurantId: z.string().uuid() }).parse(request.query);
+    await enforceRestaurantScope(request, reply, query.restaurantId);
+    if (reply.sent) return;
+
+    const [row] = await db
+      .select({ name: restaurants.name, brandKit: restaurants.brandKit })
+      .from(restaurants)
+      .where(eq(restaurants.id, query.restaurantId))
+      .limit(1);
+
+    const kit = parseBrandKit(row?.brandKit ?? null);
+    return {
+      brandKit: kit
+        ? {
+            displayName: kit.displayName,
+            primaryColor: kit.primaryColor,
+            backgroundColor: kit.backgroundColor,
+            accentColor: kit.accentColor,
+          }
+        : {
+            displayName: row?.name ?? "Kitchen",
+            primaryColor: "#B7122A",
+            backgroundColor: "#FCF9F8",
+            accentColor: "#775600",
+          },
+    };
+  });
+
+  app.patch("/settings/brand-kit", { preHandler: ownerSettings }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+        backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+        accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+        displayName: z.string().min(1).max(120).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+
+    await enforceRestaurantScope(request, reply, body.data.restaurantId);
+    if (reply.sent) return;
+
+    const [row] = await db
+      .select({ name: restaurants.name, brandKit: restaurants.brandKit })
+      .from(restaurants)
+      .where(eq(restaurants.id, body.data.restaurantId))
+      .limit(1);
+
+    if (!row) {
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Restaurant not found", correlationId: request.id },
+      });
+    }
+
+    const prev = parseBrandKit(row.brandKit);
+    const next = restaurantBrandKitSchema.parse({
+      displayName: body.data.displayName?.trim() || prev?.displayName || row.name,
+      primaryColor: body.data.primaryColor,
+      backgroundColor: body.data.backgroundColor ?? prev?.backgroundColor ?? "#FCF9F8",
+      accentColor: body.data.accentColor ?? prev?.accentColor ?? "#775600",
+      logoDataUrl: prev?.logoDataUrl ?? null,
+      logoNotes: prev?.logoNotes ?? null,
+      dishes: prev?.dishes ?? [],
+      extractedAt: new Date().toISOString(),
+      model: prev?.model ?? "crm-theme-editor",
+    });
+
+    await db
+      .update(restaurants)
+      .set({ brandKit: JSON.stringify(next) })
+      .where(eq(restaurants.id, body.data.restaurantId));
+
+    return {
+      brandKit: {
+        displayName: next.displayName,
+        primaryColor: next.primaryColor,
+        backgroundColor: next.backgroundColor,
+        accentColor: next.accentColor,
+      },
+    };
   });
 }

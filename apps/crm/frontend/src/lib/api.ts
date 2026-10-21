@@ -256,6 +256,9 @@ export type StickerBatchSummary = {
   validTo: string;
   activatedAt: string | null;
   revokedAt?: string | null;
+  printRequestedAt?: string | null;
+  designId?: number | null;
+  designName?: string | null;
 };
 
 export type StickerBatchStatusFilter = "all" | "active" | "minted" | "expired";
@@ -321,14 +324,66 @@ export async function mintStickerBatch(input: {
   });
 }
 
+/** Owner-side generate (same account) — returns up to 3 testable samples; no full download. */
+export async function generateStickerBatch(input: {
+  restaurantId: string;
+  quantity: number;
+  validDays?: number;
+  designId?: number;
+  designName?: string;
+  notes?: string;
+}) {
+  return stickerFetch<{
+    batchId: string;
+    batchCode: string;
+    quantity: number;
+    validFrom: string;
+    validTo: string;
+    activated: boolean;
+    designId: number | null;
+    designName: string | null;
+    restaurantName: string;
+    samples: { label: string; scanPath: string; scanUrl: string }[];
+    sampleOnly: boolean;
+  }>(`/v1/stickers/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function requestStickerPrint(input: {
+  restaurantId: string;
+  batchId: string;
+  quantity: number;
+  designId: number;
+  designName: string;
+  sampleCount?: number;
+  notes?: string;
+}) {
+  return stickerFetch<{
+    ok: boolean;
+    emailed: boolean;
+    to: string;
+    sampleAttached: number;
+    printRequestedAt?: string;
+  }>(`/v1/stickers/print-request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 export type StickerPrintSheet = {
   restaurantName: string;
   batchCode: string;
   validTo: string;
+  sampleOnly?: boolean;
+  quantity?: number;
   stickers: { label: string; scanPath: string; scanUrl: string }[];
 };
 
-export async function fetchStickerPrintSheet(batchId: string, restaurantId: string, limit = 48) {
+export async function fetchStickerPrintSheet(batchId: string, restaurantId: string, limit = 3) {
   const q = new URLSearchParams({ restaurantId, limit: String(limit) });
   return stickerFetch<StickerPrintSheet>(`/v1/stickers/batches/${batchId}/print-sheet?${q}`);
 }
@@ -1190,4 +1245,82 @@ export async function fetchPayoutSettlements(restaurantId: string, limit = 14) {
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to load settlements"));
   return data as { settlements: PayoutSettlementRow[] };
+}
+
+export type CrmTeamMember = {
+  userId: string;
+  phoneLast4: string | null;
+  displayName: string | null;
+  role: string;
+};
+
+export async function fetchCrmTeam(restaurantId: string) {
+  const q = new URLSearchParams({ restaurantId });
+  const res = await fetch(`${base}/v1/settings/team?${q}`, {
+    cache: "no-store",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to load team"));
+  return data.members as CrmTeamMember[];
+}
+
+export async function inviteCrmTeamMember(input: {
+  restaurantId: string;
+  phone: string;
+  role?: "KITCHEN" | "REDEEM";
+  displayName?: string;
+}) {
+  const res = await fetch(`${base}/v1/settings/team/invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify(input),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Invite failed"));
+  return data as {
+    invited: boolean;
+    alreadyMember: boolean;
+    phoneLast4: string | null;
+    displayName: string | null;
+    role: string;
+    loginHint: string;
+  };
+}
+
+export type CrmBrandKitColors = {
+  displayName: string;
+  primaryColor: string;
+  backgroundColor: string;
+  accentColor: string;
+};
+
+export async function fetchCrmBrandKit(restaurantId: string) {
+  const q = new URLSearchParams({ restaurantId });
+  const res = await fetch(`${base}/v1/settings/brand-kit?${q}`, {
+    cache: "no-store",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Failed to load brand kit"));
+  return data.brandKit as CrmBrandKitColors;
+}
+
+export async function patchCrmBrandKit(
+  restaurantId: string,
+  input: {
+    primaryColor: string;
+    backgroundColor?: string;
+    accentColor?: string;
+    displayName?: string;
+  },
+) {
+  const res = await fetch(`${base}/v1/settings/brand-kit`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({ restaurantId, ...input }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Save theme failed"));
+  return data.brandKit as CrmBrandKitColors;
 }

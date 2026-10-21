@@ -1,9 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "D'aMigo's CRM",
   description: "Restaurant CRM — menu, grow, orders",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 /** Apple SF Pro system stack — DEC-009 */
@@ -16,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased min-h-dvh">{children}</body>
+      <body className="min-h-dvh font-sans antialiased">{children}</body>
     </html>
   );
 }

@@ -75,12 +75,12 @@ export function SettingsLocationPanel() {
   }
 
   return (
-    <div className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-6 shadow-sm lg:col-span-10">
+    <div className="col-span-12 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 shadow-sm sm:p-6 lg:col-span-10">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed/50 text-primary">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed/50 text-primary">
           <MaterialIcon name="location_on" className="text-[22px]" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-on-surface">
             Kitchen location
           </h2>

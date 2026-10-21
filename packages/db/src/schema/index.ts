@@ -99,6 +99,10 @@ export const stickerBatches = pgTable("sticker_batches", {
   validTo: timestamp("valid_to", { withTimezone: true }).notNull(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
   activatedAt: timestamp("activated_at", { withTimezone: true }),
+  /** Owner asked Damigos to print & ship this batch */
+  printRequestedAt: timestamp("print_requested_at", { withTimezone: true }),
+  designId: integer("design_id"),
+  designName: varchar("design_name", { length: 120 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -413,8 +413,8 @@ export function MenuExtractionAudit({
         <span className="rounded-full bg-tertiary/10 px-2 py-0.5 text-[10px] font-semibold text-tertiary">{filename}</span>
       </div>
 
-      <div className="grid min-h-[300px] grid-cols-12 gap-2 overflow-hidden rounded-lg bg-surface-container-low p-2">
-        <div className="relative col-span-5 flex flex-col gap-2 overflow-hidden rounded-md bg-surface-container-lowest/80 p-2 opacity-75 shadow-sm">
+      <div className="grid min-h-[220px] grid-cols-1 gap-2 overflow-hidden rounded-lg bg-surface-container-low p-2 sm:min-h-[300px] sm:grid-cols-12">
+        <div className="relative col-span-1 flex max-h-40 flex-col gap-2 overflow-hidden rounded-md bg-surface-container-lowest/80 p-2 opacity-75 shadow-sm sm:col-span-5 sm:max-h-none">
           <div className="flex items-center justify-between pb-1 text-[10px] text-on-surface-variant">
             <span>Page 3 / 8</span>
             <MaterialIcon name="zoom_in" className="text-[14px]" />
@@ -445,7 +445,7 @@ export function MenuExtractionAudit({
           </div>
         </div>
 
-        <div className="col-span-7 flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1">
+        <div className="col-span-1 flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 sm:col-span-7">
           {reviewRows.length === 0 ? (
             <p className="p-2 text-xs text-on-surface-variant">Import a PDF to see extracted rows here.</p>
           ) : (

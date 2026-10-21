@@ -57,49 +57,51 @@ export function OrdersActionRail({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-container-lowest p-3 shadow-[0_2px_8px_-2px_rgba(28,28,28,0.04)]">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1">
-          <Link
-            href="/orders"
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all",
-              mode === "list"
-                ? "bg-surface-container-lowest text-primary shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface",
-            )}
-          >
-            <MaterialIcon name="format_list_bulleted" className="text-[18px]" />
-            List view
-          </Link>
-          <Link
-            href="/orders/kitchen"
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all",
-              mode === "kitchen"
-                ? "bg-surface-container-lowest text-primary shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface",
-            )}
-          >
-            <MaterialIcon name="restaurant" className="text-[18px]" />
-            Kitchen mode
-            {mode === "kitchen" ? (
-              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />
-            ) : null}
-          </Link>
-          <Link
-            href="/orders/stock"
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all",
-              mode === "stock"
-                ? "bg-surface-container-lowest text-primary shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface",
-            )}
-            data-testid="orders-menu-stock-tab"
-          >
-            <MaterialIcon name="toggle_on" className="text-[18px]" />
-            Menu 86
-          </Link>
+    <div className="flex flex-col gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-[0_2px_8px_-2px_rgba(28,28,28,0.04)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <div className="-mx-0.5 max-w-full overflow-x-auto px-0.5 [scrollbar-width:thin]">
+          <div className="inline-flex items-center gap-1 rounded-lg bg-surface-container-low p-1">
+            <Link
+              href="/orders"
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4",
+                mode === "list"
+                  ? "bg-surface-container-lowest text-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface",
+              )}
+            >
+              <MaterialIcon name="format_list_bulleted" className="text-[18px]" />
+              <span className="whitespace-nowrap">List</span>
+            </Link>
+            <Link
+              href="/orders/kitchen"
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4",
+                mode === "kitchen"
+                  ? "bg-surface-container-lowest text-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface",
+              )}
+            >
+              <MaterialIcon name="restaurant" className="text-[18px]" />
+              <span className="whitespace-nowrap">Kitchen</span>
+              {mode === "kitchen" ? (
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />
+              ) : null}
+            </Link>
+            <Link
+              href="/orders/stock"
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4",
+                mode === "stock"
+                  ? "bg-surface-container-lowest text-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface",
+              )}
+              data-testid="orders-menu-stock-tab"
+            >
+              <MaterialIcon name="toggle_on" className="text-[18px]" />
+              <span className="whitespace-nowrap">Menu 86</span>
+            </Link>
+          </div>
         </div>
         {mode === "kitchen" && connectionLabel ? (
           <>

@@ -196,7 +196,7 @@ export function HomePageClient() {
 
             <div className="flex flex-wrap items-center gap-3">
 
-              <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+              <h1 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight sm:text-2xl">
 
                 WhatsApp Experience Control
 
@@ -286,7 +286,7 @@ export function HomePageClient() {
 
             <span className="mb-1 text-[10px] font-bold uppercase tracking-wider text-secondary">Guest OS Central</span>
 
-            <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+            <h1 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight sm:text-2xl">
 
               WhatsApp Experience Control
 

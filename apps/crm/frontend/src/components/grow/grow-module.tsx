@@ -31,11 +31,15 @@ export function GrowModule({
 
   return (
     <div className="flex flex-col gap-2">
-      <header className="mb-2 flex flex-col gap-1">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight">Grow</h1>
+      <header className="mb-2 flex min-w-0 flex-col gap-1">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-3xl">
+          Grow
+        </h1>
         {tab !== "campaigns" ? (
           <>
-            <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight">{meta.title}</h2>
+            <h2 className="font-[family-name:var(--font-display)] text-base font-bold tracking-tight sm:text-xl">
+              {meta.title}
+            </h2>
             <p className="text-sm text-on-surface-variant">{meta.sub}</p>
           </>
         ) : (

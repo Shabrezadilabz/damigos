@@ -549,7 +549,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
           )}
         >
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-[200px] flex-1">
+            <div className="relative min-w-0 w-full flex-1 sm:min-w-[200px]">
               <MaterialIcon
                 name="search"
                 className="absolute left-3 top-2.5 text-[18px] text-on-surface-variant"
