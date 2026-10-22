@@ -37,6 +37,7 @@ Meta controls this. **There is no Kapso/Damigos toggle to “force webview.”**
 | `damigos_order_confirmed` | UTILITY | `{{1}}` kitchen · `{{2}}` order short id · `{{3}}` total INR | After payment capture | `KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED` |
 | `damigos_order_track` | UTILITY | `{{1}}` status · `{{2}}` track URL | Dispatch / status change | `KAPSO_FOOD_TEMPLATE_TRACK_UPDATE` |
 | `damigos_order_out_for_delivery` | UTILITY | `{{1}}` kitchen · `{{2}}` ETA / AWB · `{{3}}` track URL | Rider out for delivery | (optional; wire later) |
+| `damigos_delivery_otp` | UTILITY | `{{1}}` kitchen · `{{2}}` order short id · `{{3}}` 6-digit OTP | Guest drop verify (Damigos-owned) | Free-form text today; template later `KAPSO_FOOD_TEMPLATE_DELIVERY_OTP` |
 | `damigos_order_delivered` | UTILITY | `{{1}}` kitchen · `{{2}}` hub URL | Delivered | (optional) |
 | `damigos_payment_failed` | UTILITY | `{{1}}` retry URL | Payment failed | (optional) |
 

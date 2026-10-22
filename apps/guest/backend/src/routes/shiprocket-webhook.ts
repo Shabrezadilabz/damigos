@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, orders, shipments } from "@damigos/db";
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
+import { issueAndSendDeliveryOtp } from "../lib/issue-delivery-otp.js";
 
 /**
  * Shiprocket tracking webhook → update shipment + map food delivery status on order.
@@ -31,6 +32,7 @@ export async function registerShiprocketWebhookRoutes(app: FastifyInstance) {
         sr_order_id: z.union([z.string(), z.number()]).optional(),
         etd: z.string().optional(),
         current_timestamp: z.string().optional(),
+        pod_status: z.string().optional(),
       })
       .passthrough()
       .safeParse(request.body);
@@ -88,19 +90,28 @@ export async function registerShiprocketWebhookRoutes(app: FastifyInstance) {
 
     const [order] = await db.select().from(orders).where(eq(orders.id, ship.orderId)).limit(1);
     if (order) {
-      if (shipmentStatus === "out_for_delivery" && order.status === "READY") {
+      if (
+        shipmentStatus === "out_for_delivery" &&
+        (order.status === "READY" || order.status === "PREPARING" || order.status === "ACCEPTED")
+      ) {
         await db.update(orders).set({ status: "DISPATCHED" }).where(eq(orders.id, order.id));
+        // Damigos guest OTP (Shiprocket does not expose OTP digits to us)
+        void issueAndSendDeliveryOtp(order.id).catch((err) =>
+          console.warn("[shiprocket-webhook] delivery otp", err),
+        );
       }
       if (shipmentStatus === "delivered" && order.status !== "DELIVERED") {
-        await db.update(orders).set({ status: "DELIVERED" }).where(eq(orders.id, order.id));
-      }
-      if (
-        /PICKUP|RIDER|ASSIGNED/.test(upper) &&
-        !order.riderArrivedAt &&
-        (order.status === "ACCEPTED" || order.status === "PREPARING" || order.status === "READY")
-      ) {
-        // Optional: do not auto-set riderArrivedAt until at storefront;
-        // keep kitchen refresh so CRM shows live tracking status.
+        const pod = body.data.pod_status?.toLowerCase() ?? "";
+        await db
+          .update(orders)
+          .set({
+            status: "DELIVERED",
+            deliveryVerifySource: pod.includes("otp")
+              ? "courier_pod"
+              : "shiprocket_webhook",
+            deliveryOtpVerifiedAt: order.deliveryOtpVerifiedAt ?? new Date(),
+          })
+          .where(eq(orders.id, order.id));
       }
       void publishKitchenRefresh(order.restaurantId);
     }

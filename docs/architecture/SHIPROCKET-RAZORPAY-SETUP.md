@@ -19,6 +19,8 @@ Our integration uses **Razorpay Orders + Checkout.js** and **Shiprocket External
 
 **Shiprocket Quick** (formerly Saral) food fleets (Ola / Borzo / Shadowfax Local, ≤50 km) use the same JWT External API. Until Quick is enabled on the account, we **prefer Instant / local** couriers from serviceability. Ask Shiprocket support to enable Quick for food if `is_new_hyperlocal=1` returns zero partners.
 
+**Scale / wallet / multi-kitchen:** see [SHIPROCKET-SCALE.md](./SHIPROCKET-SCALE.md). Handoff = Damigos pickup code + AWB; guest drop OTP = Damigos WhatsApp (SR does not expose OTP digits).
+
 ---
 
 ## Razorpay TEST

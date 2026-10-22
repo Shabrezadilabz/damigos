@@ -8,6 +8,8 @@ import {
   notifyPartnersEmail,
 } from "../lib/partner-notify.js";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
+import { formatInrPaise, quoteStickerPrint } from "../lib/sticker-print-pricing.js";
+import { debitForStickerPrint, recordStickerPrintPayment } from "../lib/wallet.js";
 
 /** C-06.04 — owner activate / generate / print-request (no full download for owners) */
 export async function registerStickerRoutes(app: FastifyInstance) {
@@ -319,6 +321,11 @@ export async function registerStickerRoutes(app: FastifyInstance) {
         designName: z.string().min(1).max(120),
         sampleCount: z.number().int().min(1).max(3).default(3),
         notes: z.string().max(500).optional(),
+        totalPaise: z.number().int().min(1),
+        paymentConfirmed: z.literal(true),
+        paymentMethod: z.enum(["wallet", "external"]).default("external"),
+        razorpayOrderId: z.string().min(1).optional(),
+        razorpayPaymentId: z.string().min(1).optional(),
       })
       .safeParse(request.body);
 
@@ -328,9 +335,32 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       });
     }
 
-    const { restaurantId, batchId, quantity, designId, designName, sampleCount, notes } = body.data;
+    const {
+      restaurantId,
+      batchId,
+      quantity,
+      designId,
+      designName,
+      sampleCount,
+      notes,
+      totalPaise,
+      paymentMethod,
+      razorpayOrderId,
+      razorpayPaymentId,
+    } = body.data;
     await enforceRestaurantScope(request, reply, restaurantId);
     if (reply.sent) return;
+
+    const quote = quoteStickerPrint(quantity);
+    if (totalPaise !== quote.totalPaise) {
+      return reply.status(400).send({
+        error: {
+          code: "QUOTE_MISMATCH",
+          message: `Expected total ${formatInrPaise(quote.totalPaise)} for ${quantity} stickers`,
+          correlationId: request.id,
+        },
+      });
+    }
 
     const [batch] = await db
       .select()
@@ -342,6 +372,68 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       return reply.status(404).send({
         error: { code: "NOT_FOUND", message: "Batch not found", correlationId: request.id },
       });
+    }
+
+    const paymentMeta = {
+      stickersPaise: quote.stickersPaise,
+      deliveryPaise: quote.deliveryPaise,
+      gstPaise: quote.gstPaise,
+      totalPaise: quote.totalPaise,
+      quantity,
+      designName,
+      batchId: batch.id,
+      batchCode: batch.batchCode,
+      razorpayOrderId: razorpayOrderId ?? null,
+      razorpayPaymentId: razorpayPaymentId ?? null,
+      orderId: razorpayOrderId ?? null,
+      transactionId: razorpayPaymentId ?? null,
+      utr: razorpayPaymentId ?? null,
+    };
+
+    let walletTxnId: string | null = null;
+    let paymentLabel = "external";
+
+    if (paymentMethod === "wallet") {
+      const debit = await debitForStickerPrint({
+        restaurantId,
+        batchId: batch.id,
+        batchCode: batch.batchCode,
+        amountPaise: quote.totalPaise,
+        meta: paymentMeta,
+      });
+      if (!debit.ok) {
+        const msg =
+          debit.reason === "MIN_BALANCE"
+            ? "Wallet must keep at least ₹1,000 after this payment"
+            : debit.reason === "DUPLICATE"
+              ? "This batch was already paid from wallet"
+              : "Insufficient wallet balance";
+        return reply.status(400).send({
+          error: { code: debit.reason, message: msg, correlationId: request.id },
+        });
+      }
+      walletTxnId = debit.txnId;
+      paymentLabel = "wallet";
+    } else {
+      const stubPayId = razorpayPaymentId ?? `pay_sticker_${Date.now().toString(36)}`;
+      const stubOrderId = razorpayOrderId ?? `order_sticker_${batch.batchCode}`;
+      const recorded = await recordStickerPrintPayment({
+        restaurantId,
+        batchId: batch.id,
+        batchCode: batch.batchCode,
+        amountPaise: quote.totalPaise,
+        meta: {
+          ...paymentMeta,
+          paymentMethod: razorpayPaymentId ? "razorpay" : "stub",
+          razorpayOrderId: stubOrderId,
+          razorpayPaymentId: stubPayId,
+          orderId: stubOrderId,
+          transactionId: stubPayId,
+          utr: stubPayId,
+        },
+      });
+      walletTxnId = recorded.txnId;
+      paymentLabel = razorpayPaymentId ? "razorpay" : "stub";
     }
 
     const [restaurant] = await db
@@ -375,9 +467,9 @@ export async function registerStickerRoutes(app: FastifyInstance) {
     }
 
     const kitchen = restaurant?.name ?? restaurantId;
-    const subject = `[Sticker print] ${kitchen} · ${quantity} × ${designName}`;
+    const subject = `[Sticker print PAID ${formatInrPaise(quote.totalPaise)}] ${kitchen} · ${quantity} × ${designName}`;
     const text = [
-      `Print & ship request from CRM Stickers`,
+      `Print & ship request from CRM Stickers (payment confirmed)`,
       ``,
       `Restaurant: ${kitchen}`,
       `Restaurant ID: ${restaurantId}`,
@@ -385,6 +477,16 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       `Batch ID: ${batch.id}`,
       `Quantity to print: ${quantity}`,
       `Sticker design: ${designName} (id ${designId})`,
+      ``,
+      `Payment quote:`,
+      `  Stickers: ${quantity} × ${formatInrPaise(quote.unitPaise)} = ${formatInrPaise(quote.stickersPaise)}`,
+      `  Delivery: ${formatInrPaise(quote.deliveryPaise)}`,
+      `  GST (${Math.round(quote.gstRate * 100)}%): ${formatInrPaise(quote.gstPaise)}`,
+      `  Total paid: ${formatInrPaise(quote.totalPaise)}`,
+      `  Payment method: ${paymentLabel}`,
+      `  Wallet ledger txn: ${walletTxnId ?? "—"}`,
+      `  Payment status: confirmed`,
+      ``,
       `Sample QRs attached: ${attachments.length} (testable scan URLs below)`,
       notes ? `Owner notes: ${notes}` : null,
       ``,
@@ -396,13 +498,18 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       .join("\n");
 
     const html = `
-      <h2>Sticker print request</h2>
-      <p><strong>${kitchen}</strong> asked Damigos to print and ship stickers.</p>
+      <h2>Sticker print request (paid)</h2>
+      <p><strong>${kitchen}</strong> paid and asked Damigos to print and ship stickers.</p>
       <ul>
         <li>Quantity: <strong>${quantity}</strong></li>
         <li>Design: <strong>${designName}</strong> (id ${designId})</li>
         <li>Batch: <code>${batch.batchCode}</code></li>
         <li>Restaurant ID: <code>${restaurantId}</code></li>
+        <li>Stickers: ${formatInrPaise(quote.stickersPaise)}</li>
+        <li>Delivery: ${formatInrPaise(quote.deliveryPaise)}</li>
+        <li>GST: ${formatInrPaise(quote.gstPaise)}</li>
+        <li>Total paid: <strong>${formatInrPaise(quote.totalPaise)}</strong> via ${paymentLabel}</li>
+        <li>Wallet ledger: <code>${walletTxnId ?? "—"}</code></li>
       </ul>
       ${notes ? `<p>Notes: ${notes}</p>` : ""}
       <p>Sample scan URLs (also attached as PNG):</p>
@@ -423,6 +530,10 @@ export async function registerStickerRoutes(app: FastifyInstance) {
         quantity,
         designId,
         designName,
+        totalPaise: quote.totalPaise,
+        paymentStatus: "confirmed",
+        paymentMethod: paymentLabel,
+        walletTxnId,
       },
     });
 
@@ -442,6 +553,10 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       to: process.env.PARTNERS_NOTIFY_EMAIL?.trim() || "partners@damigos.in",
       sampleAttached: attachments.length,
       printRequestedAt: requestedAt.toISOString(),
+      quote,
+      paymentStatus: "confirmed",
+      paymentMethod: paymentLabel,
+      walletTxnId,
     };
   });
 

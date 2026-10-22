@@ -427,8 +427,11 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         .where(eq(campaigns.id, scheduled.id));
       return reply.status(402).send({
         error: {
-          code: "INSUFFICIENT_WALLET",
-          message: "Top up wallet before scheduling broadcasts",
+          code: debit.reason === "MIN_BALANCE" ? "WALLET_MIN_BALANCE" : "INSUFFICIENT_WALLET",
+          message:
+            debit.reason === "MIN_BALANCE"
+              ? "Wallet must keep at least ₹1,000 after campaign debit — top up first"
+              : "Top up wallet before scheduling broadcasts",
           correlationId: request.id,
           details: { balancePaise: debit.balancePaise, estimatedCostPaise: estimatedCost },
         },

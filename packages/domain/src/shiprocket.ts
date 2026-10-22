@@ -370,6 +370,8 @@ export async function createShiprocketShipmentBundle(input: {
   subTotalPaise: number;
   items: Array<{ name: string; quantity: number; unitPricePaise: number }>;
   assignAwb?: boolean;
+  /** Must match an existing Shiprocket pickup_location nickname for this kitchen. */
+  pickupLocation?: string | null;
   pickupLat?: number | null;
   pickupLng?: number | null;
   deliveryLat?: number | null;
@@ -396,6 +398,7 @@ export async function createShiprocketShipmentBundle(input: {
   const created = await createShiprocketAdhocOrder({
     orderId: input.orderId.replace(/-/g, "").slice(0, 40),
     orderDateIso: new Date().toISOString(),
+    pickupLocation: input.pickupLocation?.trim() || shiprocketPickupLocationName(),
     billingCustomerName: input.customerName || "Guest",
     billingPhone: input.customerPhone || "9999999999",
     billingAddress: `Food delivery · pincode ${input.deliveryPincode}`,

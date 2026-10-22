@@ -3,9 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
+import {
+  StickerPrintPaymentDialog,
+  type StickerPayMethod,
+} from "@/components/sticker-print-payment-dialog";
 import { StickerPrintTile } from "@/components/sticker-print-tile";
 import { STICKER_PRINT_DESIGNS } from "@/lib/sticker-print-designs";
-import { fetchStickerPrintSheet, requestStickerPrint } from "@/lib/api";
+import {
+  fetchCrmWallet,
+  fetchStickerPrintSheet,
+  formatInr,
+  requestStickerPrint,
+} from "@/lib/api";
+import { quoteStickerPrint } from "@/lib/sticker-print-pricing";
 
 export type StickerPreviewPayload = {
   batchId: string;
@@ -36,9 +46,14 @@ export function StickerPreviewDialog({
   const [restaurantName, setRestaurantName] = useState("Your kitchen");
   const [loading, setLoading] = useState(false);
   const [requestBusy, setRequestBusy] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [sentAt, setSentAt] = useState<string | null>(null);
+  const [walletBalancePaise, setWalletBalancePaise] = useState<number | null>(null);
+  const [walletSpendablePaise, setWalletSpendablePaise] = useState<number | null>(null);
+  const [minBalancePaise, setMinBalancePaise] = useState(100_000);
 
   const design = useMemo(() => {
     const id = payload?.designId ?? 1;
@@ -48,9 +63,24 @@ export function StickerPreviewDialog({
   useEffect(() => {
     if (!open || !payload) return;
     setError(null);
+    setPayError(null);
     setMessage(null);
+    setPayOpen(false);
     setSentAt(payload.printRequestedAt ?? null);
     setRestaurantName(payload.restaurantName || "Your kitchen");
+
+    void fetchCrmWallet(restaurantId)
+      .then((w) => {
+        setWalletBalancePaise(w.balancePaise);
+        setMinBalancePaise(w.minBalancePaise ?? 100_000);
+        setWalletSpendablePaise(
+          w.spendablePaise ?? Math.max(0, w.balancePaise - (w.minBalancePaise ?? 100_000)),
+        );
+      })
+      .catch(() => {
+        setWalletBalancePaise(null);
+        setWalletSpendablePaise(null);
+      });
 
     if (payload.samples.length > 0) {
       setSamples(payload.samples);
@@ -72,14 +102,23 @@ export function StickerPreviewDialog({
 
   const alreadySent = Boolean(sentAt);
   const hero = samples[0];
+  const quote = quoteStickerPrint(payload.quantity);
 
-  async function onSend() {
+  function openPayment() {
+    setPayError(null);
+    setError(null);
+    setPayOpen(true);
+  }
+
+  async function onConfirmPay(method: StickerPayMethod) {
     const batch = payload;
     if (!batch) return;
     setRequestBusy(true);
+    setPayError(null);
     setError(null);
     setMessage(null);
     try {
+      const q = quoteStickerPrint(batch.quantity);
       const res = await requestStickerPrint({
         restaurantId,
         batchId: batch.batchId,
@@ -88,17 +127,31 @@ export function StickerPreviewDialog({
         designName: batch.designName || design.name,
         sampleCount: Math.min(3, samples.length || 3),
         notes: batch.notes,
+        totalPaise: q.totalPaise,
+        paymentConfirmed: true,
+        paymentMethod: method,
       });
       const at = res.printRequestedAt ?? new Date().toISOString();
       setSentAt(at);
       onSent?.(at);
+      setPayOpen(false);
+      const via =
+        method === "wallet" ? "from wallet" : res.paymentMethod === "razorpay" ? "via Razorpay" : "paid";
       setMessage(
         res.emailed
-          ? `Print request emailed to ${res.to} with ${res.sampleAttached} sample(s).`
-          : `Request logged for ${res.to}. Configure RESEND_API_KEY for live email.`,
+          ? `${formatInr(q.totalPaise)} ${via} · print request emailed to ${res.to}.`
+          : `${formatInr(q.totalPaise)} ${via} · request logged for ${res.to}.`,
       );
+      void fetchCrmWallet(restaurantId)
+        .then((w) => {
+          setWalletBalancePaise(w.balancePaise);
+          setWalletSpendablePaise(
+            w.spendablePaise ?? Math.max(0, w.balancePaise - (w.minBalancePaise ?? 100_000)),
+          );
+        })
+        .catch(() => undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setPayError(err instanceof Error ? err.message : "Payment / request failed");
     } finally {
       setRequestBusy(false);
     }
@@ -221,9 +274,14 @@ export function StickerPreviewDialog({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/40 px-5 py-4">
-          <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-            <MaterialIcon name="lock" className="text-[16px] text-tertiary" />
-            No PDF download
+          <p className="flex min-w-0 flex-col gap-0.5 text-xs text-on-surface-variant">
+            <span className="flex items-center gap-1.5">
+              <MaterialIcon name="lock" className="text-[16px] text-tertiary" />
+              No PDF download
+            </span>
+            <span className="tabular-nums">
+              From {formatInr(quote.totalPaise)} incl. GST &amp; delivery
+            </span>
           </p>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
@@ -233,19 +291,31 @@ export function StickerPreviewDialog({
               type="button"
               className="gap-2"
               disabled={requestBusy || loading || samples.length === 0}
-              onClick={() => void onSend()}
+              onClick={openPayment}
               data-testid="sticker-send-print-request"
             >
-              <MaterialIcon name="outgoing_mail" className="text-[18px]" />
-              {requestBusy
-                ? "Sending…"
-                : alreadySent
-                  ? "Send again to Damigos"
-                  : "Send request to Damigos"}
+              <MaterialIcon name="payments" className="text-[18px]" />
+              {alreadySent ? "Pay & send again" : "Send request to Damigos"}
             </Button>
           </div>
         </div>
       </div>
+
+      <StickerPrintPaymentDialog
+        open={payOpen}
+        onClose={() => {
+          if (!requestBusy) setPayOpen(false);
+        }}
+        onConfirmPay={(method) => void onConfirmPay(method)}
+        quantity={payload.quantity}
+        batchCode={payload.batchCode}
+        designName={payload.designName || design.name}
+        busy={requestBusy}
+        error={payError}
+        walletBalancePaise={walletBalancePaise}
+        walletSpendablePaise={walletSpendablePaise}
+        minBalancePaise={minBalancePaise}
+      />
     </div>
   );
 }

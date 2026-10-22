@@ -597,6 +597,9 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
         riderArrivedAt: order.riderArrivedAt?.toISOString() ?? null,
         readyForPickupAt: order.readyForPickupAt?.toISOString() ?? null,
         createdAt: order.createdAt.toISOString(),
+        deliveryOtpSent: Boolean(order.deliveryOtpSentAt),
+        deliveryOtpVerified: Boolean(order.deliveryOtpVerifiedAt),
+        // OTP digits only via WhatsApp — never expose hash or code here
       },
       items,
       shipment: shipment

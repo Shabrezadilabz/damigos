@@ -11,6 +11,7 @@ import {
 import { useCrmRestaurant } from "@/components/use-crm-restaurant";
 import { cn } from "@/lib/utils";
 import { BrandThemeDialog } from "./brand-theme-dialog";
+import { SettingsKotPanel } from "./settings-kot-panel";
 import { SettingsLocationPanel } from "./settings-location-panel";
 import { SETTINGS_TABS, parseSettingsTab, type SettingsTabId } from "./settings-tabs";
 import { TeamInviteDialog } from "./team-invite-dialog";
@@ -239,6 +240,8 @@ export function SettingsPageClient({ tabParam }: { tabParam?: string }) {
             </button>
           </div>
         ) : null}
+
+        {tab === "kot" ? <SettingsKotPanel /> : null}
       </div>
 
       {restaurantId ? (

@@ -19,6 +19,16 @@ export {
   type ShiprocketMode,
 } from "./shiprocket.js";
 
+export {
+  generateDeliveryOtp,
+  generatePickupCode,
+  hashDeliveryOtp,
+  matchesPickupToken,
+  normalizeHandoffToken,
+  shortOrderId,
+  verifyDeliveryOtp,
+} from "./delivery-handoff.js";
+
 /** Shared domain types — align with docs/architecture/DATA-MODEL.md */
 
 export type StickerTokenStatus = "ACTIVE" | "EXPIRED" | "REVOKED" | "CONSUMED";

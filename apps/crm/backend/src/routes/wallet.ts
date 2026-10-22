@@ -73,10 +73,21 @@ export async function registerWalletRoutes(app: FastifyInstance) {
       });
     }
 
+    const stubOrderId = `order_stub_${Date.now().toString(36)}`;
+    const stubPaymentId = `pay_stub_${idempotencyKey.slice(0, 12)}`;
     const wallet = await creditTopUp({
       restaurantId: body.restaurantId,
       amountPaise: body.amountPaise,
       idempotencyKey,
+      meta: {
+        paymentMethod: "stub",
+        orderId: stubOrderId,
+        razorpayOrderId: stubOrderId,
+        razorpayPaymentId: stubPaymentId,
+        transactionId: stubPaymentId,
+        utr: stubPaymentId,
+        note: "Stub wallet top-up",
+      },
     });
 
     return { wallet, mode: "stub" };
@@ -164,6 +175,16 @@ export async function registerWalletRoutes(app: FastifyInstance) {
       restaurantId: body.restaurantId,
       amountPaise: body.amountPaise,
       idempotencyKey: `rzp_${body.razorpayPaymentId}`,
+      meta: {
+        paymentMethod: "razorpay",
+        orderId: body.razorpayOrderId,
+        razorpayOrderId: body.razorpayOrderId,
+        razorpayPaymentId: body.razorpayPaymentId,
+        razorpaySignature: body.razorpaySignature,
+        transactionId: body.razorpayPaymentId,
+        utr: body.razorpayPaymentId,
+        note: "Razorpay wallet top-up",
+      },
     });
 
     return { wallet, mode: "live" as const };

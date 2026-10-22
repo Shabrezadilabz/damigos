@@ -352,6 +352,17 @@ export async function generateStickerBatch(input: {
   });
 }
 
+export type StickerPrintQuoteDto = {
+  quantity: number;
+  unitPaise: number;
+  stickersPaise: number;
+  deliveryPaise: number;
+  taxablePaise: number;
+  gstPaise: number;
+  gstRate: number;
+  totalPaise: number;
+};
+
 export async function requestStickerPrint(input: {
   restaurantId: string;
   batchId: string;
@@ -360,6 +371,12 @@ export async function requestStickerPrint(input: {
   designName: string;
   sampleCount?: number;
   notes?: string;
+  /** Must match server quote for the quantity */
+  totalPaise: number;
+  paymentConfirmed: boolean;
+  paymentMethod?: "wallet" | "external";
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
 }) {
   return stickerFetch<{
     ok: boolean;
@@ -367,6 +384,10 @@ export async function requestStickerPrint(input: {
     to: string;
     sampleAttached: number;
     printRequestedAt?: string;
+    quote?: StickerPrintQuoteDto;
+    paymentStatus?: string;
+    paymentMethod?: string;
+    walletTxnId?: string | null;
   }>(`/v1/stickers/print-request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -610,6 +631,12 @@ export type CrmOrder = {
     foodDelivery?: boolean | null;
     shiprocketShipmentId?: string | null;
   } | null;
+  shortOrderId?: string | null;
+  pickupCode?: string | null;
+  pickupVerifiedAt?: string | null;
+  deliveryOtpSentAt?: string | null;
+  deliveryOtpVerifiedAt?: string | null;
+  deliveryVerifySource?: string | null;
 };
 
 export type DashboardOverview = {
@@ -738,15 +765,33 @@ export function computeWaitingPenaltyPaiseClient(input: {
   return { penaltyPaise, overtimeMin, graceMin };
 }
 
-export async function patchCrmOrderStatus(orderId: string, status: string) {
+export async function patchCrmOrderStatus(
+  orderId: string,
+  status: string,
+  opts?: { pickupToken?: string; deliveryOtp?: string },
+) {
   const res = await fetch(`${base}/v1/orders/${orderId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status,
+      ...(opts?.pickupToken ? { pickupToken: opts.pickupToken } : {}),
+      ...(opts?.deliveryOtp ? { deliveryOtp: opts.deliveryOtp } : {}),
+    }),
   });
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Status update failed"));
   return data.order as CrmOrder;
+}
+
+export async function resendCrmDeliveryOtp(orderId: string) {
+  const res = await fetch(`${base}/v1/orders/${orderId}/resend-delivery-otp`, {
+    method: "POST",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Resend OTP failed"));
+  return data as { ok: boolean; mockOtp?: string | null };
 }
 
 export type GrowOffersGame = {
@@ -853,18 +898,42 @@ export async function fetchCrmCustomerDetail(restaurantId: string, customerId: s
   return data as CrmCustomerDetail;
 }
 
+export type CrmWalletTxnMeta = {
+  paymentMethod?: string | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  razorpaySignature?: string | null;
+  utr?: string | null;
+  transactionId?: string | null;
+  orderId?: string | null;
+  batchId?: string | null;
+  batchCode?: string | null;
+  quantity?: number | null;
+  designName?: string | null;
+  stickersPaise?: number | null;
+  deliveryPaise?: number | null;
+  gstPaise?: number | null;
+  totalPaise?: number | null;
+  note?: string | null;
+};
+
+export type CrmWalletLedgerRow = {
+  id: string;
+  kind: string;
+  amountPaise: number;
+  reference: string | null;
+  meta?: CrmWalletTxnMeta | null;
+  createdAt: string;
+};
+
 export type CrmWallet = {
   balancePaise: number;
   approxBroadcastCredits?: number;
   msgCostPaise?: number;
+  minBalancePaise?: number;
+  spendablePaise?: number;
   lowBalance: boolean;
-  ledger: {
-    id: string;
-    kind: string;
-    amountPaise: number;
-    reference: string | null;
-    createdAt: string;
-  }[];
+  ledger: CrmWalletLedgerRow[];
   topupMode?: "stub" | "live";
   packsPaise?: number[];
 };

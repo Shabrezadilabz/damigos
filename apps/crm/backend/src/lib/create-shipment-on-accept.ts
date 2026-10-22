@@ -2,6 +2,7 @@ import { and, eq, ne } from "drizzle-orm";
 import {
   createShiprocketShipmentBundle,
   deliveryMode,
+  generatePickupCode,
   shiprocketCredentialsConfigured,
 } from "@damigos/domain";
 import {
@@ -14,6 +15,15 @@ import {
   shipments,
 } from "@damigos/db";
 
+async function ensurePickupCode(orderId: string) {
+  const [row] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  if (!row) return null;
+  if (row.pickupCode) return row.pickupCode;
+  const code = generatePickupCode();
+  await db.update(orders).set({ pickupCode: code }).where(eq(orders.id, orderId));
+  return code;
+}
+
 /**
  * Accept → Shiprocket food dispatch (Quick / Instant preferred).
  * create adhoc → assign AWB (food-friendly courier) → generate pickup.
@@ -24,6 +34,8 @@ export async function createShipmentOnAccept(orderId: string) {
 
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!order) return null;
+
+  await ensurePickupCode(orderId);
 
   const [existing] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).limit(1);
   if (existing) {
@@ -114,6 +126,7 @@ export async function createShipmentOnAccept(orderId: string) {
           unitPricePaise: l.unitPricePaise,
         })),
         assignAwb: true,
+        pickupLocation: kitchen?.shiprocketPickupLocation ?? null,
         pickupLat: kitchen?.lat ?? null,
         pickupLng: kitchen?.lng ?? null,
       });

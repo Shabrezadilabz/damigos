@@ -301,6 +301,21 @@ export async function sendFoodOrderConfirmed(input: {
   return sendKapsoText("food", input.toPhone, body);
 }
 
+export async function sendFoodDeliveryOtp(input: {
+  toPhone: string;
+  kitchenName: string;
+  orderShortId: string;
+  otp: string;
+}) {
+  const body =
+    `🔐 *Delivery OTP*\n` +
+    `*${input.kitchenName}* · #${input.orderShortId}\n\n` +
+    `Share this code with the rider only when they arrive:\n` +
+    `*${input.otp}*\n\n` +
+    `_Never share on phone calls. D'aMigo Food_`;
+  return sendKapsoText("food", input.toPhone, body);
+}
+
 export async function sendFoodOrderTrackUpdate(input: {
   toPhone: string;
   kitchenName: string;

@@ -1,9 +1,15 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import {
+  matchesPickupToken,
+  shortOrderId,
+  verifyDeliveryOtp,
+} from "@damigos/domain";
 import { customers, db, orderItems, orders, shipments } from "@damigos/db";
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
 import { createShipmentOnAccept } from "../lib/create-shipment-on-accept.js";
+import { issueAndSendDeliveryOtp } from "../lib/issue-delivery-otp.js";
 import {
   prepDeadlineFrom,
   resolvePrepMinutesForOrder,
@@ -107,6 +113,12 @@ export async function registerOrderRoutes(app: FastifyInstance) {
                 shiprocketShipmentId: ship.shiprocketShipmentId ?? null,
               }
             : null,
+          shortOrderId: shortOrderId(order.id),
+          pickupCode: order.pickupCode ?? null,
+          pickupVerifiedAt: order.pickupVerifiedAt?.toISOString() ?? null,
+          deliveryOtpSentAt: order.deliveryOtpSentAt?.toISOString() ?? null,
+          deliveryOtpVerifiedAt: order.deliveryOtpVerifiedAt?.toISOString() ?? null,
+          deliveryVerifySource: order.deliveryVerifySource ?? null,
           prepDeadlineAt: order.prepDeadlineAt?.toISOString() ?? null,
           riderArrivedAt: order.riderArrivedAt?.toISOString() ?? null,
           readyForPickupAt: order.readyForPickupAt?.toISOString() ?? null,
@@ -272,6 +284,10 @@ export async function registerOrderRoutes(app: FastifyInstance) {
           "DELIVERED",
           "CANCELLED",
         ]),
+        /** Rider states AWB / short order id / pickup code at kitchen handoff */
+        pickupToken: z.string().min(4).max(64).optional(),
+        /** Guest delivery OTP at door (Damigos-owned) */
+        deliveryOtp: z.string().min(4).max(12).optional(),
       })
       .parse(request.body);
 
@@ -294,7 +310,45 @@ export async function registerOrderRoutes(app: FastifyInstance) {
       });
     }
 
-    return advanceOrder(request, reply, params.orderId, body.status, allowedFrom[body.status] ?? []);
+    return advanceOrder(request, reply, params.orderId, body.status, allowedFrom[body.status] ?? [], {
+      pickupToken: body.pickupToken,
+      deliveryOtp: body.deliveryOtp,
+    });
+  });
+
+  /** Resend guest delivery OTP (WhatsApp). */
+  app.post("/orders/:orderId/resend-delivery-otp", { preHandler: kitchenRoles }, async (request, reply) => {
+    const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
+    const [row] = await db.select().from(orders).where(eq(orders.id, params.orderId)).limit(1);
+    if (!row) {
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Order not found", correlationId: request.id },
+      });
+    }
+    await enforceRestaurantScope(request, reply, row.restaurantId);
+    if (reply.sent) return;
+
+    if (row.status !== "DISPATCHED" && row.status !== "READY") {
+      return reply.status(409).send({
+        error: {
+          code: "INVALID_STATUS",
+          message: "OTP only after ready / out for delivery",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const result = await issueAndSendDeliveryOtp(row.id);
+    if (!result.sent) {
+      return reply.status(502).send({
+        error: {
+          code: "OTP_SEND_FAILED",
+          message: result.error ?? "Failed to send OTP",
+          correlationId: request.id,
+        },
+      });
+    }
+    return { ok: true, mockOtp: result.otp ?? null };
   });
 }
 
@@ -304,6 +358,7 @@ async function advanceOrder(
   orderId: string,
   targetStatus: string,
   allowedFrom: string[],
+  handoff: { pickupToken?: string; deliveryOtp?: string } = {},
 ) {
   const [row] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!row) {
@@ -325,17 +380,88 @@ async function advanceOrder(
     });
   }
 
+  const [ship] = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).limit(1);
+
+  if (targetStatus === "DISPATCHED") {
+    const token = handoff.pickupToken?.trim();
+    if (!token) {
+      return reply.status(400).send({
+        error: {
+          code: "PICKUP_TOKEN_REQUIRED",
+          message: "Enter AWB, order id, or pickup code the rider states",
+          correlationId: request.id,
+        },
+      });
+    }
+    const ok = matchesPickupToken(token, {
+      pickupCode: row.pickupCode,
+      orderId: row.id,
+      awb: ship?.awb,
+    });
+    if (!ok) {
+      return reply.status(400).send({
+        error: {
+          code: "PICKUP_TOKEN_MISMATCH",
+          message: "Code does not match this order’s AWB / order id / pickup code",
+          correlationId: request.id,
+        },
+      });
+    }
+  }
+
+  if (targetStatus === "DELIVERED") {
+    // Shiprocket webhook may already have verified; kitchen confirm needs Damigos OTP when issued
+    if (row.deliveryOtpHash && !row.deliveryOtpVerifiedAt) {
+      const otp = handoff.deliveryOtp?.trim();
+      if (!otp) {
+        return reply.status(400).send({
+          error: {
+            code: "DELIVERY_OTP_REQUIRED",
+            message: "Enter the guest delivery OTP",
+            correlationId: request.id,
+          },
+        });
+      }
+      if (!verifyDeliveryOtp(otp, row.deliveryOtpHash)) {
+        return reply.status(400).send({
+          error: {
+            code: "DELIVERY_OTP_INVALID",
+            message: "Delivery OTP is incorrect",
+            correlationId: request.id,
+          },
+        });
+      }
+    }
+  }
+
   const patch: Partial<typeof orders.$inferInsert> = {
     status: targetStatus as typeof row.status,
   };
   if (targetStatus === "READY") {
     patch.readyForPickupAt = new Date();
   }
+  if (targetStatus === "DISPATCHED") {
+    patch.pickupVerifiedAt = new Date();
+  }
+  if (targetStatus === "DELIVERED") {
+    if (handoff.deliveryOtp && row.deliveryOtpHash) {
+      patch.deliveryOtpVerifiedAt = new Date();
+      patch.deliveryVerifySource = "damigos";
+    } else if (!row.deliveryVerifySource) {
+      patch.deliveryVerifySource = "kitchen_confirm";
+    }
+  }
 
   const [updated] = await db.update(orders).set(patch).where(eq(orders.id, orderId)).returning();
 
   if (targetStatus === "DISPATCHED" || targetStatus === "DELIVERED") {
     await finalizeWaitingPenalty(orderId);
+  }
+
+  if (targetStatus === "DISPATCHED") {
+    void issueAndSendDeliveryOtp(orderId).catch((err) =>
+      console.warn("[delivery-otp] send failed", err),
+    );
   }
 
   void publishKitchenRefresh(row.restaurantId);
@@ -346,6 +472,8 @@ async function advanceOrder(
     order: {
       ...(finalOrder ?? updated),
       prepDeadlineAt: (finalOrder ?? updated).prepDeadlineAt?.toISOString() ?? null,
+      shortOrderId: shortOrderId(orderId),
+      pickupCode: (finalOrder ?? updated).pickupCode ?? null,
     },
     suggestedNext: nextStatus[targetStatus] ?? null,
   };

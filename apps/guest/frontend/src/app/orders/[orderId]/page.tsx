@@ -45,6 +45,8 @@ export default function OrderTrackPage({ params }: { params: Promise<{ orderId: 
     prepDeadlineAt?: string | null;
     committedPrepMinutes?: number | null;
     extendedPrepMinutes?: number | null;
+    deliveryOtpSent?: boolean;
+    deliveryOtpVerified?: boolean;
   } | null>(null);
   const [shipment, setShipment] = useState<{
     awb: string | null;
@@ -229,6 +231,19 @@ export default function OrderTrackPage({ params }: { params: Promise<{ orderId: 
                   Rider assigns when kitchen Accepts
                 </p>
               )}
+              {order.status === "DISPATCHED" && order.deliveryOtpSent ? (
+                <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2.5 ring-1 ring-amber-200">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
+                    Delivery OTP on WhatsApp
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-amber-950">
+                    Share the 6-digit code with the rider only when they hand you the parcel. Never share on a call.
+                  </p>
+                </div>
+              ) : null}
+              {order.deliveryOtpVerified ? (
+                <p className="mt-2 text-[12px] font-semibold text-success">Parcel verified · delivered</p>
+              ) : null}
             </div>
 
             <div className="relative overflow-hidden rounded-2xl bg-surface-container-low p-4">

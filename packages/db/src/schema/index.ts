@@ -54,6 +54,8 @@ export const restaurants = pgTable("restaurants", {
   growLoyaltyConfig: text("grow_loyalty_config"),
   /** JSON — logo URL, colors, display name from menu/brand AI extract (DeepSeek) */
   brandKit: text("brand_kit"),
+  /** Shiprocket pickup_location nickname (must exist on SR account). One per kitchen. */
+  shiprocketPickupLocation: varchar("shiprocket_pickup_location", { length: 36 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -280,6 +282,15 @@ export const orders = pgTable("orders", {
   readyForPickupAt: timestamp("ready_for_pickup_at", { withTimezone: true }),
   waitingPenaltyPaise: integer("waiting_penalty_paise").default(0).notNull(),
   waitingPenaltyFinalized: boolean("waiting_penalty_finalized").default(false).notNull(),
+  /** 4-digit kitchen ↔ rider code (shown on board + KOT). */
+  pickupCode: varchar("pickup_code", { length: 8 }),
+  pickupVerifiedAt: timestamp("pickup_verified_at", { withTimezone: true }),
+  /** SHA-256 of guest delivery OTP (pepper in DELIVERY_OTP_PEPPER). */
+  deliveryOtpHash: varchar("delivery_otp_hash", { length: 64 }),
+  deliveryOtpSentAt: timestamp("delivery_otp_sent_at", { withTimezone: true }),
+  deliveryOtpVerifiedAt: timestamp("delivery_otp_verified_at", { withTimezone: true }),
+  /** damigos | shiprocket_webhook | courier_pod */
+  deliveryVerifySource: varchar("delivery_verify_source", { length: 32 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -492,6 +503,8 @@ export const walletTransactions = pgTable("wallet_transactions", {
   kind: varchar("kind", { length: 32 }).notNull(),
   amountPaise: integer("amount_paise").notNull(),
   reference: varchar("reference", { length: 128 }),
+  /** JSON: razorpayOrderId, razorpayPaymentId, utr, batchId, paymentMethod, … */
+  meta: text("meta"),
   idempotencyKey: varchar("idempotency_key", { length: 64 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

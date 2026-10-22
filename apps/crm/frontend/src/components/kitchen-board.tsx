@@ -11,6 +11,7 @@ import {
   formatInr,
   markCrmRiderArrived,
   patchCrmOrderStatus,
+  resendCrmDeliveryOtp,
   type CrmOrder,
 } from "@/lib/api";
 import { useCrmRestaurant } from "@/components/use-crm-restaurant";
@@ -20,6 +21,8 @@ import {
   readKitchenSoundOn,
   stopKitchenRing,
 } from "@/lib/kitchen-alert-audio";
+import { KotPrintToast } from "@/components/kot-print-toast";
+import { printKotForOrder, tryAutoPrintKot } from "@/lib/kot-printer";
 import { resolveMenuItemImageUrl } from "@/lib/menu-item-thumb";
 import { getCrmToken } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -73,14 +76,22 @@ function OrderCard({
   order,
   column,
   onRefresh,
+  restaurantName,
+  onKotNotice,
 }: {
   order: CrmOrder;
   column: "new" | "prep" | "out";
   onRefresh: () => Promise<void>;
+  restaurantName: string;
+  onKotNotice: (msg: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [pickupToken, setPickupToken] = useState("");
+  const [deliveryOtp, setDeliveryOtp] = useState("");
+  const [handoffError, setHandoffError] = useState<string | null>(null);
   const prep = prepFromOrder(order);
+  const shortId = order.shortOrderId ?? order.id.slice(0, 8).toUpperCase();
 
   useEffect(() => {
     if (column !== "prep" && column !== "new") return;
@@ -108,6 +119,55 @@ function OrderCard({
   async function onAccept() {
     if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
     await act(() => acceptCrmOrder(order.id, acceptPrepMin));
+    // Auto KOT if printer connected; soft error otherwise — order stays on board
+    const kotErr = await tryAutoPrintKot(order, restaurantName);
+    if (kotErr) onKotNotice(kotErr);
+  }
+
+  async function onPrintKot() {
+    setBusy(true);
+    try {
+      await printKotForOrder(order, restaurantName);
+    } catch (e) {
+      onKotNotice(e instanceof Error ? e.message : "No printer connected");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDispatch() {
+    setHandoffError(null);
+    const token = pickupToken.trim();
+    if (!token) {
+      setHandoffError("Ask rider for AWB / order id / pickup code");
+      return;
+    }
+    setBusy(true);
+    try {
+      await patchCrmOrderStatus(order.id, "DISPATCHED", { pickupToken: token });
+      await onRefresh();
+      setPickupToken("");
+    } catch (e) {
+      setHandoffError(e instanceof Error ? e.message : "Handoff failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onConfirmDelivered() {
+    setHandoffError(null);
+    setBusy(true);
+    try {
+      await patchCrmOrderStatus(order.id, "DELIVERED", {
+        deliveryOtp: deliveryOtp.trim() || undefined,
+      });
+      await onRefresh();
+      setDeliveryOtp("");
+    } catch (e) {
+      setHandoffError(e instanceof Error ? e.message : "Delivery confirm failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onExtend5() {
@@ -117,7 +177,6 @@ function OrderCard({
     await act(() => extendCrmOrderPrep(order.id));
   }
 
-  const shortId = order.id.slice(0, 8).toUpperCase();
   const subtotal = order.subtotalPaise ?? order.totalPaise + order.discountPaise;
   const hasDiscount = order.discountPaise > 0;
   const remainSec = prep ? Math.floor((prep.deadlineMs - now) / 1000) : null;
@@ -220,26 +279,52 @@ function OrderCard({
         </div>
       ) : null}
 
-      {order.shipment ? (
+      {column !== "new" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 w-full gap-1.5 rounded-xl"
+          disabled={busy}
+          onClick={() => void onPrintKot()}
+          data-testid="kitchen-print-kot"
+        >
+          <MaterialIcon name="print" className="text-[16px]" />
+          Print KOT
+        </Button>
+      ) : null}
+
+      {order.shipment || order.pickupCode ? (
         <div className="rounded-xl bg-sky-50 px-3 py-2.5 ring-1 ring-sky-200">
           <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800">
-            {order.shipment.foodDelivery !== false
+            {order.shipment?.foodDelivery !== false
               ? "Food delivery · Shiprocket"
               : "Shiprocket"}
           </p>
-          <p className="mt-0.5 text-[12px] font-semibold text-sky-950">
-            {order.shipment.carrier}
-            {order.shipment.awb ? (
-              <span className="ml-1 font-mono text-[11px]">· {order.shipment.awb}</span>
+          {order.shipment ? (
+            <p className="mt-0.5 text-[12px] font-semibold text-sky-950">
+              {order.shipment.carrier}
+              {order.shipment.awb ? (
+                <span className="ml-1 font-mono text-[11px]">· {order.shipment.awb}</span>
+              ) : null}
+            </p>
+          ) : null}
+          <p className="mt-1 font-mono text-[13px] font-bold text-sky-950">
+            Order #{shortId}
+            {order.pickupCode ? (
+              <span className="ml-2 rounded-md bg-white/80 px-1.5 py-0.5 text-sky-900">
+                Pickup {order.pickupCode}
+              </span>
             ) : null}
           </p>
           <p className="mt-0.5 text-[11px] text-sky-900/80">
-            {order.shipment.lastTrackingStatus ?? order.shipment.status}
+            Rider must state AWB / #{shortId} / pickup code before handoff
           </p>
-          <p className="mt-1 text-[10px] text-sky-800/90">
-            Limits · ≤50 km · 2-wheeler meals · ETA 10–60 min after AWB
-          </p>
-          {order.shipment.trackingUrl ? (
+          {order.shipment?.lastTrackingStatus || order.shipment?.status ? (
+            <p className="mt-0.5 text-[11px] text-sky-900/80">
+              {order.shipment.lastTrackingStatus ?? order.shipment.status}
+            </p>
+          ) : null}
+          {order.shipment?.trackingUrl ? (
             <a
               href={order.shipment.trackingUrl}
               target="_blank"
@@ -361,26 +446,80 @@ function OrderCard({
             </p>
           ) : null}
           {order.status === "READY" ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-11 w-full rounded-xl"
-              disabled={busy}
-              onClick={() => act(() => patchCrmOrderStatus(order.id, "DISPATCHED"))}
-            >
-              Out for delivery
-            </Button>
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                Rider states (AWB / #{shortId} / pickup code)
+              </label>
+              <input
+                className="h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 font-mono text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder={order.pickupCode ?? order.shipment?.awb?.slice(-6) ?? shortId}
+                value={pickupToken}
+                onChange={(e) => setPickupToken(e.target.value)}
+                data-testid="kitchen-pickup-token"
+              />
+              <Button
+                size="sm"
+                className="h-11 w-full rounded-xl bg-[#24963F] text-white hover:bg-[#1E7D34]"
+                disabled={busy}
+                onClick={() => void onDispatch()}
+                data-testid="kitchen-out-for-delivery"
+              >
+                Verify &amp; out for delivery
+              </Button>
+              <p className="text-[10px] text-on-surface-variant">
+                Guest gets a delivery OTP on WhatsApp after this step.
+              </p>
+            </div>
           ) : (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-11 w-full gap-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest"
-              disabled={busy}
-              onClick={() => act(() => patchCrmOrderStatus(order.id, "DELIVERED"))}
-            >
-              Confirm handover
-            </Button>
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                Guest delivery OTP
+              </label>
+              <input
+                className="h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 font-mono text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="6-digit OTP"
+                inputMode="numeric"
+                value={deliveryOtp}
+                onChange={(e) => setDeliveryOtp(e.target.value)}
+                data-testid="kitchen-delivery-otp"
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-11 w-full gap-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest"
+                disabled={busy}
+                onClick={() => void onConfirmDelivered()}
+                data-testid="kitchen-confirm-delivered"
+              >
+                Confirm handover
+              </Button>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-primary underline"
+                disabled={busy}
+                onClick={() =>
+                  void resendCrmDeliveryOtp(order.id)
+                    .then(() => setHandoffError(null))
+                    .catch((e) =>
+                      setHandoffError(e instanceof Error ? e.message : "Resend failed"),
+                    )
+                }
+              >
+                Resend OTP to guest
+              </button>
+              {order.deliveryVerifySource === "shiprocket_webhook" ||
+              order.deliveryVerifySource === "courier_pod" ? (
+                <p className="text-[10px] text-[#24963F]">
+                  Shiprocket already marked delivered — OTP optional.
+                </p>
+              ) : null}
+            </div>
           )}
+          {handoffError ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+              {handoffError}
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -400,6 +539,8 @@ function Column({
   orders,
   column,
   onRefresh,
+  restaurantName,
+  onKotNotice,
 }: {
   title: string;
   badge: string;
@@ -407,6 +548,8 @@ function Column({
   orders: CrmOrder[];
   column: "new" | "prep" | "out";
   onRefresh: () => Promise<void>;
+  restaurantName: string;
+  onKotNotice: (msg: string) => void;
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -421,7 +564,14 @@ function Column({
       </div>
       <div className="flex flex-col gap-4">
         {orders.map((o) => (
-          <OrderCard key={o.id} order={o} column={column} onRefresh={onRefresh} />
+          <OrderCard
+            key={o.id}
+            order={o}
+            column={column}
+            onRefresh={onRefresh}
+            restaurantName={restaurantName}
+            onKotNotice={onKotNotice}
+          />
         ))}
         {!orders.length && <p className="px-2 text-xs text-on-surface-variant">No orders in this lane</p>}
       </div>
@@ -535,8 +685,10 @@ export function KitchenBoard({
   const [connection, setConnection] = useState<KitchenConnection>("polling");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [slaBreachOrder, setSlaBreachOrder] = useState<CrmOrder | null>(null);
+  const [kotNotice, setKotNotice] = useState<string | null>(null);
   const seenPaidIdsRef = useRef<Set<string> | null>(null);
   const alertedSlaIdsRef = useRef<Set<string>>(new Set());
+  const kitchenLabel = "Damigos Kitchen";
 
   const reload = useCallback(async () => {
     if (!restaurantId) return;
@@ -693,6 +845,7 @@ export function KitchenBoard({
 
   return (
     <div className="space-y-4">
+      <KotPrintToast message={kotNotice} onDone={() => setKotNotice(null)} />
       {slaBreachOrder ? (
         <SlaBreachDialog
           order={slaBreachOrder}
@@ -760,6 +913,8 @@ export function KitchenBoard({
               orders={cols.new}
               column="new"
               onRefresh={reload}
+              restaurantName={kitchenLabel}
+              onKotNotice={setKotNotice}
             />
             <Column
               title="Preparing"
@@ -768,6 +923,8 @@ export function KitchenBoard({
               orders={cols.prep}
               column="prep"
               onRefresh={reload}
+              restaurantName={kitchenLabel}
+              onKotNotice={setKotNotice}
             />
             <Column
               title="Out for delivery"
@@ -776,6 +933,8 @@ export function KitchenBoard({
               orders={cols.out}
               column="out"
               onRefresh={reload}
+              restaurantName={kitchenLabel}
+              onKotNotice={setKotNotice}
             />
           </div>
         </div>
@@ -788,6 +947,8 @@ export function KitchenBoard({
             orders={cols.new}
             column="new"
             onRefresh={reload}
+            restaurantName={kitchenLabel}
+            onKotNotice={setKotNotice}
           />
           <Column
             title="Preparing"
@@ -796,6 +957,8 @@ export function KitchenBoard({
             orders={cols.prep}
             column="prep"
             onRefresh={reload}
+            restaurantName={kitchenLabel}
+            onKotNotice={setKotNotice}
           />
           <Column
             title="Out"
@@ -804,6 +967,8 @@ export function KitchenBoard({
             orders={cols.out}
             column="out"
             onRefresh={reload}
+            restaurantName={kitchenLabel}
+            onKotNotice={setKotNotice}
           />
         </div>
       )}
