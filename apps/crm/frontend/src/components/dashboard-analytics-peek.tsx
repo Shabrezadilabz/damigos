@@ -15,21 +15,32 @@ type Props = {
 export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exporting }: Props) {
   const funnel = analytics?.funnel ?? [];
   const hasLive = funnel.some((f) => f.count > 0);
-  const scans = funnel.find((f) => f.step === "scan")?.count ?? (hasLive ? 0 : 14_890);
-  const games = funnel.find((f) => f.step === "game")?.count ?? (hasLive ? 0 : 12_450);
-  const orders = funnel.find((f) => f.step === "order")?.count ?? (hasLive ? 0 : 9_560);
-  const conv = scans > 0 ? ((orders / scans) * 100).toFixed(1) : "64.2";
+  const scans = funnel.find((f) => f.step === "scan")?.count ?? 0;
+  const games = funnel.find((f) => f.step === "game")?.count ?? 0;
+  const orders = funnel.find((f) => f.step === "order")?.count ?? 0;
+  const conv = scans > 0 ? ((orders / scans) * 100).toFixed(1) : "0.0";
 
-  const hourBars = [
-    { label: "12p", h: "h-8", cls: "bg-surface-container-high" },
-    { label: "2p", h: "h-12", cls: "bg-surface-container-high" },
-    { label: "4p", h: "h-6", cls: "bg-surface-container-high" },
-    { label: "6p", h: "h-16", cls: "bg-surface-container-high" },
-    { label: "8p", h: "h-24", cls: "bg-primary-container" },
-    { label: "9p", h: "h-28", cls: "bg-primary" },
-    { label: "10p", h: "h-20", cls: "bg-primary-container" },
-    { label: "11p", h: "h-10", cls: "bg-surface-container-high" },
-  ];
+  const hourBars = hasLive
+    ? [
+        { label: "12p", h: "h-8", cls: "bg-surface-container-high" },
+        { label: "2p", h: "h-12", cls: "bg-surface-container-high" },
+        { label: "4p", h: "h-6", cls: "bg-surface-container-high" },
+        { label: "6p", h: "h-16", cls: "bg-surface-container-high" },
+        { label: "8p", h: "h-24", cls: "bg-primary-container" },
+        { label: "9p", h: "h-28", cls: "bg-primary" },
+        { label: "10p", h: "h-20", cls: "bg-primary-container" },
+        { label: "11p", h: "h-10", cls: "bg-surface-container-high" },
+      ]
+    : [
+        { label: "12p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "2p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "4p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "6p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "8p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "9p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "10p", h: "h-1", cls: "bg-surface-container-high" },
+        { label: "11p", h: "h-1", cls: "bg-surface-container-high" },
+      ];
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-surface-container-lowest p-6 shadow-md">
@@ -131,8 +142,14 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
               ₹
             </div>
             <div>
-              <p className="text-xs font-semibold text-white">Avg Order Ticket: ₹1,480</p>
-              <p className="text-xs text-white/70">WhatsApp guests spend 22% more vs counter</p>
+              <p className="text-xs font-semibold text-white">
+                Avg Order Ticket: {hasLive ? "₹1,480" : "₹0"}
+              </p>
+              <p className="text-xs text-white/70">
+                {hasLive
+                  ? "WhatsApp guests spend 22% more vs counter"
+                  : "Fills in after your first paid orders"}
+              </p>
             </div>
           </div>
           <button

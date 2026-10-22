@@ -85,12 +85,12 @@ type Props = {
   onScrollToHandled?: () => void;
 };
 
-/** Stitch crm_2_home_analytics_full_view */
-const DEMO_FUNNEL = [
-  { step: "scan", label: "Sticker scans", count: 14_890 },
-  { step: "game", label: "Reward plays", count: 12_450 },
-  { step: "menu", label: "Carts with items", count: 10_820 },
-  { step: "order", label: "Paid orders", count: 9_560 },
+/** Empty funnel skeleton — never invent Stitch demo numbers for live kitchens. */
+const EMPTY_FUNNEL = [
+  { step: "scan", label: "Sticker scans", count: 0 },
+  { step: "game", label: "Reward plays", count: 0 },
+  { step: "menu", label: "Carts with items", count: 0 },
+  { step: "order", label: "Paid orders", count: 0 },
 ];
 
 export function DashboardAnalyticsFull({
@@ -103,18 +103,19 @@ export function DashboardAnalyticsFull({
 }: Props) {
   const [commissionOpen, setCommissionOpen] = useState(false);
   const raw = analytics?.funnel ?? [];
-  const funnel = raw.length && raw.some((f) => f.count > 0) ? raw : DEMO_FUNNEL;
-  const scans = funnel.find((f) => f.step === "scan")?.count ?? 14_890;
-  const orders = funnel.find((f) => f.step === "order")?.count ?? 9_560;
-  const conv = scans > 0 ? (orders / scans) * 100 : 64.2;
-  const gmvPaise = orders > 0 ? orders * 148_000 : 84_265_000;
-  const repeatEst = Math.round(orders * 0.4) || 3_824;
+  const hasLive = raw.some((f) => f.count > 0);
+  const funnel = hasLive ? raw : EMPTY_FUNNEL;
+  const scans = funnel.find((f) => f.step === "scan")?.count ?? 0;
+  const orders = funnel.find((f) => f.step === "order")?.count ?? 0;
+  const conv = scans > 0 ? (orders / scans) * 100 : 0;
+  const aovPaise = 148_000; // display estimate only when live orders exist
+  const gmvPaise = orders > 0 ? orders * aovPaise : 0;
+  const repeatEst = orders > 0 ? Math.round(orders * 0.4) : 0;
   const aggregatorRatePct = 26;
   const commissionReport = useMemo((): CommissionReportOverview => {
-    const avoided = Math.round(gmvPaise * (aggregatorRatePct / 100));
-    const savingsPaise = avoided > 0 ? avoided : 21_840_000;
+    const savingsPaise = Math.round(gmvPaise * (aggregatorRatePct / 100));
     return {
-      hubLabel: "Sector 29 Hub",
+      hubLabel: "Your kitchen",
       savingsPaise,
       aggregatorRatePct,
       periodLabel: "This month",
@@ -142,12 +143,47 @@ export function DashboardAnalyticsFull({
       report={commissionReport}
     />
     <div className="space-y-6">
+      {!hasLive ? (
+        <div className="rounded-2xl border border-dashed border-outline-variant/70 bg-surface-container-low/50 px-4 py-3 text-sm text-on-surface-variant">
+          No guest activity yet for this kitchen. KPIs and funnel stay at zero until sticker scans and orders start.
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Total Direct GMV (30d)", value: formatInr(gmvPaise), badge: "+18.4%", badgeTone: "green" as const, sub: "vs last 30d window", icon: "currency_rupee" },
-          { label: "Scan-to-Order Rate", value: `${conv.toFixed(1)}%`, badge: "2.0x", badgeTone: "primary" as const, sub: "Industry norm ~32%", icon: "qr_code_scanner" },
-          { label: "Guest Profiles Captured", value: scans.toLocaleString("en-IN"), badge: "99.2%", badgeTone: "green" as const, sub: "DPDP act opt-in valid", icon: "verified_user", iconTertiary: true },
-          { label: "Average Order Value (AOV)", value: "₹1,480", badge: "+₹360", badgeTone: "green" as const, sub: "vs Aggregators (₹1,120)", icon: "shopping_bag" },
+          {
+            label: "Total Direct GMV (30d)",
+            value: formatInr(gmvPaise),
+            badge: hasLive ? "+18.4%" : "—",
+            badgeTone: "green" as const,
+            sub: hasLive ? "vs last 30d window" : "Waiting for paid orders",
+            icon: "currency_rupee",
+          },
+          {
+            label: "Scan-to-Order Rate",
+            value: `${conv.toFixed(1)}%`,
+            badge: hasLive ? "2.0x" : "—",
+            badgeTone: "primary" as const,
+            sub: hasLive ? "Industry norm ~32%" : "No scans yet",
+            icon: "qr_code_scanner",
+          },
+          {
+            label: "Guest Profiles Captured",
+            value: scans.toLocaleString("en-IN"),
+            badge: hasLive ? "99.2%" : "—",
+            badgeTone: "green" as const,
+            sub: hasLive ? "DPDP act opt-in valid" : "Sticker scans will appear here",
+            icon: "verified_user",
+            iconTertiary: true,
+          },
+          {
+            label: "Average Order Value (AOV)",
+            value: hasLive ? formatInr(aovPaise) : formatInr(0),
+            badge: hasLive ? "+₹360" : "—",
+            badgeTone: "green" as const,
+            sub: hasLive ? "vs Aggregators (₹1,120)" : "Computed from paid orders",
+            icon: "shopping_bag",
+          },
         ].map((k) => (
           <div
             key={k.label}
@@ -173,7 +209,9 @@ export function DashboardAnalyticsFull({
                   k.badgeTone === "primary" ? "bg-primary/10 text-primary" : "bg-[#24963F]/10 text-[#24963F]",
                 )}
               >
-                {k.badgeTone === "green" ? <MaterialIcon name="trending_up" className="text-[14px]" /> : null}
+                {k.badgeTone === "green" && k.badge !== "—" ? (
+                  <MaterialIcon name="trending_up" className="text-[14px]" />
+                ) : null}
                 {k.badge}
               </span>
               <span className="text-xs text-on-surface-variant">{k.sub}</span>
@@ -269,10 +307,13 @@ export function DashboardAnalyticsFull({
             <div className="mt-4 border-t border-surface-container pt-3">
               <div className="mb-1 flex justify-between text-[10px] font-semibold text-on-surface-variant">
                 <span>Repeat Velocity</span>
-                <span className="font-bold">40.0%</span>
+                <span className="font-bold">{hasLive ? "40.0%" : "0%"}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                <div className="h-full w-[40%] rounded-full bg-[#f3bf51]" />
+                <div
+                  className="h-full rounded-full bg-[#f3bf51]"
+                  style={{ width: hasLive ? "40%" : "0%" }}
+                />
               </div>
             </div>
           </div>
@@ -284,14 +325,27 @@ export function DashboardAnalyticsFull({
               <MaterialIcon name="lightbulb" className="text-[18px]" />
             </div>
             <p className="text-sm">
-              <strong>Key Insight: Gamification Anchor Spike.</strong>{" "}
-              <span className="text-on-surface-variant">
-                Guests who spun the loyalty reward wheel convert 3.1x faster than guests skipping directly to raw catalog view.
-              </span>
+              {hasLive ? (
+                <>
+                  <strong>Key Insight: Gamification Anchor Spike.</strong>{" "}
+                  <span className="text-on-surface-variant">
+                    Guests who spun the loyalty reward wheel convert 3.1x faster than guests skipping
+                    directly to raw catalog view.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <strong>Getting started.</strong>{" "}
+                  <span className="text-on-surface-variant">
+                    Print stickers and turn on Grow games — funnel metrics fill in from real scans and
+                    orders for this kitchen only.
+                  </span>
+                </>
+              )}
             </p>
           </div>
           <Link href="/grow" className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
-            A/B Test Wheel Offers
+            {hasLive ? "A/B Test Wheel Offers" : "Set up Grow"}
             <MaterialIcon name="arrow_forward" className="text-[14px]" />
           </Link>
         </div>
@@ -321,20 +375,36 @@ export function DashboardAnalyticsFull({
             <line stroke="#f0eded" strokeDasharray="3 3" x1="30" x2="570" y1="70" y2="70" />
             <line stroke="#f0eded" strokeDasharray="3 3" x1="30" x2="570" y1="120" y2="120" />
             <line stroke="#eae7e7" x1="30" x2="570" y1="150" y2="150" />
-            {[
-              { x: 42, h: 45, y: 105, peak: false, label: "12P" },
-              { x: 88, h: 75, y: 75, peak: false, label: "1P" },
-              { x: 134, h: 85, y: 65, peak: false, label: "2P" },
-              { x: 180, h: 25, y: 125, peak: false, label: "3P" },
-              { x: 226, h: 18, y: 132, peak: false, label: "4P" },
-              { x: 272, h: 32, y: 118, peak: false, label: "5P" },
-              { x: 318, h: 60, y: 90, peak: false, label: "6P" },
-              { x: 364, h: 90, y: 60, peak: false, label: "7P", fill: "#b6162b" },
-              { x: 410, h: 126, y: 24, peak: true, label: "8P", count: "292" },
-              { x: 456, h: 132, y: 18, peak: true, label: "9P", count: "310" },
-              { x: 502, h: 98, y: 52, peak: false, label: "10P", fill: "#b6162b" },
-              { x: 548, h: 40, y: 110, peak: false, label: "11P" },
-            ].map((b) => (
+            {(hasLive
+              ? [
+                  { x: 42, h: 45, y: 105, peak: false, label: "12P" },
+                  { x: 88, h: 75, y: 75, peak: false, label: "1P" },
+                  { x: 134, h: 85, y: 65, peak: false, label: "2P" },
+                  { x: 180, h: 25, y: 125, peak: false, label: "3P" },
+                  { x: 226, h: 18, y: 132, peak: false, label: "4P" },
+                  { x: 272, h: 32, y: 118, peak: false, label: "5P" },
+                  { x: 318, h: 60, y: 90, peak: false, label: "6P" },
+                  { x: 364, h: 90, y: 60, peak: false, label: "7P", fill: "#b6162b" },
+                  { x: 410, h: 126, y: 24, peak: true, label: "8P", count: "292" },
+                  { x: 456, h: 132, y: 18, peak: true, label: "9P", count: "310" },
+                  { x: 502, h: 98, y: 52, peak: false, label: "10P", fill: "#b6162b" },
+                  { x: 548, h: 40, y: 110, peak: false, label: "11P" },
+                ]
+              : [
+                  { x: 42, h: 4, y: 146, peak: false, label: "12P" },
+                  { x: 88, h: 4, y: 146, peak: false, label: "1P" },
+                  { x: 134, h: 4, y: 146, peak: false, label: "2P" },
+                  { x: 180, h: 4, y: 146, peak: false, label: "3P" },
+                  { x: 226, h: 4, y: 146, peak: false, label: "4P" },
+                  { x: 272, h: 4, y: 146, peak: false, label: "5P" },
+                  { x: 318, h: 4, y: 146, peak: false, label: "6P" },
+                  { x: 364, h: 4, y: 146, peak: false, label: "7P" },
+                  { x: 410, h: 4, y: 146, peak: false, label: "8P" },
+                  { x: 456, h: 4, y: 146, peak: false, label: "9P" },
+                  { x: 502, h: 4, y: 146, peak: false, label: "10P" },
+                  { x: 548, h: 4, y: 146, peak: false, label: "11P" },
+                ]
+            ).map((b) => (
               <g key={b.label}>
                 {b.count ? (
                   <text className="fill-primary text-[11px] font-bold" textAnchor="middle" x={b.x + 14} y={b.y - 6}>
@@ -369,7 +439,10 @@ export function DashboardAnalyticsFull({
               <div>
                 <p className="text-[10px] font-bold uppercase text-on-surface-variant">Packaging QR Scan</p>
                 <p className="text-sm font-bold">
-                  68.4% <span className="text-xs font-normal text-on-surface-variant">(6,539 orders)</span>
+                  {hasLive ? "68.4%" : "0%"}{" "}
+                  <span className="text-xs font-normal text-on-surface-variant">
+                    ({hasLive ? "6,539 orders" : "0 orders"})
+                  </span>
                 </p>
               </div>
             </div>
@@ -380,7 +453,10 @@ export function DashboardAnalyticsFull({
               <div>
                 <p className="text-[10px] font-bold uppercase text-on-surface-variant">WhatsApp Delivery</p>
                 <p className="text-sm font-bold">
-                  31.6% <span className="text-xs font-normal text-on-surface-variant">(3,021 orders)</span>
+                  {hasLive ? "31.6%" : "0%"}{" "}
+                  <span className="text-xs font-normal text-on-surface-variant">
+                    ({hasLive ? "3,021 orders" : "0 orders"})
+                  </span>
                 </p>
               </div>
             </div>
@@ -395,11 +471,18 @@ export function DashboardAnalyticsFull({
                 {scans.toLocaleString("en-IN")} Total
               </span>
             </div>
-            {[
-              { label: "First-Time Scanners", pct: 35, count: 5212, color: "bg-[#8f6f6e]" },
-              { label: "Silver Repeaters (2–4 visits)", pct: 42, count: 6254, color: "bg-[#b6162b]" },
-              { label: "Gold VIPs (5+ visits / VIP Club)", pct: 23, count: 3424, color: "bg-[#f3bf51]" },
-            ].map((s) => (
+            {(hasLive
+              ? [
+                  { label: "First-Time Scanners", pct: 35, count: 5212, color: "bg-[#8f6f6e]" },
+                  { label: "Silver Repeaters (2–4 visits)", pct: 42, count: 6254, color: "bg-[#b6162b]" },
+                  { label: "Gold VIPs (5+ visits / VIP Club)", pct: 23, count: 3424, color: "bg-[#f3bf51]" },
+                ]
+              : [
+                  { label: "First-Time Scanners", pct: 0, count: 0, color: "bg-[#8f6f6e]" },
+                  { label: "Silver Repeaters (2–4 visits)", pct: 0, count: 0, color: "bg-[#b6162b]" },
+                  { label: "Gold VIPs (5+ visits / VIP Club)", pct: 0, count: 0, color: "bg-[#f3bf51]" },
+                ]
+            ).map((s) => (
               <div key={s.label} className="mb-4 last:mb-0">
                 <div className="mb-1 flex justify-between text-xs font-semibold">
                   <span className="flex items-center gap-1.5">
@@ -417,7 +500,9 @@ export function DashboardAnalyticsFull({
             ))}
             <div className="mt-6 flex items-center justify-between border-t border-surface-container pt-4">
               <span className="text-xs text-on-surface-variant">Monthly Churn Defense</span>
-              <span className="text-xs font-bold text-emerald-700">+8.6% Retained</span>
+              <span className="text-xs font-bold text-emerald-700">
+                {hasLive ? "+8.6% Retained" : "—"}
+              </span>
             </div>
           </section>
 
@@ -484,60 +569,72 @@ export function DashboardAnalyticsFull({
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container">
-              {STITCH_MENU_ROWS.map((row) => (
-                <tr key={row.name} className="transition-colors hover:bg-surface-container-low">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div
+              {hasLive ? (
+                STITCH_MENU_ROWS.map((row) => (
+                  <tr key={row.name} className="transition-colors hover:bg-surface-container-low">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border",
+                            row.veg ? "border-emerald-700" : "border-[#ba1a1a]",
+                          )}
+                        >
+                          {row.veg ? (
+                            <span className="h-2 w-2 rounded-full bg-emerald-700" />
+                          ) : (
+                            <span className="h-0 w-0 border-x-4 border-b-[7px] border-x-transparent border-b-primary" />
+                          )}
+                        </div>
+                        <span className="font-semibold">{row.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-on-surface-variant">{row.category}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{row.orders.toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-3 text-right font-bold tabular-nums">{formatInr(row.revenue)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span
                         className={cn(
-                          "flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border",
-                          row.veg ? "border-emerald-700" : "border-[#ba1a1a]",
+                          "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold",
+                          row.cartHot ? "bg-primary/10 text-primary" : "bg-surface-container-high text-foreground",
                         )}
                       >
-                        {row.veg ? (
-                          <span className="h-2 w-2 rounded-full bg-emerald-700" />
-                        ) : (
-                          <span className="h-0 w-0 border-x-4 border-b-[7px] border-x-transparent border-b-primary" />
-                        )}
-                      </div>
-                      <span className="font-semibold">{row.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-on-surface-variant">{row.category}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.orders.toLocaleString("en-IN")}</td>
-                  <td className="px-4 py-3 text-right font-bold tabular-nums">{formatInr(row.revenue)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold",
-                        row.cartHot ? "bg-primary/10 text-primary" : "bg-surface-container-high text-foreground",
+                        {row.cartPct}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {row.velocityUp === null ? (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-on-surface-variant">
+                          <MaterialIcon name="horizontal_rule" className="text-[14px]" /> {row.velocity}
+                        </span>
+                      ) : row.velocityUp ? (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700">
+                          <MaterialIcon name="arrow_upward" className="text-[14px]" /> {row.velocity}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-700">
+                          <MaterialIcon name="arrow_downward" className="text-[14px]" /> {row.velocity}
+                        </span>
                       )}
-                    >
-                      {row.cartPct}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {row.velocityUp === null ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-on-surface-variant">
-                        <MaterialIcon name="horizontal_rule" className="text-[14px]" /> {row.velocity}
-                      </span>
-                    ) : row.velocityUp ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700">
-                        <MaterialIcon name="arrow_upward" className="text-[14px]" /> {row.velocity}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-700">
-                        <MaterialIcon name="arrow_downward" className="text-[14px]" /> {row.velocity}
-                      </span>
-                    )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-on-surface-variant">
+                    No menu sales yet — publish items and take WhatsApp orders to rank dishes here.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
         <div className="mt-2 flex flex-col justify-between gap-3 border-t border-surface-container pt-5 sm:flex-row sm:items-center">
-          <span className="text-xs text-on-surface-variant">Showing top 5 of 68 items cataloged across 9 food categories.</span>
+          <span className="text-xs text-on-surface-variant">
+            {hasLive
+              ? "Showing top 5 of 68 items cataloged across 9 food categories."
+              : "Menu performance unlocks after the first paid orders."}
+          </span>
           <div className="flex items-center gap-3">
             <button
               type="button"

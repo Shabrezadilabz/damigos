@@ -206,7 +206,7 @@ export function HomePageClient() {
 
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[#24963F]" />
 
-                <span className="text-xs font-semibold">36 Tables Active</span>
+                <span className="text-xs font-semibold">Live kitchen</span>
 
               </div>
 
