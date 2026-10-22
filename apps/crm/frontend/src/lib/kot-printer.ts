@@ -94,7 +94,9 @@ async function transfer(device: UsbDeviceLike, data: Uint8Array) {
   const CHUNK = 512;
   for (let i = 0; i < data.length; i += CHUNK) {
     const slice = data.subarray(i, Math.min(i + CHUNK, data.length));
-    await device.transferOut(endpointNumber, slice);
+    // Copy into a fresh ArrayBuffer so TS BufferSource matches WebUSB typings
+    const chunk = new Uint8Array(slice);
+    await device.transferOut(endpointNumber, chunk);
   }
 }
 
