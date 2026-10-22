@@ -22,6 +22,14 @@ function usbAvailable() {
   return typeof navigator !== "undefined" && !!navigator.usb;
 }
 
+function requireUsb(): USB {
+  const usb = typeof navigator !== "undefined" ? navigator.usb : undefined;
+  if (!usb) {
+    throw new Error("WebUSB not supported. Use Chrome/Edge on desktop (HTTPS).");
+  }
+  return usb;
+}
+
 export function readKotPrinterPrefs(): KotPrinterPrefs | null {
   if (typeof window === "undefined") return null;
   try {
@@ -101,10 +109,7 @@ async function transfer(device: UsbDeviceLike, data: Uint8Array) {
 }
 
 export async function connectKotPrinter(): Promise<KotPrinterPrefs> {
-  if (!usbAvailable()) {
-    throw new Error("WebUSB not supported. Use Chrome/Edge on desktop (HTTPS).");
-  }
-  const device = await navigator.usb.requestDevice({ filters: USB_FILTERS });
+  const device = await requireUsb().requestDevice({ filters: USB_FILTERS });
   await openDevice(device);
   cachedDevice = device;
   const prefs: KotPrinterPrefs = {
@@ -146,7 +151,7 @@ export async function resolveKotDevice(): Promise<UsbDeviceLike | null> {
     return cachedDevice;
   }
 
-  const devices = await navigator.usb.getDevices();
+  const devices = await requireUsb().getDevices();
   const match = devices.find(
     (d) => d.vendorId === prefs.vendorId && d.productId === prefs.productId,
   );
