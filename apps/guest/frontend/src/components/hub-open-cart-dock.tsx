@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StickyCartDock } from "@/components/sticky-cart-dock";
 import { fetchOpenCartSession, type CrossBySession, type OpenCartSummary } from "@/lib/api";
 import { getGuestToken } from "@/lib/session";
@@ -10,8 +10,12 @@ export function HubOpenCartDock() {
   const [carts, setCarts] = useState<OpenCartSummary[]>([]);
   const [crossBy, setCrossBy] = useState<CrossBySession | null>(null);
 
-  useEffect(() => {
-    if (!getGuestToken()) return;
+  const refresh = useCallback(() => {
+    if (!getGuestToken()) {
+      setCarts([]);
+      setCrossBy(null);
+      return;
+    }
     void fetchOpenCartSession()
       .then((s) => {
         setCarts(s.openCarts);
@@ -22,6 +26,10 @@ export function HubOpenCartDock() {
         setCrossBy(null);
       });
   }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const primary = carts[0];
   if (!primary || primary.itemCount <= 0) return null;
@@ -45,6 +53,7 @@ export function HubOpenCartDock() {
       promoLine="Get 25% off on this order (upto ₹40) · Direct D2C"
       extraKitchenCount={extra}
       riderModeLabel={riderLabel}
+      onCleared={refresh}
     />
   );
 }

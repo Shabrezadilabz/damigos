@@ -220,10 +220,16 @@ body {
   animation: hub-float-inner-a 3.2s ease-in-out infinite;
 }
 
-/* Horizontal rails — smoother touch scroll, less nested overscroll fight */
+/* Horizontal rails — allow vertical page scroll while finger is on the rail */
 .hub-h-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  touch-action: pan-x;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y;
   scroll-behavior: auto;
+}
+
+/* Don't steal vertical gestures from the page when pressing cards inside rails */
+.hub-h-scroll .pressable {
+  touch-action: pan-x pan-y;
 }

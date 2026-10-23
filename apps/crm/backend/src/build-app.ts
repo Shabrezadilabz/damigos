@@ -70,12 +70,22 @@ export async function buildCrmApp(options: BuildCrmAppOptions = {}) {
     { prefix: CRM_API_PREFIX },
   );
 
+  /** Don't await on the request path — cold-start schema DDL was causing Vercel 504s (team invite, stickers). */
   let schemasEnsured = false;
+  let schemasRunning: Promise<void> | null = null;
   app.addHook("onRequest", async (request) => {
     if (request.url === "/health" || request.url.startsWith("/health?")) return;
     if (schemasEnsured) return;
-    schemasEnsured = true;
-    await ensureSchemasIfConfigured(app);
+    if (!schemasRunning) {
+      schemasRunning = ensureSchemasIfConfigured(app)
+        .then(() => {
+          schemasEnsured = true;
+        })
+        .catch((err) => {
+          app.log.warn({ err }, "ensureSchemasIfConfigured failed");
+          schemasRunning = null;
+        });
+    }
   });
 
   await app.ready();

@@ -565,6 +565,21 @@ export async function fetchMenuImportJob(jobId: string) {
   };
 }
 
+export async function bulkUpdateMenuPrep(
+  restaurantId: string,
+  itemIds: string[],
+  prepCategory: "READY_10M" | "COOKED_15M",
+) {
+  const res = await fetch(`${base}/v1/menu/items/bulk`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({ restaurantId, itemIds, prepCategory }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Bulk prep update failed"));
+  return data as { updated: number; prepCategory: string; prepMinutes: number; itemIds: string[] };
+}
+
 export async function updateMenuItem(
   itemId: string,
   input: {

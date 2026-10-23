@@ -7,10 +7,17 @@ import { MaterialIcon } from "@/components/material-icon";
 import { fetchMe, saveGuestProfile } from "@/lib/api";
 import { getGuestToken } from "@/lib/session";
 
-/** Guest profile edit — name for WhatsApp / orders */
+/** Soft profile edit — name + extras; phone change keeps previous number. Addresses stay on /me/addresses. */
 export default function MeEditPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [gender, setGender] = useState("");
+  const [dietary, setDietary] = useState("");
+  const [dob, setDob] = useState("");
+  const [phoneLast4, setPhoneLast4] = useState<string | null>(null);
+  const [prevLast4, setPrevLast4] = useState<string | null>(null);
+  const [newPhone, setNewPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +30,15 @@ export default function MeEditPage() {
       return;
     }
     void fetchMe(token)
-      .then((me) => setName(me.name ?? ""))
+      .then((me) => {
+        setName(me.name ?? "");
+        setEmail(me.email ?? "");
+        setGender(me.gender ?? "");
+        setDietary(me.dietaryPref ?? "");
+        setDob(me.dateOfBirth?.slice(0, 10) ?? "");
+        setPhoneLast4(me.phoneLast4 ?? null);
+        setPrevLast4(me.previousPhoneLast4 ?? null);
+      })
       .catch(() => setError("Could not load profile"))
       .finally(() => setLoading(false));
   }, []);
@@ -43,7 +58,15 @@ export default function MeEditPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveGuestProfile(token, trimmed);
+      const digits = newPhone.replace(/\D/g, "");
+      await saveGuestProfile(token, {
+        name: trimmed,
+        email: email.trim() || null,
+        gender: gender.trim() || null,
+        dietaryPref: dietary.trim() || null,
+        dateOfBirth: dob.trim() || null,
+        ...(digits.length >= 10 ? { newPhoneE164: digits } : {}),
+      });
       router.replace("/me");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -73,7 +96,7 @@ export default function MeEditPage() {
           <p className="py-8 text-center text-sm text-on-surface-variant">Loading…</p>
         ) : (
           <form onSubmit={(e) => void onSave(e)} className="space-y-4">
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
               <label className="block text-[13px] font-semibold text-on-surface-variant">
                 Display name
                 <input
@@ -87,9 +110,90 @@ export default function MeEditPage() {
                   data-testid="profile-edit-name"
                 />
               </label>
-              <p className="mt-2 text-[12px] text-on-surface-variant">
-                Shown on orders and WhatsApp confirmations.
+
+              <label className="block text-[13px] font-semibold text-on-surface-variant">
+                Email
+                <input
+                  className="mt-2 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-3 text-[15px] outline-none focus:border-primary"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="block text-[13px] font-semibold text-on-surface-variant">
+                Gender
+                <select
+                  className="mt-2 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-3 text-[15px] outline-none focus:border-primary"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  disabled={saving}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+
+              <label className="block text-[13px] font-semibold text-on-surface-variant">
+                Date of birth
+                <input
+                  className="mt-2 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-3 text-[15px] outline-none focus:border-primary"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="block text-[13px] font-semibold text-on-surface-variant">
+                Dietary preference
+                <select
+                  className="mt-2 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-3 text-[15px] outline-none focus:border-primary"
+                  value={dietary}
+                  onChange={(e) => setDietary(e.target.value)}
+                  disabled={saving}
+                >
+                  <option value="">No preference</option>
+                  <option value="veg">Vegetarian</option>
+                  <option value="pure_veg">Pure veg</option>
+                  <option value="non_veg">Non-veg</option>
+                  <option value="eggetarian">Eggetarian</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+              <p className="text-[13px] font-bold">Phone (soft update)</p>
+              <p className="mt-1 text-[12px] text-on-surface-variant">
+                Current ···{phoneLast4 ?? "————"}
+                {prevLast4 ? ` · previous ···${prevLast4}` : ""}
               </p>
+              <p className="mt-1 text-[11px] text-on-surface-variant">
+                Changing WhatsApp number keeps the old number on file. Login identity stays the same
+                until you re-verify OTP.
+              </p>
+              <label className="mt-3 block text-[13px] font-semibold text-on-surface-variant">
+                New WhatsApp number (optional)
+                <input
+                  className="mt-2 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-3 text-[15px] tracking-wide outline-none focus:border-primary"
+                  inputMode="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="91XXXXXXXXXX"
+                  disabled={saving}
+                />
+              </label>
+              <Link
+                href="/me/addresses"
+                className="pressable mt-3 inline-flex items-center gap-1 text-[13px] font-bold text-primary"
+              >
+                Manage delivery addresses separately
+                <MaterialIcon name="chevron_right" className="text-[18px]" />
+              </Link>
             </div>
 
             {error ? (

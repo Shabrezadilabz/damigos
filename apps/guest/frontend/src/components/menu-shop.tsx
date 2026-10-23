@@ -20,6 +20,11 @@ import {
   type RewardClaimOption,
 } from "@/lib/api";
 import { coverForDish, hubDemoMeta } from "@/lib/hub-media";
+import {
+  formatAddressHeadline,
+  getActiveAddress,
+  GUEST_ADDRESS_CHANGED,
+} from "@/lib/guest-addresses";
 import { getGuestToken } from "@/lib/session";
 import { ProfileConsentSheet } from "@/components/profile-consent-sheet";
 import { SwitchKitchenModal } from "@/components/switch-kitchen-modal";
@@ -82,6 +87,7 @@ export function MenuShop({
   const [limitModal, setLimitModal] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [claims, setClaims] = useState<RewardClaimOption[]>([]);
+  const [dropArea, setDropArea] = useState("Add address");
 
   const demo = useMemo(() => hubDemoMeta(restaurantName.toLowerCase().replace(/\s+/g, "-")), [restaurantName]);
 
@@ -101,6 +107,17 @@ export function MenuShop({
       setCart(null);
     }
   }, [restaurantId]);
+
+  useEffect(() => {
+    const sync = () => setDropArea(formatAddressHeadline(getActiveAddress(), "Add address"));
+    sync();
+    window.addEventListener(GUEST_ADDRESS_CHANGED, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(GUEST_ADDRESS_CHANGED, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
 
   useEffect(() => {
     void refreshCart();
@@ -232,7 +249,7 @@ export function MenuShop({
 
   return (
     <>
-      <main className="mx-auto min-h-dvh max-w-lg bg-white px-4 pb-36 pt-safe">
+      <main className="mx-auto min-h-dvh w-full max-w-lg bg-white px-4 pb-36 pt-safe md:max-w-3xl lg:max-w-4xl">
         {/* Ownly header: back · search · share */}
         <div className="sticky top-0 z-40 -mx-4 mb-3 bg-white/95 px-4 pb-2 pt-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -286,11 +303,15 @@ export function MenuShop({
               <MaterialIcon name="schedule" className="text-[16px]" />
               {demo.etaMins} mins
             </span>
-            <span className="inline-flex items-center gap-0.5 font-medium">
+            <Link
+              href="/me/addresses"
+              className="pressable inline-flex max-w-[11rem] items-center gap-0.5 font-medium"
+              data-testid="menu-drop-location"
+            >
               <MaterialIcon name="location_on" className="text-[16px]" />
-              Koramangala
+              <span className="truncate">{dropArea}</span>
               <MaterialIcon name="expand_more" className="text-[16px]" />
-            </span>
+            </Link>
           </div>
         </header>
 
@@ -667,6 +688,7 @@ export function MenuShop({
               : "2 riders"
             : null
         }
+        onCleared={() => void refreshCart()}
       />
 
       <ProfileConsentSheet

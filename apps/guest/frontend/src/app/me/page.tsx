@@ -32,16 +32,16 @@ const ROWS = [
     sub: "Spin, scratch & packaging QR perks.",
   },
   {
-    href: "/me/edit",
+    href: "/me/settings",
     icon: "settings",
     title: "App Settings",
     sub: "Preferences, permissions and more.",
   },
   {
-    href: "/orders",
+    href: "mailto:partners@damigos.in?subject=Damigos%20guest%20help",
     icon: "help",
     title: "Help",
-    sub: "Report a problem to get assistance.",
+    sub: "Email partners@damigos.in for assistance.",
   },
 ] as const;
 

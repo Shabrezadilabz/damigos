@@ -286,6 +286,65 @@ export async function registerMenuRoutes(app: FastifyInstance) {
     return { published: true, restaurantId: body.data.restaurantId, count: candidates.length };
   });
 
+  /** Bulk prep SLA for multi-select in draft inspector — register before /:id */
+  app.patch("/menu/items/bulk", { preHandler: staffMenu }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        itemIds: z.array(z.string().uuid()).min(1).max(200),
+        prepCategory: z.enum(["READY_10M", "COOKED_15M"]).optional(),
+        prepMinutes: z.union([z.literal(10), z.literal(15)]).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: body.error.message,
+          correlationId: request.id,
+        },
+      });
+    }
+
+    await enforceRestaurantScope(request, reply, body.data.restaurantId);
+    if (reply.sent) return;
+
+    if (body.data.prepCategory === undefined && body.data.prepMinutes === undefined) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "prepCategory or prepMinutes required",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const prepCategory =
+      body.data.prepCategory ??
+      (body.data.prepMinutes === 10 ? "READY_10M" : "COOKED_15M");
+    const prepMinutes = prepCategory === "READY_10M" ? 10 : 15;
+
+    await ensureKitchenSchema();
+    const updated = await db
+      .update(menuItems)
+      .set({ prepCategory, prepMinutes })
+      .where(
+        and(
+          eq(menuItems.restaurantId, body.data.restaurantId),
+          inArray(menuItems.id, body.data.itemIds),
+        ),
+      )
+      .returning({ id: menuItems.id });
+
+    return {
+      updated: updated.length,
+      prepCategory,
+      prepMinutes,
+      itemIds: updated.map((r) => r.id),
+    };
+  });
+
   app.patch("/menu/items/:id", { preHandler: staffMenu }, async (request, reply) => {
     const params = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z

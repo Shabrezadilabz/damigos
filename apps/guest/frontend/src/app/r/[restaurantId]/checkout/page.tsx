@@ -13,7 +13,7 @@ export default async function CheckoutPage({
   return (
     <CheckoutGate>
       <WaChrome title="Checkout" subtitle="Secure UPI · Direct D2C" profileHref="/me" />
-      <main className="mx-auto min-h-dvh max-w-lg px-4 pb-10 pt-[7.25rem]">
+      <main className="mx-auto min-h-dvh w-full max-w-lg px-4 pb-10 pt-[7.25rem] md:max-w-3xl lg:max-w-4xl">
         <h1 className="font-display text-[24px] font-bold tracking-tight">Bill summary</h1>
         <p className="mt-1 text-[13px] text-on-surface-variant">
           Transparent fees · Packaging delivery

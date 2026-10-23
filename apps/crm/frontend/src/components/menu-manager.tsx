@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  bulkUpdateMenuPrep,
   createMenuItem,
   deleteMenuItem,
   fetchMenuImportJob,
@@ -92,6 +93,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [isVeg, setIsVeg] = useState(true);
@@ -130,6 +133,46 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setCheckedIds(new Set());
+  }, [restaurantId, stage]);
+
+  async function onBulkPrep(prepCategory: "READY_10M" | "COOKED_15M") {
+    const ids = [...checkedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await bulkUpdateMenuPrep(restaurantId, ids, prepCategory);
+      setCheckedIds(new Set());
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bulk prep update failed");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function toggleChecked(id: string, on: boolean) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleCheckAllVisible(on: boolean) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of pageItems) {
+        if (on) next.add(item.id);
+        else next.delete(item.id);
+      }
+      return next;
+    });
+  }
 
   // Reset Menu UI when switching kitchens so drafts from another restaurant never linger.
   useEffect(() => {
@@ -649,11 +692,60 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
           {loading && <p className="text-sm text-on-surface-variant">Loading…</p>}
 
+          {draftMode && checkedIds.size > 0 ? (
+            <div
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2.5"
+              data-testid="menu-bulk-prep-bar"
+            >
+              <span className="text-xs font-bold text-primary">{checkedIds.size} selected</span>
+              <span className="text-[11px] text-on-surface-variant">Set prep SLA for all:</span>
+              <button
+                type="button"
+                disabled={bulkBusy}
+                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                data-testid="menu-bulk-prep-10"
+                onClick={() => void onBulkPrep("READY_10M")}
+              >
+                ⚡ 10m ready
+              </button>
+              <button
+                type="button"
+                disabled={bulkBusy}
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                data-testid="menu-bulk-prep-15"
+                onClick={() => void onBulkPrep("COOKED_15M")}
+              >
+                🔥 15m cooked
+              </button>
+              <button
+                type="button"
+                className="ml-auto text-[11px] font-semibold text-on-surface-variant underline"
+                onClick={() => setCheckedIds(new Set())}
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
+
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="bg-surface-container-low text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  <th className="rounded-l-lg px-3 py-2.5">Item Details</th>
+                  {draftMode ? (
+                    <th className="rounded-l-lg px-2 py-2.5">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        aria-label="Select all on page"
+                        data-testid="menu-bulk-select-all"
+                        checked={
+                          pageItems.length > 0 && pageItems.every((i) => checkedIds.has(i.id))
+                        }
+                        onChange={(e) => toggleCheckAllVisible(e.target.checked)}
+                      />
+                    </th>
+                  ) : null}
+                  <th className={cn("px-3 py-2.5", !draftMode && "rounded-l-lg")}>Item Details</th>
                   <th className="px-2 py-2.5">Type</th>
                   <th className="px-2 py-2.5">Category</th>
                   <th className="px-3 py-2.5">Price</th>
@@ -666,6 +758,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   const low = needsReview(item);
                   const selectedRow = selected?.id === item.id;
                   const thumb = menuItemThumb(item);
+                  const isChecked = checkedIds.has(item.id);
                   return (
                     <tr
                       key={item.id}
@@ -674,12 +767,25 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                         selectedRow && draftMode && "bg-primary/5 hover:bg-primary/10",
                         !selectedRow && low && "bg-amber-500/5 hover:bg-amber-500/10",
                         !selectedRow && !low && "hover:bg-surface-container-low",
+                        isChecked && "bg-primary/10",
                       )}
                       onClick={() => {
                         setSelectedId(item.id);
                         if (!draftMode) setOverlayItem(item);
                       }}
                     >
+                      {draftMode ? (
+                        <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-primary"
+                            aria-label={`Select ${item.name}`}
+                            data-testid={`menu-bulk-check-${item.id}`}
+                            checked={isChecked}
+                            onChange={(e) => toggleChecked(item.id, e.target.checked)}
+                          />
+                        </td>
+                      ) : null}
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-surface-container">

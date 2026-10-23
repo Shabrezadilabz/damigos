@@ -7,6 +7,13 @@ import { HubPosterCarousel } from "@/components/hub-poster-carousel";
 import { HubTodaysOffers } from "@/components/hub-todays-offers";
 import { MaterialIcon } from "@/components/material-icon";
 import { fetchHubPerks, fetchMyOrders, type HubPerkRailItem } from "@/lib/api";
+import {
+  formatAddressHeadline,
+  formatAddressSubline,
+  getActiveAddress,
+  GUEST_ADDRESS_CHANGED,
+  type GuestSavedAddress,
+} from "@/lib/guest-addresses";
 import { getGuestToken } from "@/lib/session";
 
 const FALLBACK_PERKS: HubPerkRailItem[] = [
@@ -61,6 +68,18 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
   const { search, setSearch, vegOnly, setVegOnly } = useHubFilters();
   const [activeCount, setActiveCount] = useState(0);
   const [perks, setPerks] = useState<HubPerkRailItem[]>(FALLBACK_PERKS);
+  const [addr, setAddr] = useState<GuestSavedAddress | null>(null);
+
+  useEffect(() => {
+    const syncAddr = () => setAddr(getActiveAddress());
+    syncAddr();
+    window.addEventListener(GUEST_ADDRESS_CHANGED, syncAddr);
+    window.addEventListener("storage", syncAddr);
+    return () => {
+      window.removeEventListener(GUEST_ADDRESS_CHANGED, syncAddr);
+      window.removeEventListener("storage", syncAddr);
+    };
+  }, []);
 
   useEffect(() => {
     void fetchHubPerks()
@@ -77,7 +96,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-background pb-32">
       <header className="fixed top-0 z-50 w-full bg-gradient-to-b from-primary to-[#b7122a] pt-safe text-white shadow-[0_4px_20px_rgba(178,18,42,0.28)]">
-        <div className="mx-auto max-w-lg">
+        <div className="mx-auto w-full max-w-lg md:max-w-3xl lg:max-w-5xl">
           <div className="flex h-9 items-center justify-between px-4 text-[11px] text-white/85">
             <div className="flex items-center gap-1">
               <MaterialIcon name="lock" className="text-[14px]" />
@@ -89,17 +108,23 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center justify-between gap-3 px-4 pb-3">
-            <button type="button" className="pressable flex min-w-0 items-center gap-1.5 text-left">
+            <Link
+              href="/me/addresses"
+              className="pressable flex min-w-0 items-center gap-1.5 text-left"
+              data-testid="hub-location"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-0.5">
-                  <span className="truncate text-[13px] font-medium text-white/90">Current location</span>
+                  <span className="truncate text-[13px] font-medium text-white/90">
+                    {addr ? formatAddressSubline(addr) : "Delivery location"}
+                  </span>
                   <MaterialIcon name="expand_more" className="text-[18px]" />
                 </div>
                 <span className="mt-0.5 block truncate text-[15px] font-bold leading-tight">
-                  Koramangala, Bengaluru…
+                  {formatAddressHeadline(addr, "Add address…")}
                 </span>
               </div>
-            </button>
+            </Link>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end gap-0.5">
                 <label className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide">
@@ -143,7 +168,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 pt-[6.75rem] md:max-w-3xl">
+      <main className="mx-auto w-full max-w-lg px-4 pt-[6.75rem] md:max-w-3xl lg:max-w-5xl">
         {/* Search + mini promo — Ownly row */}
         <div className="mb-4 flex gap-2">
           <div className="relative flex-1">

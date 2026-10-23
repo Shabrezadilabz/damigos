@@ -92,6 +92,7 @@ export function StartPageClient() {
   const [operatorName, setOperatorName] = useState("Raj Malhotra");
   const [directorPhone, setDirectorPhone] = useState("9876543210");
   const [billingEmail, setBillingEmail] = useState("raj@biryani-box.in");
+  /** Pilot: Bengaluru / Bangalore only — other metros disabled until multi-city ops */
   const [metroCity, setMetroCity] = useState("Bangalore");
   const [showOwnerLogin, setShowOwnerLogin] = useState(false);
   const [selectedCuisines, setSelectedCuisines] = useState<Set<string>>(
@@ -166,7 +167,7 @@ export function StartPageClient() {
         operatorName: operatorName.trim(),
         phone,
         email: billingEmail.trim(),
-        city: metroCity.trim(),
+        city: "Bangalore",
         cuisineTags: [...selectedCuisines],
         fssai: fssaiChoice === "verify" && fssaiOk ? fssaiOk.fssaiNumber : fssai.trim() || undefined,
         dpdpAccepted: true,
@@ -229,9 +230,6 @@ export function StartPageClient() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
                   D&apos;aMigo&apos;s
-                </span>
-                <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Hospitality CRM
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant">
@@ -388,13 +386,12 @@ export function StartPageClient() {
                     Metro operating zone
                     <div className="relative">
                       <select
-                        className={cn(fieldClass(), "appearance-none pr-9")}
+                        className={cn(fieldClass(), "appearance-none pr-9 opacity-90")}
                         value={metroCity}
-                        onChange={(e) => setMetroCity(e.target.value)}
+                        disabled
+                        aria-label="Metro operating zone — Bengaluru only for now"
                       >
-                        <option value="Bangalore">Bangalore (HQ Core)</option>
-                        <option value="Mumbai">Mumbai Suburban</option>
-                        <option value="Delhi NCR">Delhi NCR</option>
+                        <option value="Bangalore">Bengaluru / Bangalore only</option>
                       </select>
                       <MaterialIcon
                         name="expand_more"

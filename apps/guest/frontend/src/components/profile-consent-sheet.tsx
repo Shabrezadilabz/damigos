@@ -61,7 +61,7 @@ export function ProfileConsentSheet({ open, onComplete, restaurantId, scanId }: 
     setLoading(true);
     setError(null);
     try {
-      await saveGuestProfile(token, name.trim());
+      await saveGuestProfile(token, { name: name.trim() });
       await saveGuestConsents(token, { transactional, marketing, game });
       if (marketing && restaurantId) {
         try {

@@ -88,7 +88,6 @@ function OrderCard({
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [pickupToken, setPickupToken] = useState("");
-  const [deliveryOtp, setDeliveryOtp] = useState("");
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const prep = prepFromOrder(order);
   const shortId = order.shortOrderId ?? order.id.slice(0, 8).toUpperCase();
@@ -149,22 +148,6 @@ function OrderCard({
       setPickupToken("");
     } catch (e) {
       setHandoffError(e instanceof Error ? e.message : "Handoff failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onConfirmDelivered() {
-    setHandoffError(null);
-    setBusy(true);
-    try {
-      await patchCrmOrderStatus(order.id, "DELIVERED", {
-        deliveryOtp: deliveryOtp.trim() || undefined,
-      });
-      await onRefresh();
-      setDeliveryOtp("");
-    } catch (e) {
-      setHandoffError(e instanceof Error ? e.message : "Delivery confirm failed");
     } finally {
       setBusy(false);
     }
@@ -471,31 +454,32 @@ function OrderCard({
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Guest delivery OTP
-              </label>
-              <input
-                className="h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 font-mono text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="6-digit OTP"
-                inputMode="numeric"
-                value={deliveryOtp}
-                onChange={(e) => setDeliveryOtp(e.target.value)}
-                data-testid="kitchen-delivery-otp"
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-11 w-full gap-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest"
-                disabled={busy}
-                onClick={() => void onConfirmDelivered()}
-                data-testid="kitchen-confirm-delivered"
-              >
-                Confirm handover
-              </Button>
+            <div
+              className="flex flex-col gap-2 rounded-xl border border-border bg-surface-container-low px-3 py-3"
+              data-testid="kitchen-out-for-delivery-info"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                Out for delivery
+              </p>
+              <p className="text-[12px] leading-snug text-on-surface-variant">
+                Guest OTP is for the{" "}
+                <span className="font-semibold text-foreground">rider at the door</span> — kitchen does
+                not enter it. Kitchen only verifies the rider&apos;s pickup code when handing over the
+                bag.
+              </p>
+              {order.deliveryVerifySource === "shiprocket_webhook" ||
+              order.deliveryVerifySource === "courier_pod" ? (
+                <p className="text-[11px] font-semibold text-[#24963F]">
+                  Courier marked delivered via Shiprocket.
+                </p>
+              ) : (
+                <p className="text-[11px] text-on-surface-variant">
+                  Delivered status updates from courier POD / webhook.
+                </p>
+              )}
               <button
                 type="button"
-                className="text-[11px] font-semibold text-primary underline"
+                className="text-left text-[11px] font-semibold text-primary underline"
                 disabled={busy}
                 onClick={() =>
                   void resendCrmDeliveryOtp(order.id)
@@ -505,14 +489,8 @@ function OrderCard({
                     )
                 }
               >
-                Resend OTP to guest
+                Resend OTP to guest (WhatsApp)
               </button>
-              {order.deliveryVerifySource === "shiprocket_webhook" ||
-              order.deliveryVerifySource === "courier_pod" ? (
-                <p className="text-[10px] text-[#24963F]">
-                  Shiprocket already marked delivered — OTP optional.
-                </p>
-              ) : null}
             </div>
           )}
           {handoffError ? (

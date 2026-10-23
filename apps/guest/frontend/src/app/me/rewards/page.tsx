@@ -65,17 +65,18 @@ export default function MeRewardsPage() {
       </p>
 
       <Link
-        href="/hub"
+        href="/me/rewards/scan"
         className="mb-4 flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3.5 ring-1 ring-primary/20"
+        data-testid="rewards-scan-cta"
       >
         <MaterialIcon name="qr_code_2" className="text-[28px] text-primary" />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-bold text-primary">Scan packaging to play</p>
           <p className="text-[12px] text-on-surface-variant">
-            Open a kitchen from Hub or scan a Damigos sticker.
+            Opens camera → sticker QR → WhatsApp opt-in &amp; play.
           </p>
         </div>
-        <MaterialIcon name="chevron_right" className="text-primary" />
+        <MaterialIcon name="photo_camera" className="text-primary" />
       </Link>
 
       {!signedIn ? (

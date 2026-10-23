@@ -27,6 +27,8 @@ import {
   mockPayCheckoutGroup,
   prepareCheckout,
   prepareCheckoutGroup,
+  removeCartItem,
+  updateCartItemQuantity,
   verifyRazorpayCheckout,
   verifyRazorpayCheckoutGroup,
   type CartResponse,
@@ -51,6 +53,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
   const [deliveryPayAllowed, setDeliveryPayAllowed] = useState(true);
   const [groupPreview, setGroupPreview] = useState<CheckoutGroupPreview | null>(null);
+  const [lineBusyId, setLineBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
 
@@ -95,6 +98,20 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   }, [load]);
 
 
+
+  async function onLineQty(lineId: string, quantity: number) {
+    setLineBusyId(lineId);
+    setError(null);
+    try {
+      if (quantity <= 0) await removeCartItem(lineId);
+      else await updateCartItemQuantity(lineId, quantity);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update item");
+    } finally {
+      setLineBusyId(null);
+    }
+  }
 
   async function onSelectClaim(claimId: string | null) {
     setError(null);
@@ -237,6 +254,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   const discountPaise = cart?.discountPaise ?? 0;
   const loyaltyAvailable = cart?.loyaltyAvailablePaise ?? 0;
   const loyaltyApplied = cart?.loyaltyAppliedPaise ?? 0;
+  const loyaltyRemaining = Math.max(0, loyaltyAvailable - loyaltyApplied);
   const totalPaise = groupPreview?.totalPaise ?? cart?.totalPaise ?? 0;
   const conveniencePaise = groupPreview?.convenienceFeePaise ?? cart?.convenienceFeePaise ?? 200;
   const otherLegs = groupPreview?.legs.filter((l) => l.restaurantId !== restaurantId) ?? [];
@@ -252,7 +270,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
         No confusing fees. No hidden charges.
       </div>
 
-      {loyaltyAvailable > 0 ? (
+      {loyaltyAvailable > 0 || loyaltyApplied > 0 ? (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -260,10 +278,14 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
                 Kitchen loyalty
               </p>
               <p className="mt-0.5 text-[15px] font-semibold text-foreground">
-                {formatInr(loyaltyAvailable)} available
+                {loyaltyApplied > 0
+                  ? `${formatInr(loyaltyRemaining)} left after this bill`
+                  : `${formatInr(loyaltyAvailable)} available`}
               </p>
               <p className="mt-0.5 text-[12px] text-on-surface-variant">
-                Optional — add credits from this kitchen if you want.
+                {loyaltyApplied > 0
+                  ? `Balance ${formatInr(loyaltyAvailable)} · applying ${formatInr(loyaltyApplied)} now`
+                  : "Optional — add credits from this kitchen if you want."}
               </p>
             </div>
             <button
@@ -286,34 +308,60 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
         </div>
       ) : null}
 
-      <ul className="divide-y divide-border rounded-2xl border border-border bg-surface-container-lowest">
-
+      <ul className="divide-y divide-border rounded-2xl border border-border bg-surface-container-lowest" data-testid="checkout-lines">
         {cart?.items.map((line) => (
-
-          <li key={line.id} className="flex justify-between gap-2 p-3 text-sm">
-
-            <span>
-
-              {line.name} × {line.quantity}
-
-            </span>
-
-            <span className="tabular-nums font-medium">
-
-              {formatInr(line.quantity * line.unitPricePaise)}
-
-            </span>
-
+          <li key={line.id} className="flex items-center justify-between gap-2 p-3 text-sm">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium leading-snug">{line.name}</p>
+              <p className="mt-0.5 text-[12px] text-on-surface-variant tabular">
+                {formatInr(line.unitPricePaise)} each
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="inline-flex items-center rounded-full border border-border bg-white">
+                <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  data-testid={`checkout-line-dec-${line.id}`}
+                  disabled={lineBusyId === line.id}
+                  className="pressable flex h-8 w-8 items-center justify-center text-[16px] font-bold disabled:opacity-40"
+                  onClick={() => void onLineQty(line.id, line.quantity - 1)}
+                >
+                  −
+                </button>
+                <span className="min-w-[1.5rem] text-center text-[13px] font-bold tabular">
+                  {line.quantity}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Increase quantity"
+                  data-testid={`checkout-line-inc-${line.id}`}
+                  disabled={lineBusyId === line.id || line.quantity >= 20}
+                  className="pressable flex h-8 w-8 items-center justify-center text-[16px] font-bold disabled:opacity-40"
+                  onClick={() => void onLineQty(line.id, line.quantity + 1)}
+                >
+                  +
+                </button>
+              </div>
+              <span className="min-w-[4.5rem] text-right tabular-nums font-medium">
+                {formatInr(line.quantity * line.unitPricePaise)}
+              </span>
+              <button
+                type="button"
+                aria-label={`Remove ${line.name}`}
+                data-testid={`checkout-line-remove-${line.id}`}
+                disabled={lineBusyId === line.id}
+                className="pressable flex h-8 w-8 items-center justify-center rounded-full bg-surface-container text-on-surface-variant disabled:opacity-40"
+                onClick={() => void onLineQty(line.id, 0)}
+              >
+                ×
+              </button>
+            </div>
           </li>
-
         ))}
-
         {!cart?.items.length && (
-
           <li className="p-4 text-sm text-foreground/60">Cart is empty.</li>
-
         )}
-
       </ul>
 
       <CrossByNearbyStrip restaurantId={restaurantId} />

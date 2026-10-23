@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
-import { formatInr } from "@/lib/api";
+import { clearOpenCart, formatInr } from "@/lib/api";
 
 type Props = {
   restaurantId: string;
@@ -14,6 +14,8 @@ type Props = {
   /** Cross-By: extra kitchens already in session */
   extraKitchenCount?: number;
   riderModeLabel?: string | null;
+  /** After cart cleared */
+  onCleared?: () => void;
 };
 
 /** Ownly-style dual-layer sticky cart dock — P-UI-01 / DEC-016 */
@@ -25,13 +27,30 @@ export function StickyCartDock({
   promoLine = "Direct D2C · First order FREE delivery on D'aMigo's",
   extraKitchenCount = 0,
   riderModeLabel = null,
+  onCleared,
 }: Props) {
   const [hidden, setHidden] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   if (itemCount <= 0 || hidden) return null;
+
+  async function onClearCart() {
+    setClearing(true);
+    setError(null);
+    try {
+      await clearOpenCart(restaurantId);
+      onCleared?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not clear cart");
+    } finally {
+      setClearing(false);
+    }
+  }
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 pb-safe">
-      <div className="mx-auto max-w-lg px-3 pb-3">
+      <div className="mx-auto w-full max-w-lg px-3 pb-3 md:max-w-3xl lg:max-w-5xl">
         {promoLine ? (
           <div className="rounded-t-xl bg-promo-strip px-3 py-1.5 text-center text-[12px] font-semibold text-promo-strip-fg">
             {promoLine}
@@ -54,13 +73,25 @@ export function StickyCartDock({
                 </span>
               ) : null}
             </p>
-            <Link
-              href={`/r/${restaurantId}/menu`}
-              className="text-[12px] font-semibold text-primary"
-            >
-              {riderModeLabel ? `${riderModeLabel} · ` : null}
-              View menu ▶
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <Link
+                href={`/r/${restaurantId}/menu`}
+                className="text-[12px] font-semibold text-primary"
+              >
+                {riderModeLabel ? `${riderModeLabel} · ` : null}
+                View menu ▶
+              </Link>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-on-surface-variant underline"
+                data-testid="sticky-cart-clear"
+                disabled={clearing}
+                onClick={() => void onClearCart()}
+              >
+                {clearing ? "Clearing…" : "Clear cart"}
+              </button>
+            </div>
+            {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
           </div>
           <Link
             href={`/r/${restaurantId}/checkout`}
@@ -73,7 +104,9 @@ export function StickyCartDock({
           </Link>
           <button
             type="button"
-            aria-label="Hide cart bar"
+            aria-label="Keep cart and hide bar"
+            title="Keep cart"
+            data-testid="sticky-cart-keep"
             className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant"
             onClick={() => setHidden(true)}
           >

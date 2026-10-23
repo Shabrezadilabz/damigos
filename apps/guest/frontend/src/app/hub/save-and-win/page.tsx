@@ -1,89 +1,125 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
-import { fetchWaStatus } from "@/lib/api";
+import { getGuestToken } from "@/lib/session";
 
-/** Hub “Save your friend · WIN UP TO ₹600” — share / WhatsApp invite */
+const REF_KEY = "damigos_referral_code";
+const REF_SHARES_KEY = "damigos_referral_shares";
+
+const SAMPLE_OFFERS = [
+  "₹50 off next order",
+  "Free delivery voucher",
+  "Scratch: up to ₹100",
+  "Buy 1 get dessert bite",
+  "₹75 kitchen credit",
+  "Win up to ₹600 pool",
+];
+
+function ensureReferralCode(): string {
+  if (typeof window === "undefined") return "guest";
+  const existing = localStorage.getItem(REF_KEY);
+  if (existing) return existing;
+  const token = getGuestToken();
+  const seed = token?.slice(-8) || Math.random().toString(36).slice(2, 10);
+  const code = `DMG${seed.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)}`;
+  localStorage.setItem(REF_KEY, code);
+  return code;
+}
+
+/** Refer-a-friend: share YOUR invite link to their WhatsApp; scratch tease after share. */
 export default function SaveAndWinPage() {
   const [friendPhone, setFriendPhone] = useState("");
-  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [refCode, setRefCode] = useState("…");
+  const [shareCount, setShareCount] = useState(0);
+  const [scratch, setScratch] = useState<string | null>(null);
 
-  const shareUrl = useMemo(() => {
-    if (typeof window === "undefined") return "https://damigos-guest-web.vercel.app/hub";
-    return `${window.location.origin}/hub`;
+  useEffect(() => {
+    setRefCode(ensureReferralCode());
+    try {
+      setShareCount(Number(localStorage.getItem(REF_SHARES_KEY) || "0") || 0);
+    } catch {
+      setShareCount(0);
+    }
   }, []);
 
-  const shareText =
-    `Join me on D'aMigo's — order direct from local kitchens & unlock Spark rewards.\n` +
-    `Win up to ₹600 when friends order after your invite.\n${shareUrl}`;
+  const shareUrl = useMemo(() => {
+    if (typeof window === "undefined") {
+      return `https://damigos-guest-web.vercel.app/hub?ref=${refCode}`;
+    }
+    return `${window.location.origin}/hub?ref=${encodeURIComponent(refCode)}`;
+  }, [refCode]);
 
-  async function onShare() {
+  const shareText =
+    `Hey! Order direct on D'aMigo's with my invite — local kitchens, packaging rewards & Spark games.\n` +
+    `Open my link (then say HI on WhatsApp to opt in):\n${shareUrl}`;
+
+  function bumpShare(offer?: string) {
+    const next = shareCount + 1;
+    setShareCount(next);
+    try {
+      localStorage.setItem(REF_SHARES_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+    const picked = offer ?? SAMPLE_OFFERS[Math.floor(Math.random() * SAMPLE_OFFERS.length)]!;
+    setScratch(picked);
+    setMsg(
+      `Shared! Scratch tease unlocked: ${picked}. Full reward unlocks when your friend opts in on WhatsApp.`,
+    );
+  }
+
+  async function onShareNative() {
     setErr(null);
     setMsg(null);
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "D'aMigo's — Save & Win",
+          title: "D'aMigo's invite",
           text: shareText,
           url: shareUrl,
         });
-        setMsg("Shared — thanks!");
+        bumpShare();
         return;
       }
       await navigator.clipboard.writeText(shareText);
-      setMsg("Invite link copied. Paste it in WhatsApp.");
+      bumpShare();
+      setMsg((m) => `${m ?? ""} Link copied — paste in WhatsApp.`.trim());
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       try {
         await navigator.clipboard.writeText(shareText);
-        setMsg("Invite link copied.");
+        bumpShare();
       } catch {
-        setErr("Could not share — copy the link below manually.");
+        setErr("Could not share — copy the link below.");
       }
     }
   }
 
-  async function onWhatsAppOpen() {
-    const wa = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-    window.open(wa, "_blank", "noopener,noreferrer");
-  }
-
-  async function onSendSparkInvite(e: React.FormEvent) {
+  function onWhatsAppToFriend(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setMsg(null);
     const digits = friendPhone.replace(/\D/g, "");
-    const e164 = digits.length === 10 ? `91${digits}` : digits;
-    if (e164.length < 12) {
-      setErr("Enter friend’s 10-digit Indian mobile.");
+    if (digits.length < 10) {
+      setErr("Enter your friend’s 10-digit WhatsApp number.");
       return;
     }
-    setBusy(true);
-    try {
-      const status = await fetchWaStatus();
-      const inviteText = encodeURIComponent(
-        `Hi — try D'aMigo's with me. Order direct & play Spark: ${shareUrl}`,
-      );
-      if (status.sparkWaMeE164) {
-        window.open(
-          `https://wa.me/${status.sparkWaMeE164}?text=${inviteText}`,
-          "_blank",
-          "noopener,noreferrer",
-        );
-        setMsg("Opened WhatsApp to Spark — ask your friend to say HI.");
-      } else {
-        window.open(`https://wa.me/91${digits.slice(-10)}?text=${inviteText}`, "_blank", "noopener,noreferrer");
-        setMsg(`Opened chat with ${e164}.`);
-      }
-    } catch (error) {
-      setErr(error instanceof Error ? error.message : "Invite failed");
-    } finally {
-      setBusy(false);
-    }
+    const e164 = digits.length === 10 ? `91${digits}` : digits;
+    window.open(
+      `https://wa.me/${e164}?text=${encodeURIComponent(shareText)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    bumpShare();
+  }
+
+  function onWhatsAppPicker() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+    bumpShare();
   }
 
   return (
@@ -97,79 +133,93 @@ export default function SaveAndWinPage() {
           >
             <MaterialIcon name="arrow_back" className="text-[22px]" />
           </Link>
-          <span className="text-[12px] font-bold uppercase tracking-wider text-white/80">Save &amp; Win</span>
+          <span className="text-[12px] font-bold uppercase tracking-wider text-white/80">
+            Refer &amp; Win
+          </span>
           <span className="w-11" aria-hidden />
         </div>
-        <p className="text-[13px] font-extrabold uppercase tracking-wide text-white/90">Save your friend</p>
-        <h1 className="mt-1 font-display text-[32px] font-black leading-tight">
+        <h1 className="font-display text-[30px] font-black leading-tight tracking-tight">
           Win up to ₹600
         </h1>
         <p className="mt-2 max-w-sm text-[14px] text-white/90">
-          Share D&apos;aMigo&apos;s. When friends order direct after your invite, you both unlock Spark rewards.
+          Share your invite link to a friend&apos;s WhatsApp. When they open it and opt in, you unlock
+          scratch cards &amp; random kitchen offers.
+        </p>
+        <p className="mt-3 inline-flex rounded-full bg-white/20 px-3 py-1 text-[12px] font-bold">
+          Your code · {refCode} · shares {shareCount}
         </p>
       </div>
 
       <div className="-mt-8 space-y-3 px-4">
-        <div className="rounded-2xl bg-white p-4 shadow-md ring-1 ring-black/5">
-          <p className="text-[13px] font-bold">Share invite</p>
-          <p className="mt-1 break-all text-[11px] text-on-surface-variant">{shareUrl}</p>
+        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <p className="text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
+            Your invite link
+          </p>
+          <p className="mt-2 break-all text-[13px] font-semibold text-foreground">{shareUrl}</p>
           <div className="mt-3 flex flex-col gap-2">
             <button
               type="button"
-              className="pressable flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-bold text-on-primary"
-              onClick={() => void onShare()}
-              data-testid="save-win-share"
+              className="pressable flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-bold text-on-primary"
+              onClick={() => void onShareNative()}
             >
-              <MaterialIcon name="ios_share" className="text-[20px]" />
-              Share / copy link
+              <MaterialIcon name="ios_share" className="text-[18px]" />
+              Share invite
             </button>
             <button
               type="button"
-              className="pressable flex h-12 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-[15px] font-bold text-white"
-              onClick={() => void onWhatsAppOpen()}
-              data-testid="save-win-whatsapp"
+              className="pressable flex h-11 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-[14px] font-bold text-white"
+              onClick={onWhatsAppPicker}
             >
-              <MaterialIcon name="chat" className="text-[20px]" />
-              Open WhatsApp
+              <MaterialIcon name="chat" className="text-[18px]" />
+              WhatsApp (pick a friend)
             </button>
           </div>
         </div>
 
         <form
-          onSubmit={(e) => void onSendSparkInvite(e)}
-          className="rounded-2xl bg-white p-4 shadow-md ring-1 ring-black/5"
+          onSubmit={onWhatsAppToFriend}
+          className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
         >
-          <p className="text-[13px] font-bold">Friend&apos;s WhatsApp (optional)</p>
-          <p className="mt-1 text-[12px] text-on-surface-variant">
-            We&apos;ll open a chat so they can start on Spark / Hub.
+          <p className="text-[13px] font-bold">Send to friend&apos;s number</p>
+          <p className="text-[12px] text-on-surface-variant">
+            Opens a chat with <span className="font-semibold">their</span> WhatsApp — not Damigos line —
+            with your referral link prefilled.
           </p>
-          <div className="mt-3 flex gap-2">
-            <span className="flex h-12 items-center rounded-xl bg-surface-container-low px-3 text-[14px] font-semibold text-on-surface-variant">
-              +91
-            </span>
-            <input
-              className="h-12 min-w-0 flex-1 rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 text-[15px]"
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="98XXXXXXXX"
-              value={friendPhone}
-              onChange={(e) => setFriendPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              disabled={busy}
-            />
-          </div>
+          <input
+            className="h-12 w-full rounded-xl border border-border px-3 text-[16px] tracking-wide"
+            inputMode="tel"
+            placeholder="Friend’s 10-digit mobile"
+            value={friendPhone}
+            onChange={(e) => setFriendPhone(e.target.value)}
+            data-testid="refer-friend-phone"
+          />
           <button
             type="submit"
-            disabled={busy}
-            className="pressable mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-surface-container-high text-[14px] font-bold disabled:opacity-60"
+            className="pressable flex h-11 w-full items-center justify-center rounded-xl border border-primary text-[14px] font-bold text-primary"
           >
-            {busy ? "Opening…" : "Message friend"}
+            Open their WhatsApp
           </button>
         </form>
 
-        {msg ? <p className="text-center text-sm font-semibold text-[#166534]">{msg}</p> : null}
+        {scratch ? (
+          <div
+            className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 p-4 ring-1 ring-amber-200"
+            data-testid="refer-scratch-tease"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800">
+              Scratch tease
+            </p>
+            <p className="mt-1 font-display text-[20px] font-extrabold text-amber-950">{scratch}</p>
+            <p className="mt-1 text-[12px] text-amber-900/80">
+              Confirmed when your friend accepts &amp; opts in. Random kitchen offers attach then.
+            </p>
+          </div>
+        ) : null}
+
+        {msg ? <p className="text-center text-[13px] font-semibold text-success">{msg}</p> : null}
         {err ? <p className="text-center text-sm text-red-700">{err}</p> : null}
 
-        <Link href="/hub" className="block py-3 text-center text-[14px] font-semibold text-on-surface-variant">
+        <Link href="/hub" className="pressable mx-auto block py-3 text-center text-[14px] font-bold text-primary">
           Back to hub
         </Link>
       </div>

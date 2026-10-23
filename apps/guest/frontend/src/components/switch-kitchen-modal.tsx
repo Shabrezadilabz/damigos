@@ -77,22 +77,34 @@ export function SwitchKitchenModal({
         ) : null}
 
         <div className="mt-5 flex flex-col gap-2">
+          <Button
+            type="button"
+            className="pressable w-full"
+            data-testid="switch-kitchen-keep-cart"
+            onClick={onCancel}
+          >
+            Keep cart
+          </Button>
           {canAddSecond && onAddSecond && !multi ? (
-            <Button type="button" className="pressable w-full" disabled={confirming} onClick={onAddSecond}>
+            <Button
+              type="button"
+              variant="outline"
+              className="pressable w-full"
+              disabled={confirming}
+              onClick={onAddSecond}
+            >
               Add as 2nd kitchen (Cross-By)
             </Button>
           ) : null}
           <Button
             type="button"
-            variant={canAddSecond && !multi ? "outline" : "default"}
-            className="pressable w-full"
+            variant="ghost"
+            className="pressable w-full text-on-surface-variant"
             disabled={confirming}
+            data-testid="switch-kitchen-replace"
             onClick={onReplace}
           >
             {confirming ? "Clearing…" : multi ? "Clear carts & continue" : "Replace kitchen"}
-          </Button>
-          <Button type="button" variant="ghost" className="pressable w-full" onClick={onCancel}>
-            Keep current cart
           </Button>
         </div>
       </div>

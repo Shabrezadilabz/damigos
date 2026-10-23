@@ -226,27 +226,46 @@ export async function fetchMe(token: string) {
   return data as {
     profileComplete: boolean;
     name: string | null;
+    phoneLast4?: string | null;
+    phoneE164?: string | null;
+    email?: string | null;
+    gender?: string | null;
+    dietaryPref?: string | null;
+    dateOfBirth?: string | null;
+    previousPhoneLast4?: string | null;
     consents: { transactional: boolean; marketing: boolean; game: boolean };
   };
 }
 
-export async function saveGuestProfile(token: string, name: string) {
+export async function saveGuestProfile(
+  token: string,
+  input: {
+    name?: string;
+    email?: string | null;
+    gender?: string | null;
+    dietaryPref?: string | null;
+    dateOfBirth?: string | null;
+    newPhoneE164?: string;
+  },
+) {
   const res = await fetch(`${base}/v1/me/profile`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(input),
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Profile failed"));
   return data;
 }
 
-/** Profile feedback → partners@damigos.in (Resend when configured). */
+/** Profile feedback → partners@damigos.in + DB (restaurant-mapped when known). */
 export async function sendGuestFeedback(input: {
   message: string;
   rating?: number;
   email?: string;
   name?: string;
+  restaurantId?: string;
+  orderId?: string;
   token?: string | null;
 }) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -259,6 +278,8 @@ export async function sendGuestFeedback(input: {
       rating: input.rating,
       email: input.email,
       name: input.name,
+      restaurantId: input.restaurantId,
+      orderId: input.orderId,
     }),
   });
   const data = await readGuestApiJson(res);
@@ -388,6 +409,22 @@ export async function addCartItem(restaurantId: string, menuItemId: string, quan
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Add failed"));
   return data;
+}
+
+/** Set quantity; `0` deletes the line. */
+export async function updateCartItemQuantity(lineId: string, quantity: number) {
+  const res = await fetch(`${base}/v1/cart/items/${encodeURIComponent(lineId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ quantity }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Update cart failed"));
+  return data as { deleted?: boolean; line?: unknown };
+}
+
+export async function removeCartItem(lineId: string) {
+  return updateCartItemQuantity(lineId, 0);
 }
 
 export async function fetchDeliveryConfig() {
