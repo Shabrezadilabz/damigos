@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { HourlyDemandDialog } from "@/components/hourly-demand-dialog";
 import { MaterialIcon } from "@/components/material-icon";
 import type { DashboardAnalytics } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -13,6 +15,7 @@ type Props = {
 
 /** Stitch crm_2_home_overview_analytics_peek — right column */
 export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exporting }: Props) {
+  const [hourlyOpen, setHourlyOpen] = useState(false);
   const funnel = analytics?.funnel ?? [];
   const hasLive = funnel.some((f) => f.count > 0);
   const scans = funnel.find((f) => f.step === "scan")?.count ?? 0;
@@ -43,6 +46,13 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
       ];
 
   return (
+    <>
+    <HourlyDemandDialog
+      open={hourlyOpen}
+      onClose={() => setHourlyOpen(false)}
+      analytics={analytics}
+      onOpenFullAnalytics={() => onOpenFull?.("hourly-demand")}
+    />
     <div className="group relative overflow-hidden rounded-3xl bg-surface-container-lowest p-6 shadow-md">
       <div className="flex items-center justify-between pb-4">
         <div className="flex items-center gap-2">
@@ -108,15 +118,23 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl bg-surface-container-low/70 p-4">
+        <button
+          type="button"
+          onClick={() => setHourlyOpen(true)}
+          data-testid="orders-by-hour-open"
+          className="flex flex-col gap-3 rounded-2xl bg-surface-container-low/70 p-4 text-left transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">Orders by Hour</p>
-              <p className="text-xs text-on-surface-variant">Peak rush: 8:00 PM - 10:00 PM</p>
+              <p className="text-xs text-on-surface-variant">
+                {hasLive ? "Peak rush: 8:00 PM - 10:00 PM · tap for detail" : "Tap for detailed analysis"}
+              </p>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-on-surface-variant">
               <span className="h-2 w-2 rounded-full bg-primary" />
               Today
+              <MaterialIcon name="open_in_new" className="ml-0.5 text-[14px] text-primary" />
             </div>
           </div>
           <div className="flex h-28 items-end justify-between gap-2 px-1 pt-4">
@@ -126,7 +144,9 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
                 <span
                   className={cn(
                     "text-[10px] font-semibold",
-                    b.cls.includes("primary") && !b.cls.includes("container") ? "font-bold text-primary" : "text-[#8f6f6e]",
+                    b.cls.includes("primary") && !b.cls.includes("container")
+                      ? "font-bold text-primary"
+                      : "text-[#8f6f6e]",
                   )}
                 >
                   {b.label}
@@ -134,7 +154,7 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
               </div>
             ))}
           </div>
-        </div>
+        </button>
 
         <div className="flex items-center justify-between rounded-2xl bg-inverse-surface p-4 text-inverse-on-surface shadow-md">
           <div className="flex items-center gap-3">
@@ -154,7 +174,7 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
           </div>
           <button
             type="button"
-            onClick={() => onOpenFull?.("hourly-demand")}
+            onClick={() => setHourlyOpen(true)}
             className="rounded-lg bg-surface-container-lowest px-3 py-1.5 text-[10px] font-semibold text-foreground hover:bg-surface-container-high"
           >
             Insights
@@ -162,5 +182,6 @@ export function DashboardAnalyticsPeek({ analytics, onOpenFull, onExportCsv, exp
         </div>
       </div>
     </div>
+    </>
   );
 }

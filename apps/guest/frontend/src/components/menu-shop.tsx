@@ -24,13 +24,15 @@ import { getGuestToken } from "@/lib/session";
 import { ProfileConsentSheet } from "@/components/profile-consent-sheet";
 import { SwitchKitchenModal } from "@/components/switch-kitchen-modal";
 
+type Filter = "all" | "veg" | "nonveg" | "egg";
+
 type Props = {
   restaurantId: string;
   restaurantName: string;
   items: GuestMenuItem[];
+  /** From hub VEG toggle → `/menu?veg=1` */
+  initialFilter?: Filter;
 };
-
-type Filter = "all" | "veg" | "nonveg" | "egg";
 
 function otherAppsLabel(pricePaise: number, referencePricePaise: number | null | undefined) {
   if (referencePricePaise == null || referencePricePaise <= pricePaise) return null;
@@ -60,13 +62,18 @@ function VegMark({ isVeg }: { isVeg: boolean }) {
   );
 }
 
-export function MenuShop({ restaurantId, restaurantName, items }: Props) {
+export function MenuShop({
+  restaurantId,
+  restaurantName,
+  items,
+  initialFilter = "all",
+}: Props) {
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [selected, setSelected] = useState<GuestMenuItem | null>(null);
   const [qty, setQty] = useState(1);
   const [authOpen, setAuthOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [menuOpen, setMenuOpen] = useState(false);
   const [topOpen, setTopOpen] = useState(true);
   const [query, setQuery] = useState("");

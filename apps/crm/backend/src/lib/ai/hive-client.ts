@@ -181,18 +181,19 @@ function extractHiveMessageText(choice: HiveChatChoice | undefined): string {
 }
 
 /** Flux image gen — square posters use 1024×1024 ([Image Generation](https://docs.thehive.ai/docs/image-generation-models)). */
-export async function hiveGenerateImage(input: {
+export async function hiveGenerateImages(input: {
   prompt: string;
   width?: number;
   height?: number;
   numImages?: number;
-}): Promise<string | null> {
+}): Promise<string[]> {
   const apiKey = hiveApiKey();
-  if (!apiKey) return null;
+  if (!apiKey) return [];
 
   const requestedW = input.width ?? 1024;
   const requestedH = input.height ?? 1024;
   const image_size = normalizeHiveImageSize(requestedW, requestedH);
+  const numImages = Math.min(4, Math.max(1, input.numImages ?? 1));
 
   const modelPath = hiveImageModelPath();
   const res = await fetch(`${HIVE_TASK_BASE}/${modelPath}`, {
@@ -205,7 +206,7 @@ export async function hiveGenerateImage(input: {
       input: {
         prompt: input.prompt,
         image_size,
-        num_images: input.numImages ?? 1,
+        num_images: numImages,
         num_inference_steps: Number(process.env.HIVE_IMAGE_STEPS ?? 12),
         output_format: "jpeg",
         output_quality: 90,
@@ -227,9 +228,27 @@ export async function hiveGenerateImage(input: {
     throw new Error("Hive image blocked by moderation — adjust prompt");
   }
 
-  const first = data.output?.[0];
-  if (!first) return null;
-  if ("url" in first && typeof first.url === "string" && first.url) return first.url;
-  const nested = "images" in first ? first.images?.[0]?.url : undefined;
-  return nested ?? null;
+  const urls: string[] = [];
+  for (const item of data.output ?? []) {
+    if ("url" in item && typeof item.url === "string" && item.url) {
+      urls.push(item.url);
+      continue;
+    }
+    if ("images" in item && Array.isArray(item.images)) {
+      for (const img of item.images) {
+        if (typeof img?.url === "string" && img.url) urls.push(img.url);
+      }
+    }
+  }
+  return [...new Set(urls)].slice(0, numImages);
+}
+
+export async function hiveGenerateImage(input: {
+  prompt: string;
+  width?: number;
+  height?: number;
+  numImages?: number;
+}): Promise<string | null> {
+  const urls = await hiveGenerateImages(input);
+  return urls[0] ?? null;
 }

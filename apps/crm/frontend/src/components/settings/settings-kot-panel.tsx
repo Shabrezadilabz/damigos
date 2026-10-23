@@ -78,7 +78,7 @@ export function SettingsKotPanel() {
   }
 
   return (
-    <div className="col-span-12 space-y-4 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 shadow-sm sm:p-6 lg:col-span-10">
+    <div className="col-span-12 min-w-0 space-y-4 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 shadow-sm sm:p-6 lg:col-span-9">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed/50 text-primary">
           <MaterialIcon name="print" className="text-[22px]" />

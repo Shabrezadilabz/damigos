@@ -1,5 +1,14 @@
 import { randomUUID } from "node:crypto";
+import type { PosterSpec } from "./ai/generate-poster-spec.js";
 import { buildPosterMarketingMessage, POSTER_CAMPAIGN_TEMPLATE_KEY } from "./poster-marketing.js";
+
+export type PosterImageOption = {
+  id: string;
+  /** Hive CDN or stock URL */
+  url: string;
+  source: "hive" | "stock";
+  label: string;
+};
 
 export type PosterJob = {
   id: string;
@@ -19,13 +28,18 @@ export type PosterJob = {
   };
   marketingMessage?: string;
   campaignTemplateKey?: string;
-  /** SVG/PNG poster preview (1080×1080) for WhatsApp status */
+  /** Composed SVG/PNG preview (selected font + image) */
   previewImageDataUrl?: string;
-  /** Hive Flux CDN URL when POSTER_IMAGE_PROVIDER=hive */
+  /** Selected background URL (Hive / stock) */
   previewImageUrl?: string;
-  /** deepseek = AI copy; local = branded SVG fallback */
   previewSource?: "deepseek" | "hive" | "local";
   previewNote?: string;
+  /** Spec + backgrounds kept for restyle (font / image swap) */
+  posterSpec?: PosterSpec;
+  restaurantDisplayName?: string;
+  imageOptions?: PosterImageOption[];
+  selectedImageId?: string;
+  selectedTypographyId?: string;
   createdAt: string;
   approvedAt: string | null;
 };
@@ -44,6 +58,9 @@ export function createPosterJob(input: {
   previewSource?: PosterJob["previewSource"];
   previewNote?: string;
   typographyId?: string;
+  posterSpec?: PosterSpec;
+  imageOptions?: PosterImageOption[];
+  selectedImageId?: string;
 }): PosterJob {
   const id = randomUUID();
   const job: PosterJob = {
@@ -65,6 +82,11 @@ export function createPosterJob(input: {
     previewImageUrl: input.previewImageUrl,
     previewSource: input.previewSource,
     previewNote: input.previewNote,
+    posterSpec: input.posterSpec,
+    restaurantDisplayName: input.restaurantName,
+    imageOptions: input.imageOptions,
+    selectedImageId: input.selectedImageId,
+    selectedTypographyId: input.typographyId,
     createdAt: new Date().toISOString(),
     approvedAt: null,
   };
@@ -75,6 +97,11 @@ export function createPosterJob(input: {
 export function getPosterJob(id: string, restaurantId: string): PosterJob | null {
   const job = jobs.get(id);
   if (!job || job.restaurantId !== restaurantId) return null;
+  return job;
+}
+
+export function updatePosterJob(job: PosterJob): PosterJob {
+  jobs.set(job.id, job);
   return job;
 }
 

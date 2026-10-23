@@ -29,6 +29,16 @@ export {
   verifyDeliveryOtp,
 } from "./delivery-handoff.js";
 
+export {
+  DAMIGOS_WA_TEMPLATES,
+  GROW_KEY_TO_TEMPLATE,
+  KAPSO_CONNECTED,
+  resolveGrowTemplateName,
+  templateNameOrDefault,
+  type DamigosWaTemplateMeta,
+  type DamigosWaTemplateName,
+} from "./kapso-templates.js";
+
 /** Shared domain types — align with docs/architecture/DATA-MODEL.md */
 
 export type StickerTokenStatus = "ACTIVE" | "EXPIRED" | "REVOKED" | "CONSUMED";

@@ -87,7 +87,7 @@ export function HubTodaysOffers({ perks }: Props) {
             {featured.length} live
           </span>
         </div>
-        <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-1">
+        <div className="hub-h-scroll no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-1">
           {featured.map((p, i) => {
             const img = coverForPerk(p.kitchenName, p.href, i) || TILE_IMAGES[i % TILE_IMAGES.length]!;
             return (
@@ -95,9 +95,11 @@ export function HubTodaysOffers({ perks }: Props) {
                 key={`feat-${p.kind}-${p.id}`}
                 href={p.href}
                 className="hub-craving-float pressable flex w-[7.25rem] shrink-0 flex-col gap-1.5"
-                style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-b from-[#ffe4e6] to-white shadow-[0_8px_18px_rgba(178,18,42,0.14)] ring-1 ring-black/5">
+                <div
+                  className="hub-float-inner relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-b from-[#ffe4e6] to-white shadow-[0_8px_18px_rgba(178,18,42,0.14)] ring-1 ring-black/5"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                >
                   <OfferThumb
                     src={img}
                     alt=""

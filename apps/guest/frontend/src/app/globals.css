@@ -174,38 +174,56 @@ body {
     animation: none !important;
     display: none !important;
   }
-  .hub-poster-float-a,
-  .hub-poster-float-b,
-  .hub-craving-float {
+  .hub-poster-float-a > .hub-float-inner,
+  .hub-poster-float-b > .hub-float-inner,
+  .hub-craving-float > .hub-float-inner {
     animation: none !important;
   }
 }
 
-/* Hub — floating ad posters / craving tiles */
-@keyframes hub-float-a {
+/*
+ * Hub poster / offer motion — animate INNER content only.
+ * Transform on the scroll item itself glitches horizontal rails on mobile.
+ */
+@keyframes hub-float-inner-a {
   0%,
   100% {
-    transform: translateY(0) rotate(-0.4deg);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px) rotate(0.4deg);
+    transform: translateY(-4px);
   }
 }
-@keyframes hub-float-b {
+@keyframes hub-float-inner-b {
   0%,
   100% {
-    transform: translateY(-3px) rotate(0.5deg);
+    transform: translateY(-2px);
   }
   50% {
-    transform: translateY(4px) rotate(-0.3deg);
+    transform: translateY(3px);
   }
 }
-.hub-poster-float-a {
-  animation: hub-float-a 3.6s ease-in-out infinite;
-}
-.hub-poster-float-b {
-  animation: hub-float-b 4.1s ease-in-out infinite;
-}
+.hub-poster-float-a,
+.hub-poster-float-b,
 .hub-craving-float {
-  animation: hub-float-a 3.2s ease-in-out infinite;
+  /* keep scroll item transform-stable */
+  transform: none;
+  animation: none;
+}
+.hub-poster-float-a > .hub-float-inner {
+  animation: hub-float-inner-a 3.6s ease-in-out infinite;
+}
+.hub-poster-float-b > .hub-float-inner {
+  animation: hub-float-inner-b 4.1s ease-in-out infinite;
+}
+.hub-craving-float > .hub-float-inner {
+  animation: hub-float-inner-a 3.2s ease-in-out infinite;
+}
+
+/* Horizontal rails — smoother touch scroll, less nested overscroll fight */
+.hub-h-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scroll-behavior: auto;
 }

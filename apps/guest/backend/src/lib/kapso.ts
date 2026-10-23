@@ -4,7 +4,15 @@
  * - D'aMigo Food — utility bill / track / HI
  *
  * KAPSO_MODE: mock | live | off
+ * Templates: send by Meta **name** + en_US positional body params
+ * (see @damigos/domain kapso-templates — Kapso/Meta UUIDs are reference only).
  */
+
+import {
+  KAPSO_CONNECTED,
+  templateNameOrDefault,
+  type DamigosWaTemplateName,
+} from "@damigos/domain";
 
 export type KapsoAgent = "spark" | "food";
 
@@ -197,6 +205,14 @@ export async function sendKapsoCtaUrl(
 }
 
 export async function sendSparkOptInInvite(toPhone: string, playUrl: string, kitchenName: string) {
+  const template = templateNameOrDefault(
+    process.env.KAPSO_SPARK_TEMPLATE_OPT_IN,
+    "damigos_spark_opt_in",
+  );
+  if (kapsoMode() === "live") {
+    const templated = await sendKapsoTemplate("spark", toPhone, template, [kitchenName]);
+    if (templated.ok) return templated;
+  }
   const body =
     `🎁 *Spark by D'aMigo's*\n\n` +
     `You scanned *${kitchenName}* packaging.\n` +
@@ -216,6 +232,17 @@ export async function sendSparkOrderNudge(input: {
   menuUrl: string;
   foodHint?: string;
 }) {
+  const template = templateNameOrDefault(
+    process.env.KAPSO_SPARK_TEMPLATE_CLAIM_NUDGE,
+    "damigos_spark_claim_nudge",
+  );
+  if (kapsoMode() === "live") {
+    const templated = await sendKapsoTemplate("spark", input.toPhone, template, [
+      input.kitchenName,
+      input.rewardTitle,
+    ]);
+    if (templated.ok) return templated;
+  }
   const food =
     input.foodHint ??
     "After you pay, *D'aMigo Food* will WhatsApp your bill & live tracking link.";
@@ -245,29 +272,53 @@ export function sparkWaMeE164(): string | null {
   return normalizeWaPhone(raw);
 }
 
-/** Meta approved template name when set (else free-form text in mock / open session). */
+export type KapsoTemplateHeaderImage =
+  | { link: string }
+  | { id: string };
+
+/**
+ * Send approved template by **name**. Positional body params only.
+ * For `damigos_grow_poster`, pass `headerImage` (media id or public link) —
+ * the template-review handle is not reused at send time.
+ */
 export async function sendKapsoTemplate(
   agent: KapsoAgent,
   toPhone: string,
-  templateName: string,
+  templateName: DamigosWaTemplateName | string,
   bodyParams: string[],
-  languageCode = "en",
+  opts?: {
+    languageCode?: string;
+    headerImage?: KapsoTemplateHeaderImage;
+  },
 ): Promise<KapsoSendResult> {
+  const languageCode = opts?.languageCode ?? KAPSO_CONNECTED.language;
+  const components: Record<string, unknown>[] = [];
+
+  if (opts?.headerImage) {
+    const image =
+      "id" in opts.headerImage
+        ? { id: opts.headerImage.id }
+        : { link: opts.headerImage.link };
+    components.push({
+      type: "header",
+      parameters: [{ type: "image", image }],
+    });
+  }
+
+  if (bodyParams.length > 0) {
+    components.push({
+      type: "body",
+      parameters: bodyParams.map((text) => ({ type: "text", text: String(text) })),
+    });
+  }
+
   return postMessage(agent, {
     to: normalizeWaPhone(toPhone),
     type: "template",
     template: {
       name: templateName,
       language: { code: languageCode },
-      components:
-        bodyParams.length > 0
-          ? [
-              {
-                type: "body",
-                parameters: bodyParams.map((text) => ({ type: "text", text })),
-              },
-            ]
-          : undefined,
+      ...(components.length > 0 ? { components } : {}),
     },
   });
 }
@@ -279,16 +330,17 @@ export async function sendFoodOrderConfirmed(input: {
   trackUrl: string;
   orderShortId: string;
 }) {
-  const rupees = (input.totalPaise / 100).toFixed(2);
-  const template =
-    process.env.KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED?.trim() ||
-    process.env.KAPSO_FOOD_TEMPLATE_CONFIRM?.trim();
-  if (template && kapsoMode() === "live") {
+  // Body: ₹{{3}} — send digits only (no ₹ prefix)
+  const rupees = (input.totalPaise / 100).toFixed(0);
+  const template = templateNameOrDefault(
+    process.env.KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED ?? process.env.KAPSO_FOOD_TEMPLATE_CONFIRM,
+    "damigos_order_confirmed",
+  );
+  if (kapsoMode() === "live") {
     const templated = await sendKapsoTemplate("food", input.toPhone, template, [
       input.kitchenName,
       input.orderShortId,
-      `₹${rupees}`,
-      input.trackUrl,
+      rupees,
     ]);
     if (templated.ok) return templated;
   }
@@ -323,13 +375,14 @@ export async function sendFoodOrderTrackUpdate(input: {
   trackUrl: string;
   orderShortId: string;
 }) {
-  const template = process.env.KAPSO_FOOD_TEMPLATE_TRACK_UPDATE?.trim();
-  if (template && kapsoMode() === "live") {
+  // Approved: {{1}} = order status only (Track button is fixed URL)
+  const template = templateNameOrDefault(
+    process.env.KAPSO_FOOD_TEMPLATE_TRACK_UPDATE,
+    "damigos_order_track",
+  );
+  if (kapsoMode() === "live") {
     const templated = await sendKapsoTemplate("food", input.toPhone, template, [
-      input.kitchenName,
-      input.orderShortId,
       input.statusLabel,
-      input.trackUrl,
     ]);
     if (templated.ok) return templated;
   }
@@ -338,6 +391,55 @@ export async function sendFoodOrderTrackUpdate(input: {
     `*${input.kitchenName}* · #${input.orderShortId}\n` +
     `Status: ${input.statusLabel}\n\n` +
     `Track: ${input.trackUrl}\n\n` +
+    `_D'aMigo Food_`;
+  return sendKapsoText("food", input.toPhone, body);
+}
+
+export async function sendFoodOutForDelivery(input: {
+  toPhone: string;
+  kitchenName: string;
+  etaOrTracking: string;
+  trackUrl: string;
+}) {
+  const template = templateNameOrDefault(
+    process.env.KAPSO_FOOD_TEMPLATE_OUT_FOR_DELIVERY,
+    "damigos_order_out_for_delivery",
+  );
+  if (kapsoMode() === "live") {
+    const templated = await sendKapsoTemplate("food", input.toPhone, template, [
+      input.kitchenName,
+      input.etaOrTracking,
+    ]);
+    if (templated.ok) return templated;
+  }
+  const body =
+    `🛵 *Out for delivery*\n` +
+    `*${input.kitchenName}*\n` +
+    `ETA / tracking: ${input.etaOrTracking}\n\n` +
+    `Track: ${input.trackUrl}\n\n` +
+    `_D'aMigo Food_`;
+  return sendKapsoText("food", input.toPhone, body);
+}
+
+export async function sendFoodOrderDelivered(input: {
+  toPhone: string;
+  kitchenName: string;
+  hubUrl: string;
+}) {
+  const template = templateNameOrDefault(
+    process.env.KAPSO_FOOD_TEMPLATE_DELIVERED,
+    "damigos_order_delivered",
+  );
+  if (kapsoMode() === "live") {
+    const templated = await sendKapsoTemplate("food", input.toPhone, template, [
+      input.kitchenName,
+    ]);
+    if (templated.ok) return templated;
+  }
+  const body =
+    `✅ *Delivered*\n` +
+    `Thanks for ordering from *${input.kitchenName}*!\n\n` +
+    `Order again: ${input.hubUrl}\n\n` +
     `_D'aMigo Food_`;
   return sendKapsoText("food", input.toPhone, body);
 }

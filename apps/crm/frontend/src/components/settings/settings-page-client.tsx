@@ -104,7 +104,7 @@ function StatusRibbon({
 
 function SettingsSubNav({ active }: { active: SettingsTabId }) {
   return (
-    <nav className="col-span-12 flex flex-col gap-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-3 shadow-sm lg:col-span-2">
+    <nav className="col-span-12 flex min-w-0 flex-col gap-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-3 shadow-sm lg:col-span-3">
       <div className="hidden px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant lg:block">
         Navigation
       </div>
@@ -116,14 +116,19 @@ function SettingsSubNav({ active }: { active: SettingsTabId }) {
               key={tab.id}
               href={`/settings?tab=${tab.id}`}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all lg:w-full lg:gap-2.5",
+                "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all lg:w-full lg:min-w-0 lg:gap-2.5",
                 isActive
                   ? "bg-primary-container text-on-primary-container shadow-sm"
                   : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
               )}
             >
               <MaterialIcon name={tab.icon} className="shrink-0 text-[18px]" />
-              <span className={cn("whitespace-nowrap text-xs font-semibold", isActive && "font-bold")}>
+              <span
+                className={cn(
+                  "min-w-0 whitespace-nowrap text-xs font-semibold leading-snug lg:whitespace-normal",
+                  isActive && "font-bold",
+                )}
+              >
                 {tab.label}
               </span>
             </Link>
@@ -142,7 +147,7 @@ function SettingsSubNav({ active }: { active: SettingsTabId }) {
 
 function PlaceholderPanel({ title, body }: { title: string; body: string }) {
   return (
-    <div className="col-span-12 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 shadow-sm sm:p-6 lg:col-span-10">
+    <div className="col-span-12 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 shadow-sm sm:p-6 lg:col-span-9">
       <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-on-surface">{title}</h2>
       <p className="mt-2 text-sm text-on-surface-variant">{body}</p>
     </div>
@@ -192,17 +197,17 @@ export function SettingsPageClient({ tabParam }: { tabParam?: string }) {
 
         {tab === "stickers" ? (
           <>
-            <div className="col-span-12 lg:col-span-3">
+            <div className="col-span-12 min-w-0 lg:col-span-3">
               <SettingsStickersOwnerPeek />
             </div>
-            <div className="col-span-12 lg:col-span-7">
+            <div className="col-span-12 min-w-0 lg:col-span-6">
               <SettingsStickersOwnerWorkspace />
             </div>
           </>
         ) : null}
 
         {tab === "payout" ? (
-          <div className="col-span-12 lg:col-span-10">
+          <div className="col-span-12 min-w-0 lg:col-span-9">
             <SettingsPayoutPanel embedded />
           </div>
         ) : null}
@@ -210,7 +215,7 @@ export function SettingsPageClient({ tabParam }: { tabParam?: string }) {
         {tab === "location" ? <SettingsLocationPanel /> : null}
 
         {tab === "profile" ? (
-          <div className="col-span-12 space-y-4 lg:col-span-10">
+          <div className="col-span-12 min-w-0 space-y-4 lg:col-span-9">
             <PlaceholderPanel
               title="Profile & theme"
               body="Use Brand & theme (top card) to recolor the full CRM. Display name and logo still sync from menu AI brand kit."
@@ -226,7 +231,7 @@ export function SettingsPageClient({ tabParam }: { tabParam?: string }) {
         ) : null}
 
         {tab === "team" ? (
-          <div className="col-span-12 space-y-4 lg:col-span-10">
+          <div className="col-span-12 min-w-0 space-y-4 lg:col-span-9">
             <PlaceholderPanel
               title="Team access"
               body="Invite kitchen staff by phone. They log in with OTP and only see Orders (kitchen board + list) — not Grow, Menu, or Settings."

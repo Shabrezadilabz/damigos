@@ -1,20 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
 import {
   approveGrowPoster,
+  fetchPosterTypographyOptions,
   generateGrowPoster,
+  restyleGrowPoster,
   type GrowPosterJob,
+  type PosterTypographyOption,
 } from "@/lib/api";
 import {
   savePosterCampaignDraft,
   type PosterCampaignDraft,
 } from "./poster-campaign-bridge";
 
-const GENERATE_STEPS = ["Polishing copy", "Generating food photo", "Laying out type"] as const;
+const GENERATE_STEPS = ["Polishing copy", "Generating photo options", "Laying out type"] as const;
 
 function posterCampaignName(headline: string): string {
   const base = `Poster · ${headline}`;
@@ -35,7 +38,7 @@ function PosterStudioLoader({ stepIndex }: { stepIndex: number }) {
       </div>
       <p className="font-[family-name:var(--font-display)] text-lg font-bold">Building your poster…</p>
       <p className="mt-2 text-center text-sm text-on-surface-variant">
-        Hive Flux + fresh typography — usually 15–45 seconds.
+        Multiple photo options + type stacks — usually 20–60 seconds.
       </p>
       <ol className="mt-6 w-full max-w-xs space-y-2 text-left text-xs">
         {GENERATE_STEPS.map((label, i) => (
@@ -85,7 +88,9 @@ function WhatsAppTemplatePreview({
             className="mt-3 w-full rounded-lg border border-black/5 object-cover"
           />
         ) : null}
-        <p className="mt-2 text-right text-[10px] text-[#667781]">Template · {poster.campaignTemplateKey ?? "poster_status_blast"}</p>
+        <p className="mt-2 text-right text-[10px] text-[#667781]">
+          Template · {poster.campaignTemplateKey ?? "poster_status_blast"}
+        </p>
       </div>
     </div>
   );
@@ -95,11 +100,22 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
   const router = useRouter();
   const [headline, setHeadline] = useState("Weekend biryani special");
   const [offerLine, setOfferLine] = useState("₹50 off when you scan & order direct");
+  const [typographyId, setTypographyId] = useState("soft-editorial");
+  const [typographyOptions, setTypographyOptions] = useState<PosterTypographyOption[]>([]);
   const [poster, setPoster] = useState<GrowPosterJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [loaderStep, setLoaderStep] = useState(0);
   const [approving, setApproving] = useState(false);
+  const [restyling, startRestyle] = useTransition();
+
+  useEffect(() => {
+    void fetchPosterTypographyOptions()
+      .then(setTypographyOptions)
+      .catch(() => {
+        /* optional — generate response also returns options */
+      });
+  }, []);
 
   async function onGenerate() {
     setGenerating(true);
@@ -110,14 +126,44 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
       setLoaderStep((s) => Math.min(s + 1, GENERATE_STEPS.length - 1));
     }, 8000);
     try {
-      const job = await generateGrowPoster({ restaurantId, headline, offerLine });
+      const { poster: job, typographyOptions: opts } = await generateGrowPoster({
+        restaurantId,
+        headline,
+        offerLine,
+        typographyId,
+        imageCount: 3,
+      });
+      if (opts.length) setTypographyOptions(opts);
       setPoster(job);
+      if (job.selectedTypographyId) setTypographyId(job.selectedTypographyId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
     } finally {
       window.clearInterval(stepTimer);
       setGenerating(false);
     }
+  }
+
+  function applyRestyle(next: { typographyId?: string; imageId?: string }) {
+    if (!poster) return;
+    startRestyle(() => {
+      void (async () => {
+        setError(null);
+        try {
+          const { poster: job, typographyOptions: opts } = await restyleGrowPoster({
+            restaurantId,
+            posterId: poster.id,
+            typographyId: next.typographyId ?? typographyId,
+            imageId: next.imageId ?? poster.selectedImageId,
+          });
+          if (opts.length) setTypographyOptions(opts);
+          setPoster(job);
+          if (job.selectedTypographyId) setTypographyId(job.selectedTypographyId);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not update style");
+        }
+      })();
+    });
   }
 
   async function onApprove() {
@@ -159,6 +205,18 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
     router.push("/grow?tab=campaigns");
   }
 
+  const fontOptions =
+    typographyOptions.length > 0
+      ? typographyOptions
+      : [
+          {
+            id: "soft-editorial",
+            label: "Soft editorial",
+            description: "Friendly rounded headline",
+            layout: "left-stack" as const,
+          },
+        ];
+
   return (
     <div className="grid gap-6 xl:grid-cols-12">
       <div className="space-y-4 xl:col-span-5">
@@ -168,7 +226,7 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
             <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">Creative brief</h2>
           </div>
           <p className="mb-4 text-xs text-on-surface-variant">
-            C-04.07 — approve, then send with a prefixed WhatsApp template via Campaigns.
+            Generate several food photos, then pick type + image before approve.
           </p>
           <label className="block text-sm">
             <span className="font-semibold">Headline</span>
@@ -189,6 +247,30 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
               disabled={generating}
             />
           </label>
+          <label className="mt-3 block text-sm">
+            <span className="font-semibold">Font style</span>
+            <select
+              className="mt-1.5 w-full rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 py-2.5 text-sm"
+              value={typographyId}
+              disabled={generating || restyling}
+              data-testid="poster-font-select"
+              onChange={(e) => {
+                const next = e.target.value;
+                setTypographyId(next);
+                if (poster) applyRestyle({ typographyId: next });
+              }}
+            >
+              {fontOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-[11px] text-on-surface-variant">
+              {fontOptions.find((o) => o.id === typographyId)?.description ??
+                "Choose a readable type stack for the overlay"}
+            </span>
+          </label>
           <Button
             type="button"
             className="mt-4 gap-2"
@@ -196,10 +278,45 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
             onClick={() => void onGenerate()}
           >
             <MaterialIcon name={generating ? "hourglass_top" : "palette"} className="text-[18px]" />
-            {generating ? "Generating…" : "Generate preview"}
+            {generating ? "Generating…" : "Generate options"}
           </Button>
           {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
         </div>
+
+        {poster?.imageOptions && poster.imageOptions.length > 0 ? (
+          <div className="rounded-xl bg-surface-container-lowest p-5 shadow-[0_2px_8px_-2px_rgba(28,28,28,0.04)]">
+            <h3 className="mb-1 text-sm font-bold">Photo options</h3>
+            <p className="mb-3 text-[11px] text-on-surface-variant">
+              Tap a photo to relayout the poster. {restyling ? "Updating…" : ""}
+            </p>
+            <div className="grid grid-cols-3 gap-2" data-testid="poster-image-options">
+              {poster.imageOptions.map((opt) => {
+                const selected = opt.id === poster.selectedImageId;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={generating || restyling}
+                    onClick={() => applyRestyle({ imageId: opt.id })}
+                    className={`overflow-hidden rounded-lg border-2 text-left transition ${
+                      selected
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-outline-variant/40 hover:border-primary/50"
+                    }`}
+                    data-testid={`poster-image-option-${opt.id}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={opt.url} alt={opt.label} className="aspect-square w-full object-cover" />
+                    <span className="block truncate bg-surface-container-low px-1.5 py-1 text-[10px] font-semibold">
+                      {opt.label}
+                      {opt.source === "hive" ? " · AI" : " · stock"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {poster?.status === "approved" && poster.marketingMessage ? (
           <WhatsAppTemplatePreview poster={poster} message={poster.marketingMessage} />
@@ -209,7 +326,9 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
       <div className="xl:col-span-7">
         <div className="min-h-[320px] rounded-xl bg-surface-container-low p-5 shadow-[0_2px_8px_-2px_rgba(28,28,28,0.04)]">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Studio preview</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+              Studio preview
+            </h3>
             <span className="rounded-full bg-tertiary-fixed px-2 py-0.5 text-[9px] font-bold uppercase text-on-tertiary-fixed">
               1024 × 1024
             </span>
@@ -221,7 +340,7 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
           ) : !poster ? (
             <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-outline-variant text-sm text-on-surface-variant">
               <MaterialIcon name="image" className="mb-2 text-[32px] opacity-40" />
-              Generate to see copy layout.
+              Generate to see photo + font options.
             </div>
           ) : (
             <div className="mx-auto max-w-md space-y-3" data-testid="poster-preview">
@@ -231,29 +350,24 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
                   <img
                     src={poster.previewImageDataUrl ?? poster.previewImageUrl}
                     alt="AI poster preview"
-                    className="w-full rounded-xl border border-outline-variant/40 shadow-lg"
+                    className={`w-full rounded-xl border border-outline-variant/40 shadow-lg ${restyling ? "opacity-70" : ""}`}
                     data-testid="poster-preview-image"
                   />
-                  {poster.theme?.typographyId ? (
+                  {poster.theme?.typographyId || poster.selectedTypographyId ? (
                     <p className="text-center text-[11px] text-on-surface-variant">
-                      Type preset: <span className="font-semibold">{poster.theme.typographyId.replace(/-/g, " ")}</span>
+                      Type:{" "}
+                      <span className="font-semibold">
+                        {fontOptions.find(
+                          (o) => o.id === (poster.selectedTypographyId ?? poster.theme?.typographyId),
+                        )?.label ??
+                          (poster.selectedTypographyId ?? poster.theme?.typographyId)?.replace(/-/g, " ")}
+                      </span>
                       {poster.previewSource === "hive" ? " · dish-matched photo" : ""}
                     </p>
                   ) : null}
                   {poster.previewNote ? (
                     <p className="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-900">
                       {poster.previewNote}
-                    </p>
-                  ) : null}
-                  {poster.previewSource === "hive" ? (
-                    <p className="text-center text-xs text-on-surface-variant">
-                      Food photo from Hive Flux · overlay includes restaurant name + offer.
-                    </p>
-                  ) : poster.previewSource === "local" ? (
-                    <p className="text-center text-xs text-on-surface-variant">
-                      Dish-matched food photo under copy (Flux off or failed). Set{" "}
-                      <code className="text-[10px]">POSTER_IMAGE_PROVIDER=hive</code> +{" "}
-                      <code className="text-[10px]">HIVE_API_KEY</code> for AI-generated dishes.
                     </p>
                   ) : null}
                 </>
@@ -280,7 +394,12 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
                 Status: {poster.status === "approved" ? "Approved for share" : "Draft — approve to share"}
               </p>
               {poster.status === "draft" ? (
-                <Button type="button" size="sm" disabled={approving || generating} onClick={() => void onApprove()}>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={approving || generating || restyling}
+                  onClick={() => void onApprove()}
+                >
                   {approving ? "Approving…" : "Approve poster"}
                 </Button>
               ) : null}

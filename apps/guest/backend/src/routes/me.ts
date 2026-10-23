@@ -2,12 +2,77 @@ import { desc, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { consentRecords, customers, db } from "@damigos/db";
+import { notifyPartnersEmail } from "../lib/partner-notify.js";
 import { requireGuest } from "../lib/require-guest.js";
+import { optionalGuest } from "../lib/optional-guest.js";
 
 const POLICY_VERSION = "2026-10-15";
 
 /** G-02 profile + consents */
 export async function registerMeRoutes(app: FastifyInstance) {
+  /** Guest app feedback → partners@damigos.in */
+  app.post("/me/feedback", { preHandler: optionalGuest }, async (request, reply) => {
+    const body = z
+      .object({
+        message: z.string().min(8).max(4000),
+        rating: z.number().int().min(1).max(5).optional(),
+        email: z.string().email().optional(),
+        name: z.string().max(120).optional(),
+      })
+      .safeParse(request.body);
+
+    if (!body.success) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "message required (min 8 characters)",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    let guestName = body.data.name?.trim() || null;
+    let guestPhoneLast4: string | null = null;
+    const customerId = request.guest?.sub;
+    if (customerId) {
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, customerId))
+        .limit(1);
+      if (customer) {
+        guestName = guestName || customer.name;
+        guestPhoneLast4 = customer.phoneLast4;
+      }
+    }
+
+    const ratingLine = body.data.rating ? `Rating: ${body.data.rating}/5\n` : "";
+    const text =
+      `Guest app feedback\n` +
+      ratingLine +
+      `Name: ${guestName ?? "—"}\n` +
+      `Phone last4: ${guestPhoneLast4 ?? "—"}\n` +
+      `Reply-to email: ${body.data.email ?? "—"}\n` +
+      `Customer id: ${customerId ?? "anonymous"}\n\n` +
+      body.data.message.trim();
+
+    const result = await notifyPartnersEmail({
+      subject: `[Guest feedback]${body.data.rating ? ` ${body.data.rating}★` : ""} ${guestName ?? "Guest"}`,
+      body: text,
+      meta: {
+        source: "guest_me_feedback",
+        customerId: customerId ?? null,
+        rating: body.data.rating ?? null,
+      },
+    });
+
+    return {
+      ok: true,
+      emailed: result.emailed,
+      to: process.env.PARTNERS_NOTIFY_EMAIL?.trim() || "partners@damigos.in",
+    };
+  });
+
   app.get("/me", { preHandler: requireGuest }, async (request, reply) => {
     const customerId = request.guest!.sub!;
     const [customer] = await db.select().from(customers).where(eq(customers.id, customerId)).limit(1);

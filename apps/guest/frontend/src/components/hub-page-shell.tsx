@@ -165,8 +165,9 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
             />
           </div>
           <Link
-            href="/hub"
+            href="/hub/save-and-win"
             className="pressable relative flex w-[5.5rem] shrink-0 flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#f59e0b] px-2 py-1.5 text-center shadow-md"
+            data-testid="hub-save-and-win"
           >
             <span className="text-[8px] font-extrabold uppercase leading-tight tracking-wide text-white">
               Save your friend

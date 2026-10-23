@@ -1,78 +1,49 @@
 import { KitchenPausedMenu } from "@/components/kitchen-paused-menu";
-
 import { MenuShop } from "@/components/menu-shop";
-
 import { fetchGuestMenu, type GuestMenuItem } from "@/lib/api";
 
-
-
 type MenuApiError = Error & {
-
   data?: { error?: { code?: string } };
-
   restaurant?: { id: string; name: string };
-
   items?: GuestMenuItem[];
-
 };
 
-
-
 /** G-S2 / P0-T11 + G-15 pause */
-
 export default async function MenuPage({
-
   params,
-
+  searchParams,
 }: {
-
   params: Promise<{ restaurantId: string }>;
-
+  searchParams: Promise<{ veg?: string }>;
 }) {
-
   const { restaurantId } = await params;
-
-
+  const q = await searchParams;
+  const initialFilter = q.veg === "1" || q.veg === "true" ? "veg" : "all";
 
   try {
-
     const menu = await fetchGuestMenu(restaurantId);
-
     return (
-      <MenuShop restaurantId={restaurantId} restaurantName={menu.restaurant.name} items={menu.items} />
+      <MenuShop
+        restaurantId={restaurantId}
+        restaurantName={menu.restaurant.name}
+        items={menu.items}
+        initialFilter={initialFilter}
+      />
     );
-
   } catch (e) {
-
     const err = e as MenuApiError;
-
     const code = err.data?.error?.code;
 
-
-
     if (code === "ORDERING_PAUSED") {
-
       const name = err.restaurant?.name ?? "Kitchen";
-
       const items = err.items ?? [];
-
       return <KitchenPausedMenu restaurantId={restaurantId} restaurantName={name} items={items} />;
-
     }
 
-
-
     return (
-
       <main className="p-4 text-sm text-red-700">
-
         {err.message ?? "Menu unavailable"} — is guest-api running with DB migrated?
-
       </main>
-
     );
-
   }
-
 }
-

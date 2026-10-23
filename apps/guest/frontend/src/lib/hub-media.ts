@@ -96,14 +96,15 @@ export const CRAVING_TILES = [
   { id: "brands", label: "Top Brands", image: FOOD.biryani, href: "/hub/collections/brands" },
 ] as const;
 
+/** Hub “What’s on your mind” — `q` matches onboarded kitchen + dish names via /hub/restaurants?q= */
 export const MIND_CATEGORIES = [
-  { id: "festival", label: "Festival Specials", image: FOOD.festival },
-  { id: "biryani", label: "Biryani", image: FOOD.biryani },
-  { id: "shawarma", label: "Shawarma", image: FOOD.shawarma },
-  { id: "south", label: "South Indian", image: FOOD.dosa },
-  { id: "burger", label: "Burger", image: FOOD.burger },
-  { id: "chinese", label: "Chinese", image: FOOD.chinese },
-  { id: "dessert", label: "Desserts", image: FOOD.dessert },
+  { id: "festival", label: "Festival Specials", image: FOOD.festival, q: "festival thali sweet" },
+  { id: "biryani", label: "Biryani", image: FOOD.biryani, q: "biryani" },
+  { id: "shawarma", label: "Shawarma", image: FOOD.shawarma, q: "shawarma grill" },
+  { id: "south", label: "South Indian", image: FOOD.dosa, q: "dosa idli south" },
+  { id: "burger", label: "Burger", image: FOOD.burger, q: "burger" },
+  { id: "chinese", label: "Chinese", image: FOOD.chinese, q: "chinese noodles" },
+  { id: "dessert", label: "Desserts", image: FOOD.dessert, q: "dessert sweet" },
 ] as const;
 
 /** Dish / menu thumbnail from name + optional catalog URL */

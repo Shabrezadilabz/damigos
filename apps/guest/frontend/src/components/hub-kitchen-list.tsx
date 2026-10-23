@@ -8,6 +8,7 @@ import { MaterialIcon } from "@/components/material-icon";
 import { SwitchKitchenModal } from "@/components/switch-kitchen-modal";
 import { Button } from "@/components/ui/button";
 import {
+  addCartItem,
   clearOpenCart,
   fetchHubBestsellers,
   fetchHubRestaurants,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/api";
 import { OwnlyFilterChips } from "@/components/ownly-filter-chips";
 import { OwnlyRestaurantRow } from "@/components/ownly-restaurant-row";
+import { ProfileConsentSheet } from "@/components/profile-consent-sheet";
 import {
   coverForSlug,
   cuisineForSlug,
@@ -49,14 +51,16 @@ function enrich(r: HubRestaurant, index: number): Enriched {
 
 function KitchenCard({
   r,
+  href,
   onClick,
 }: {
   r: Enriched;
+  href?: string;
   onClick: (e: React.MouseEvent) => void;
 }) {
   return (
     <Link
-      href={r.menuPath}
+      href={href ?? r.menuPath}
       onClick={onClick}
       className="pressable block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.15rem] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.07)] ring-1 ring-black/5"
     >
@@ -108,6 +112,9 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
   const [clearing, setClearing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addNote, setAddNote] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -146,8 +153,13 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
 
   const filtered = useMemo(() => {
     let list = [...enriched];
-    /** VEG ON (green) = veg-only kitchens; OFF = non-veg + veg mix (everything) */
-    if (filters.vegOnly) list = list.filter((r) => r.pureVeg === true);
+    /**
+     * VEG ON = kitchens with vegetarian dishes (pure veg OR veg-friendly mix).
+     * Not pureVeg-only — that hid most onboarded menus and looked like “only Promise” moved.
+     */
+    if (filters.vegOnly) {
+      list = list.filter((r) => r.pureVeg === true || r.vegFriendly === true);
+    }
     if (filters.rating4Plus) list = list.filter((r) => r.rating >= 4);
     if (filters.lowestPrice) list = list.filter((r) => r.badge === "lowest_price");
     switch (filters.sort) {
@@ -168,10 +180,18 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
 
   const searching = filters.search.trim().length > 0;
 
-  const promiseRail = useMemo(
-    () => [...filtered].sort((a, b) => a.etaMins - b.etaMins).slice(0, 8),
-    [filtered],
-  );
+  function menuHref(path: string) {
+    if (!filters.vegOnly) return path;
+    const join = path.includes("?") ? "&" : "?";
+    return `${path}${join}veg=1`;
+  }
+
+  const promiseRail = useMemo(() => {
+    const base = filtered.filter((r) => r.badge === "delivery_promise");
+    const pool = base.length >= 3 ? base : filtered;
+    return [...pool].sort((a, b) => a.etaMins - b.etaMins).slice(0, 8);
+  }, [filtered]);
+
   const knownLoved = useMemo(
     () => [...filtered].sort((a, b) => b.rating - a.rating).slice(0, 8),
     [filtered],
@@ -183,6 +203,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
       : filtered.flatMap((r) =>
           (r.sampleDishes ?? [])
             .filter((d) => d.pricePaise <= 14900)
+            .filter((d) => (filters.vegOnly ? d.isVeg : true))
             .map((d) => ({
               id: d.id,
               name: d.name,
@@ -239,6 +260,32 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
+  async function onAddBestseller(e: React.MouseEvent, item: HubBestsellerItem) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!getGuestToken()) {
+      setAuthOpen(true);
+      return;
+    }
+    setAddingId(item.id);
+    setAddNote(null);
+    setError(null);
+    try {
+      await addCartItem(item.restaurantId, item.id, 1);
+      const s = await fetchOpenCartSession();
+      setOpenCarts(s.openCarts);
+      setCrossBy(s.crossBy);
+      setAddNote(`Added ${item.name} · go to checkout from cart`);
+      router.push(`/r/${item.restaurantId}/checkout`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not add";
+      // Cross-kitchen / auth — fall back to menu only if add truly failed
+      setError(message);
+    } finally {
+      setAddingId(null);
+    }
+  }
+
   const Wrapper = embedded ? "div" : "main";
   const wrapperClass = embedded ? "flex flex-col gap-6" : "mx-auto min-h-dvh max-w-lg p-4 md:max-w-3xl";
   const primary = openCarts[0] ?? null;
@@ -270,9 +317,17 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
             </div>
             <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
               {promiseRail.map((r) => (
-                <KitchenCard key={`p-${r.id}`} r={r} onClick={(e) => onKitchenClick(e, r)} />
+                <KitchenCard
+                  key={`p-${r.id}`}
+                  r={r}
+                  href={menuHref(r.menuPath)}
+                  onClick={(e) => onKitchenClick(e, r)}
+                />
               ))}
             </div>
+            {!promiseRail.length && filters.vegOnly ? (
+              <p className="text-[12px] text-on-surface-variant">No veg-friendly kitchens in Promise yet.</p>
+            ) : null}
           </section>
 
           {/* Bestsellers under ₹149 poster */}
@@ -288,40 +343,54 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
                 See All &gt;
               </Link>
             </div>
-            <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+            {addNote ? (
+              <p className="mb-2 text-[12px] font-semibold text-[#166534]">{addNote}</p>
+            ) : null}
+            <div className="hub-h-scroll no-scrollbar flex gap-3 overflow-x-auto pb-1">
               {bestsellerItems.map((item, idx) => (
-                <Link key={item.id} href={item.menuPath} className="pressable w-[8.5rem] shrink-0">
+                <div key={item.id} className="w-[8.5rem] shrink-0">
                   <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.imageUrl?.trim() || coverForSlug(item.restaurantSlug, idx)}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                    <Link href={menuHref(item.menuPath)} className="pressable absolute inset-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.imageUrl?.trim() || coverForSlug(item.restaurantSlug, idx)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </Link>
                     {item.bestseller ? (
-                      <span className="absolute right-1.5 top-1.5 rounded-md bg-[#1b1b1b]/80 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-md bg-[#1b1b1b]/80 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         Bestseller
                       </span>
                     ) : null}
-                    <span className="absolute bottom-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-lg font-bold text-white shadow-md">
-                      +
-                    </span>
+                    <button
+                      type="button"
+                      className="pressable absolute bottom-1.5 right-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-lg font-bold text-white shadow-md disabled:opacity-60"
+                      aria-label={`Add ${item.name}`}
+                      data-testid={`hub-bestseller-add-${item.id}`}
+                      disabled={addingId === item.id}
+                      onClick={(e) => void onAddBestseller(e, item)}
+                    >
+                      {addingId === item.id ? "…" : "+"}
+                    </button>
                   </div>
-                  <p className="mt-1.5 line-clamp-2 text-[12px] font-bold leading-tight">{item.name}</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    <span
-                      className={`inline-block h-2.5 w-2.5 rounded-[2px] border ${
-                        item.isVeg ? "border-success bg-success/20" : "border-primary bg-primary/20"
-                      }`}
-                    />
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-                      {formatInr(item.pricePaise)}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 truncate text-[10px] text-on-surface-variant">
-                    {item.restaurantName}
-                  </p>
-                </Link>
+                  <Link href={menuHref(item.menuPath)} className="pressable block">
+                    <p className="mt-1.5 line-clamp-2 text-[12px] font-bold leading-tight">{item.name}</p>
+                    <div className="mt-1 flex items-center gap-1">
+                      <span
+                        className={`inline-block h-2.5 w-2.5 rounded-[2px] border ${
+                          item.isVeg ? "border-success bg-success/20" : "border-primary bg-primary/20"
+                        }`}
+                      />
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                        {formatInr(item.pricePaise)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[10px] text-on-surface-variant">
+                      {item.restaurantName}
+                    </p>
+                  </Link>
+                </div>
               ))}
             </div>
           </section>
@@ -331,14 +400,14 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
             <h3 className="font-display mb-3 text-[17px] font-bold tracking-tight">
               What&apos;s On Your Mind?
             </h3>
-            <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
+            <div className="hub-h-scroll no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
               {MIND_CATEGORIES.map((c) => (
                 <Link
                   key={c.id}
                   href={
                     c.id === "festival"
                       ? "/hub/collections/festival"
-                      : `/hub/search?q=${encodeURIComponent(c.label.split(" ")[0] ?? c.label)}`
+                      : `/hub/search?q=${encodeURIComponent(c.q)}`
                   }
                   className="pressable flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5"
                 >
@@ -362,7 +431,12 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
             </div>
             <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
               {knownLoved.map((r) => (
-                <KitchenCard key={`k-${r.id}`} r={r} onClick={(e) => onKitchenClick(e, r)} />
+                <KitchenCard
+                  key={`k-${r.id}`}
+                  r={r}
+                  href={menuHref(r.menuPath)}
+                  onClick={(e) => onKitchenClick(e, r)}
+                />
               ))}
             </div>
           </section>
@@ -394,6 +468,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
               <OwnlyRestaurantRow
                 restaurant={r}
                 index={i}
+                href={menuHref(r.menuPath)}
                 onClick={(e) => onKitchenClick(e, r)}
               />
             </li>
@@ -435,6 +510,14 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
           confirming={clearing}
         />
       ) : null}
+
+      <ProfileConsentSheet
+        open={authOpen}
+        onComplete={() => {
+          setAuthOpen(false);
+          setAddNote("Signed in — tap + again to add");
+        }}
+      />
     </Wrapper>
   );
 }

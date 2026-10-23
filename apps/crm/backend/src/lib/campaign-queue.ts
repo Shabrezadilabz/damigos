@@ -10,7 +10,12 @@ import {
   orders,
   restaurants,
 } from "@damigos/db";
-import { kapsoMode as kapsoModeFromLib, sendSparkMarketingText } from "./kapso.js";
+import { resolveGrowTemplateName } from "@damigos/domain";
+import {
+  kapsoMode as kapsoModeFromLib,
+  sendGrowCampaignTemplate,
+  sendSparkMarketingText,
+} from "./kapso.js";
 import { getWalletSnapshot, WHATSAPP_MSG_COST_PAISE } from "./wallet.js";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -292,13 +297,40 @@ export async function dispatchCampaignMock(campaignId: string, restaurantId: str
       continue;
     }
 
-    const body =
-      `📣 *${kitchen?.name ?? "Your kitchen"}*\n\n` +
-      `${campaign.name}\n` +
-      (campaign.templateKey ? `Offer: ${campaign.templateKey}\n\n` : "\n") +
-      `Order direct: ${guestWebOrigin()}/r/${restaurantId}`;
+    const kitchenName = kitchen?.name ?? "Your kitchen";
+    const offerOrCopy = campaign.name.slice(0, 500);
+    const metaName = resolveGrowTemplateName(campaign.templateKey);
+    const posterImageLink =
+      process.env.KAPSO_GROW_POSTER_IMAGE_LINK?.trim() ||
+      process.env.KAPSO_GROW_POSTER_IMAGE_URL?.trim() ||
+      null;
 
-    const result = await sendSparkMarketingText(phone, body);
+    const canSendTemplate =
+      Boolean(metaName) &&
+      kapsoModeFromLib() === "live" &&
+      (metaName !== "damigos_grow_poster" || Boolean(posterImageLink));
+
+    let result = canSendTemplate
+      ? await sendGrowCampaignTemplate({
+          toPhone: phone,
+          templateKey: campaign.templateKey,
+          kitchenName,
+          offerOrCopy,
+          headline: campaign.name.slice(0, 60),
+          headerImage: posterImageLink ? { link: posterImageLink } : undefined,
+        })
+      : { ok: false as const, mode: kapsoModeFromLib(), messageId: null as string | null, error: "skip_template" };
+
+    // Poster without image link, unknown key, or mock → free-form text fallback
+    if (!result.ok) {
+      const body =
+        `📣 *${kitchenName}*\n\n` +
+        `${campaign.name}\n` +
+        (campaign.templateKey ? `Offer: ${campaign.templateKey}\n\n` : "\n") +
+        `Order direct: ${guestWebOrigin()}/r/${restaurantId}`;
+      result = await sendSparkMarketingText(phone, body);
+    }
+
     if (!result.ok) {
       await db
         .update(campaignRecipients)

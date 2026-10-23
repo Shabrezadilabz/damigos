@@ -20,15 +20,23 @@ import type { PosterSpec } from "../lib/ai/generate-poster-spec.js";
 import { resolveMenuItemImageUrl } from "../lib/menu-item-thumb.js";
 import { parseBrandKit } from "../lib/ai/brand-kit.js";
 import { aiTextConfigured } from "../lib/ai/ai-text.js";
-import { hiveGenerateImage } from "../lib/ai/hive-client.js";
+import { hiveGenerateImages } from "../lib/ai/hive-client.js";
 import {
   fetchImageAsDataUrl,
-  pickPosterTypography,
+  listPosterTypographyOptions,
   renderPosterSvgDataUrl,
+  resolvePosterTypography,
 } from "../lib/ai/render-poster-image.js";
 import { randomUUID } from "node:crypto";
 import { isPlausibleRestaurantDisplayName, posterAiMode, posterImageProvider } from "@damigos/domain";
-import { approvePosterJob, createPosterJob, getPosterJob, type PosterJob } from "../lib/poster-jobs.js";
+import {
+  approvePosterJob,
+  createPosterJob,
+  getPosterJob,
+  updatePosterJob,
+  type PosterImageOption,
+  type PosterJob,
+} from "../lib/poster-jobs.js";
 import {
   createCampaignRecord,
   dispatchCampaignMock,
@@ -57,11 +65,13 @@ import {
   type CampaignProgramId,
 } from "../lib/grow-campaign-programs.js";
 
+/** CRM keys → Meta names via GROW_KEY_TO_TEMPLATE (@damigos/domain). */
 const APPROVED_TEMPLATES = [
-  { key: "weekend_special", label: "Weekend special (utility)" },
-  { key: "poster_status_blast", label: "Poster + status image (from AI studio)" },
-  { key: "new_menu_drop", label: "New menu drop" },
-  { key: "winback_7d", label: "Win-back — 7 days idle" },
+  { key: "weekend_special", label: "Weekend special → damigos_grow_weekend_special" },
+  { key: "poster_status_blast", label: "Poster blast → damigos_grow_poster (needs image header)" },
+  { key: "new_menu_drop", label: "New menu → damigos_grow_new_menu" },
+  { key: "winback_7d", label: "Win-back 7d → damigos_grow_winback" },
+  { key: "grow_paycheck", label: "Paycheck → damigos_grow_paycheck" },
 ] as const;
 
 /** C-04 — Grow (campaigns persisted + mock Kapso queue) */
@@ -468,6 +478,11 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     return { sent: result.sent, campaign: result.campaign };
   });
 
+  /** Typography presets for studio dropdown */
+  app.get("/grow/poster/typography", { preHandler: staffGrow }, async () => {
+    return { options: listPosterTypographyOptions() };
+  });
+
   /** C-04.07 — poster copilot (mock text or live DeepSeek + SVG preview) */
   app.post("/grow/poster/generate", { preHandler: staffGrow }, async (request, reply) => {
     const body = z
@@ -475,6 +490,10 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         restaurantId: z.string().uuid(),
         headline: z.string().min(1).max(80),
         offerLine: z.string().min(1).max(120),
+        /** Optional preferred type stack id */
+        typographyId: z.string().max(64).optional(),
+        /** How many Hive / stock image options to generate (1–4) */
+        imageCount: z.number().int().min(1).max(4).optional(),
       })
       .parse(request.body);
 
@@ -546,13 +565,17 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       imageMood: spec.imageMood,
     };
 
-    const typographySeed = `${body.restaurantId}-${randomUUID()}`;
-    const typography = pickPosterTypography(typographySeed);
-    const renderOpts = { typography, typographySeed };
+    const imageCount = body.imageCount ?? 3;
+    const typography = resolvePosterTypography(
+      body.typographyId,
+      `${body.restaurantId}-${randomUUID()}`,
+    );
+    const renderOpts = { typography };
 
     const imageProvider = posterImageProvider();
     let previewImageDataUrl: string | undefined;
     let previewImageUrl: string | undefined;
+    const imageOptions: PosterImageOption[] = [];
 
     // Always derive dish from headline (ignore AI £ prices / weak heroes) so Flux + stock match the brief.
     const brandDish = brand?.dishes?.[0]?.name?.replace(/\s*[£$€₹]\s*[\d,.]+/g, "").trim();
@@ -578,9 +601,14 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         restaurantName,
         headline: body.headline,
         foodHeroLine: spec.foodHeroLine,
+        typographyId: typography.id,
+        imageCount,
       },
       "poster generate",
     );
+
+    const dishQuery = `${spec.foodHeroLine} ${spec.headline}`.replace(/^Hero:\s*/i, "");
+    const vegGuess = !/\b(chicken|mutton|lamb|fish|prawn|egg|non[\s-]?veg)\b/i.test(dishQuery);
 
     if (imageProvider === "hive") {
       try {
@@ -593,19 +621,26 @@ export async function registerGrowRoutes(app: FastifyInstance) {
           "Indian restaurant food styling, appetizing, shallow depth of field, warm lighting, steam if hot.",
           "Fill the frame with food. No text, no logos, no watermarks, no people, no hands, no menus.",
         ].join(" ");
-        previewImageUrl = (await hiveGenerateImage({ prompt, width: 1024, height: 1024 })) ?? undefined;
-        if (!previewImageUrl) {
+        const hiveUrls = await hiveGenerateImages({
+          prompt,
+          width: 1024,
+          height: 1024,
+          numImages: imageCount,
+        });
+        if (hiveUrls.length === 0) {
           previewNote =
             (previewNote ? `${previewNote} ` : "") +
-            "Hive returned no image URL — using dish-matched stock photo under copy.";
+            "Hive returned no image URL — using dish-matched stock options.";
           request.log.warn({ prompt: prompt.slice(0, 200) }, "Hive poster image empty");
         } else {
           previewSource = "hive";
-          const bgData = await fetchImageAsDataUrl(previewImageUrl);
-          previewImageDataUrl = renderPosterSvgDataUrl(spec, restaurantName, {
-            ...renderOpts,
-            backgroundDataUrl: bgData ?? undefined,
-            backgroundImageUrl: bgData ? undefined : previewImageUrl,
+          hiveUrls.forEach((url, i) => {
+            imageOptions.push({
+              id: `hive-${i + 1}`,
+              url,
+              source: "hive",
+              label: `Photo ${i + 1}`,
+            });
           });
         }
       } catch (err) {
@@ -613,27 +648,51 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         previewNote =
           (previewNote ? `${previewNote} ` : "") +
           (err instanceof Error ? err.message : "Hive image generation failed") +
-          " — using dish-matched stock photo.";
+          " — using dish-matched stock options.";
       }
     } else if (imageProvider === "svg") {
       previewNote =
         (previewNote ? `${previewNote} ` : "") +
-        "POSTER_IMAGE_PROVIDER=svg (set hive + HIVE_API_KEY for Flux photos). Using dish-matched stock under copy.";
+        "POSTER_IMAGE_PROVIDER=svg (set hive + HIVE_API_KEY for Flux photos). Using stock options.";
     }
 
-    // Catalog / keyword food photo so we never show the empty “Visual mood” gradient card.
-    if (!previewImageDataUrl && imageProvider !== "none") {
-      const dishQuery = `${spec.foodHeroLine} ${spec.headline}`.replace(/^Hero:\s*/i, "");
-      const vegGuess = !/\b(chicken|mutton|lamb|fish|prawn|egg|non[\s-]?veg)\b/i.test(dishQuery);
-      const stockUrl = resolveMenuItemImageUrl(dishQuery, spec.offerLine, vegGuess);
-      const bgData = await fetchImageAsDataUrl(stockUrl);
+    // Always offer stock alternates so the picker has choices even if Hive returns 1 shot.
+    if (imageProvider !== "none") {
+      const stockQueries = [
+        dishQuery,
+        `${dishQuery} plated close-up`,
+        "gourmet burger fries",
+        "hyderabadi biryani bowl",
+        "charred tikka platter",
+        "woodfired pizza",
+      ];
+      const seen = new Set(imageOptions.map((o) => o.url));
+      let stockIdx = 0;
+      for (const q of stockQueries) {
+        if (imageOptions.length >= Math.max(imageCount, 3)) break;
+        const url = resolveMenuItemImageUrl(q, spec.offerLine, vegGuess);
+        if (seen.has(url)) continue;
+        seen.add(url);
+        stockIdx += 1;
+        imageOptions.push({
+          id: `stock-${stockIdx}`,
+          url,
+          source: "stock",
+          label: `Stock ${stockIdx}`,
+        });
+      }
+    }
+
+    const selectedImage = imageOptions[0];
+    if (selectedImage && imageProvider !== "none") {
+      previewImageUrl = selectedImage.url;
+      const bgData = await fetchImageAsDataUrl(selectedImage.url);
       previewImageDataUrl = renderPosterSvgDataUrl(spec, restaurantName, {
         ...renderOpts,
         backgroundDataUrl: bgData ?? undefined,
-        backgroundImageUrl: bgData ? undefined : stockUrl,
+        backgroundImageUrl: bgData ? undefined : selectedImage.url,
       });
       if (previewSource !== "hive") previewSource = "local";
-      request.log.info({ stockUrl: stockUrl.slice(0, 80), dishQuery }, "poster stock food background");
     }
 
     const job = createPosterJob({
@@ -648,8 +707,92 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       previewSource,
       previewNote,
       typographyId: typography.id,
+      posterSpec: spec,
+      imageOptions,
+      selectedImageId: selectedImage?.id,
     });
-    return { poster: job };
+    return {
+      poster: job,
+      typographyOptions: listPosterTypographyOptions(),
+    };
+  });
+
+  /** Swap font and/or background image without regenerating copy / Flux. */
+  app.post("/grow/poster/:id/restyle", { preHandler: staffGrow }, async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        typographyId: z.string().max(64).optional(),
+        imageId: z.string().max(64).optional(),
+      })
+      .parse(request.body);
+
+    await enforceRestaurantScope(request, reply, body.restaurantId);
+    if (reply.sent) return;
+
+    const existing = getPosterJob(params.id, body.restaurantId);
+    if (!existing?.posterSpec) {
+      return reply.status(404).send({
+        error: {
+          code: "NOT_FOUND",
+          message: "Poster draft not found or missing layout spec — regenerate",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const typography = resolvePosterTypography(
+      body.typographyId ?? existing.selectedTypographyId,
+      existing.id,
+    );
+    const imageOptions = existing.imageOptions ?? [];
+    const selectedImage =
+      (body.imageId ? imageOptions.find((o) => o.id === body.imageId) : null) ??
+      imageOptions.find((o) => o.id === existing.selectedImageId) ??
+      imageOptions[0];
+
+    const restaurantName = existing.restaurantDisplayName ?? "Kitchen";
+    let previewImageDataUrl = existing.previewImageDataUrl;
+    let previewImageUrl = existing.previewImageUrl;
+
+    if (selectedImage) {
+      previewImageUrl = selectedImage.url;
+      const bgData = await fetchImageAsDataUrl(selectedImage.url);
+      previewImageDataUrl = renderPosterSvgDataUrl(existing.posterSpec, restaurantName, {
+        typography,
+        backgroundDataUrl: bgData ?? undefined,
+        backgroundImageUrl: bgData ? undefined : selectedImage.url,
+      });
+    } else {
+      previewImageDataUrl = renderPosterSvgDataUrl(existing.posterSpec, restaurantName, {
+        typography,
+      });
+    }
+
+    const updated = updatePosterJob({
+      ...existing,
+      status: "draft",
+      approvedAt: null,
+      marketingMessage: undefined,
+      campaignTemplateKey: undefined,
+      selectedTypographyId: typography.id,
+      selectedImageId: selectedImage?.id,
+      previewImageDataUrl,
+      previewImageUrl,
+      theme: {
+        ...existing.theme,
+        primaryColor: existing.posterSpec.primaryColor,
+        backgroundColor: existing.posterSpec.backgroundColor,
+        accentColor: existing.posterSpec.accentColor,
+        typographyId: typography.id,
+      },
+    });
+
+    return {
+      poster: updated,
+      typographyOptions: listPosterTypographyOptions(),
+    };
   });
 
   app.post("/grow/poster/:id/approve", { preHandler: staffOwner }, async (request, reply) => {

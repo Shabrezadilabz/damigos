@@ -44,9 +44,10 @@ Verify token: `KAPSO_WEBHOOK_VERIFY_TOKEN` (default `damigos-kapso-verify`).
 
 ## Templates catalog
 
-Full Meta template list (Food utility + Spark / Grow marketing): see **[KAPSO-TEMPLATES.md](./KAPSO-TEMPLATES.md)**.
+**13 approved** templates mapped in code (`@damigos/domain` `kapso-templates.ts`).  
+Send with **template name** + `en_US` positional params — not Kapso/Meta UUIDs.
 
-Minimum this week: `damigos_order_confirmed` + `damigos_order_track`.
+Full catalog + connected `phone_number_id`: **[KAPSO-TEMPLATES.md](./KAPSO-TEMPLATES.md)**.
 
 ## Dual-number sandbox setup (Spark + Food)
 
@@ -64,16 +65,15 @@ Use **two** Kapso-connected WhatsApp numbers from day one.
 ```env
 KAPSO_MODE=live
 KAPSO_API_KEY=...
-KAPSO_SPARK_PHONE_NUMBER_ID=<phone_number_id_A>
-KAPSO_FOOD_PHONE_NUMBER_ID=<phone_number_id_B>
+# Connected number (see KAPSO-TEMPLATES.md) — split SPARK/FOOD later if needed
+KAPSO_SPARK_PHONE_NUMBER_ID=1365748713295932
+KAPSO_FOOD_PHONE_NUMBER_ID=1365748713295932
+KAPSO_WABA_ID=2100142510693917
 KAPSO_USE_SANDBOX=false
 KAPSO_WEBHOOK_VERIFY_TOKEN=damigos-kapso-verify
-# Digits guests open via wa.me on Spark bridge (no +)
 KAPSO_SPARK_WA_E164=91XXXXXXXXXX
-# After Meta template approval:
-# KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED=damigos_order_confirmed
-# KAPSO_FOOD_TEMPLATE_TRACK_UPDATE=damigos_order_track
 ```
+
 
 Agent-specific ids always win. `KAPSO_USE_SANDBOX=true` + `KAPSO_SANDBOX_PHONE_NUMBER_ID` is only a **fallback** when SPARK/FOOD are unset (legacy single number).
 

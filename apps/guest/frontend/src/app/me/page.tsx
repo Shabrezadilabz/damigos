@@ -14,25 +14,25 @@ const ROWS = [
     sub: "Browse and reorder from your history.",
   },
   {
-    href: "/hub",
+    href: "/me/addresses",
     icon: "location_on",
     title: "Addresses",
     sub: "Saved areas for packaging delivery.",
   },
   {
-    href: "/hub",
+    href: "/me/loyalty",
     icon: "loyalty",
     title: "Loyalty credits",
     sub: "Kitchen coins & Direct Perks balance.",
   },
   {
-    href: "/hub",
+    href: "/me/rewards",
     icon: "card_giftcard",
     title: "Rewards",
     sub: "Spin, scratch & packaging QR perks.",
   },
   {
-    href: "/hub",
+    href: "/me/edit",
     icon: "settings",
     title: "App Settings",
     sub: "Preferences, permissions and more.",
@@ -71,14 +71,16 @@ export default function MePage() {
       <div className="relative bg-gradient-to-b from-primary to-[#92001c] px-4 pb-16 pt-safe">
         <div className="flex items-center justify-between py-3">
           <Link
-            href="/orders"
+            href="/hub"
             className="pressable flex h-11 w-11 items-center justify-center text-white"
+            aria-label="Back to hub"
           >
             <MaterialIcon name="arrow_back" className="text-[22px]" />
           </Link>
           <Link
-            href="/orders"
+            href="/me/edit"
             className="pressable rounded-full bg-white px-4 py-1.5 text-[13px] font-bold text-primary"
+            data-testid="profile-edit"
           >
             Edit
           </Link>
@@ -132,15 +134,21 @@ export default function MePage() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <Link
+          href="/me/feedback"
+          className="pressable flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+          data-testid="profile-feedback"
+        >
           <div>
             <p className="text-[15px] font-semibold">Got feedback? Let us know</p>
-            <p className="mt-1 text-[13px] font-semibold text-primary">Rate us on Play Store</p>
+            <p className="mt-1 text-[13px] font-semibold text-primary">
+              Send to partners@damigos.in
+            </p>
           </div>
           <span className="text-[28px]" aria-hidden>
             ⭐
           </span>
-        </div>
+        </Link>
 
         <button
           type="button"

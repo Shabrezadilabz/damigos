@@ -1,125 +1,160 @@
-# Kapso / Meta WhatsApp templates — Damigos catalog
+# Kapso / Meta WhatsApp templates — Damigos catalog (approved)
 
-Create these in **Meta WhatsApp Manager → Message templates** (or Kapso Templates), then paste approved names into env.  
-Category + language must match Meta approval.
+**13 approved templates** on the connected D’aMigo’s number.  
+**Send with the template `name`.** Kapso UUID and Meta template ID are **reference only** — never use them as `template.name`.
 
-**Language:** `en` (or `en_IN` if you submit that).  
-**Agents:** Spark = marketing / opt-in · Food = utility / orders.
+**Language:** `en_US` · **Parameters:** positional (`{{1}}`, `{{2}}`, …) — do **not** send `parameter_name`.
 
-Until approved, session messages (HI, buttons) still work as free-form text.
-
----
-
-## WhatsApp in-app browser (IAB / webview) — Meta rules
-
-Meta controls this. **There is no Kapso/Damigos toggle to “force webview.”**
-
-| Rule | Detail |
-|------|--------|
-| **What opens in IAB** | Links on a **CTA URL button** (template marketing/utility, or free-form interactive `cta_url`) |
-| **What does NOT** | Plain URLs in message **body** text → device browser / new tab |
-| **Eligibility** | Phone number typically needs **≥ 1,000** business-initiated conversations / day quality limit tier |
-| **Rollout** | Gradual, user/device based; not guaranteed on every phone yet |
-| **Desktop WhatsApp Web** | Still opens a **browser tab** — no in-app webview |
-| **Enablement** | Automatic when eligible — no Meta Business Manager “turn on webview” switch |
-| **Disable** | Cannot turn off per URL; Meta only |
-
-**Damigos code:** Food HI + hub/orders replies use free-form `sendKapsoCtaUrl`. That is correct UX, but Meta IAB often **does not** apply to free-form — users may still get Samsung Internet / Chrome.
-
-**To get real in-app browser:** (1) messaging limit **≥ 1,000**/day on the WABA, (2) send links only via **approved marketing/utility templates** with a **Visit website** CTA (not HI free-form). Check: Meta Business Suite → WhatsApp Manager → Food number → messaging limits / quality.
+Source of truth in code: `@damigos/domain` → `kapso-templates.ts` (`DAMIGOS_WA_TEMPLATES`, `GROW_KEY_TO_TEMPLATE`).
 
 ---
 
-## A. Guest / Food agent (utility)
+## Connected number
 
-| Meta name (suggested) | Category | Body variables | When Damigos sends | Env |
-|-----------------------|----------|----------------|--------------------|-----|
-| `damigos_order_confirmed` | UTILITY | `{{1}}` kitchen · `{{2}}` order short id · `{{3}}` total INR | After payment capture | `KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED` |
-| `damigos_order_track` | UTILITY | `{{1}}` status · `{{2}}` track URL | Dispatch / status change | `KAPSO_FOOD_TEMPLATE_TRACK_UPDATE` |
-| `damigos_order_out_for_delivery` | UTILITY | `{{1}}` kitchen · `{{2}}` ETA / AWB · `{{3}}` track URL | Rider out for delivery | (optional; wire later) |
-| `damigos_delivery_otp` | UTILITY | `{{1}}` kitchen · `{{2}}` order short id · `{{3}}` 6-digit OTP | Guest drop verify (Damigos-owned) | Free-form text today; template later `KAPSO_FOOD_TEMPLATE_DELIVERY_OTP` |
-| `damigos_order_delivered` | UTILITY | `{{1}}` kitchen · `{{2}}` hub URL | Delivered | (optional) |
-| `damigos_payment_failed` | UTILITY | `{{1}}` retry URL | Payment failed | (optional) |
+| Field | Value |
+|-------|--------|
+| `whatsapp_config_id` (Kapso) | `4e26028f-5565-4fab-afcc-125539f56c75` |
+| `phone_number_id` (Meta API) | `1365748713295932` |
+| `business_account_id` (WABA) | `2100142510693917` |
 
-**Sample body — order confirmed**
-
-```
-Your order from {{1}} is confirmed (#{{2}}).
-Total: ₹{{3}}
-We'll WhatsApp tracking when the kitchen Accepts.
-— D'aMigo Food
+```http
+POST https://api.kapso.ai/meta/whatsapp/v24.0/1365748713295932/messages
+X-API-Key: <api_key>
+Content-Type: application/json
 ```
 
-**Sample body — track update**
+Set env (guest-api + crm-api):
 
+```env
+KAPSO_MODE=live
+KAPSO_API_KEY=...
+# Single connected number today — use for Food and/or Spark:
+KAPSO_FOOD_PHONE_NUMBER_ID=1365748713295932
+KAPSO_SPARK_PHONE_NUMBER_ID=1365748713295932
+KAPSO_WABA_ID=2100142510693917
 ```
-Order update: {{1}}
-Track live: {{2}}
-— D'aMigo Food
-```
-
-**HI / buttons** — no template (customer-initiated session).
 
 ---
 
-## B. Guest / Spark agent (marketing + service)
+## API send shape
 
-| Meta name | Category | Variables | When | Env (future) |
-|-----------|----------|-----------|------|----------------|
-| `damigos_spark_opt_in` | MARKETING | `{{1}}` kitchen · `{{2}}` play URL | Cold invite if no session | `KAPSO_SPARK_TEMPLATE_OPT_IN` |
-| `damigos_spark_claim_nudge` | MARKETING | `{{1}}` kitchen · `{{2}}` reward · `{{3}}` menu URL | Claimed, no order yet | `KAPSO_SPARK_TEMPLATE_CLAIM_NUDGE` |
-| `damigos_spark_reward_unlocked` | UTILITY | `{{1}}` play URL | After unlock (if outside session) | optional |
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "<recipient_phone_with_country_code>",
+  "type": "template",
+  "template": {
+    "name": "damigos_order_confirmed",
+    "language": { "code": "en_US" },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "text": "Spice Kitchen" },
+          { "type": "text", "text": "A1B2" },
+          { "type": "text", "text": "499" }
+        ]
+      }
+    ]
+  }
+}
+```
 
-**In-session** Unlock / View menu buttons already use free-form interactive replies — no template required.
+For **`damigos_grow_poster`**, include a **header** image (fresh media `id` or public `link` — not the template-review handle):
+
+```json
+{
+  "type": "header",
+  "parameters": [{ "type": "image", "image": { "link": "https://…" } }]
+}
+```
+
+CTA button URLs are fixed on the template; do not pass them as body params.
 
 ---
 
-## C. CRM restaurant Grow (Spark marketing)
+## Catalog (13)
 
-Restaurant-level campaigns debit the **Grow wallet**. Map each Grow `templateKey` to a Meta template:
+| # | Send name | Kapso ID | Meta ID | Cat | Body params (order) | Button |
+|---|-----------|----------|---------|-----|---------------------|--------|
+| 1 | `damigos_order_track` | `143d458b-485f-4b5e-9089-d8bed87f0309` | `28882695058018351` | UTILITY | `{{1}}` status | Track Order → `/orders` |
+| 2 | `damigos_order_out_for_delivery` | `2241829d-e847-4608-a3e0-d973c2e4ab54` | `1645434637032778` | UTILITY | `{{1}}` restaurant · `{{2}}` ETA/tracking | Track Order → `/orders` |
+| 3 | `damigos_grow_winback` | `2a52898f-8323-4097-9da2-30f9ab2971f3` | `1104913529022319` | MARKETING | `{{1}}` restaurant · `{{2}}` offer | Order Again → `/` |
+| 4 | `damigos_spark_reward_unlocked` | `3a4f156e-3289-4a76-8890-fd0970c3d947` | `1119397907213606` | MARKETING | _(none)_ | Claim Reward → `/` |
+| 5 | `damigos_grow_weekend_special` | `43881fc8-e967-4c15-91ac-4cf82eef710a` | `1672253281185486` | MARKETING | `{{1}}` restaurant · `{{2}}` offer | Order Now → `/` |
+| 6 | `damigos_grow_poster` | `4624a0e2-7da3-4fd7-8f25-d7a808d0a621` | `1500605038933766` | MARKETING | IMAGE header + `{{1}}` headline · `{{2}}` message | Order Now → `/` |
+| 7 | `damigos_spark_opt_in` | `4ebb53e1-73e4-4635-ac2b-60ac160aa4b2` | `1437924231675420` | MARKETING | `{{1}}` restaurant | Play now → `/` |
+| 8 | `damigos_spark_claim_nudge` | `757cddcf-ce09-49fd-a9ca-bdccd78271b3` | `1093422630253211` | MARKETING | `{{1}}` restaurant · `{{2}}` reward | View menu → `/` |
+| 9 | `damigos_grow_paycheck` | `9748c53d-c8ed-4bf2-8863-fec77bf171b5` | `1141014738361136` | MARKETING | `{{1}}` restaurant · `{{2}}` offer | Order Now → `/` |
+| 10 | `damigos_grow_new_menu` | `9d6b8d81-fe8f-4fdd-8ff0-aabbbc595e00` | `1159068236790471` | MARKETING | `{{1}}` restaurant · `{{2}}` menu copy | View Menu → `/` |
+| 11 | `damigos_order_delivered` | `ad87674e-0b78-48e3-9a74-5326245df777` | `1651479839824854` | MARKETING | `{{1}}` restaurant | Order Again → `/hub` |
+| 12 | `damigos_order_confirmed` | `ae0b08d6-81db-429e-be54-c4cdd08d17e0` | `2003170180379599` | UTILITY | `{{1}}` restaurant · `{{2}}` order # · `{{3}}` total (no ₹) | Track Order → `/orders` |
+| 13 | `damigos_open_hub` | `ce9471a1-7cc7-4dc6-9c5f-cc14edf73a29` | `1301590259714340` | MARKETING | _(none)_ | Order → `/hub` |
 
-| Grow key (CRM UI) | Meta name | Category | Variables | Notes |
-|-------------------|-----------|----------|-----------|-------|
-| `weekend_special` | `damigos_grow_weekend_special` | MARKETING | `{{1}}` kitchen · `{{2}}` offer · `{{3}}` menu/hub URL | Weekend blast |
-| `new_menu_drop` | `damigos_grow_new_menu` | MARKETING | `{{1}}` kitchen · `{{2}}` highlight · `{{3}}` menu URL | New dishes |
-| `winback_7d` | `damigos_grow_winback` | MARKETING | `{{1}}` kitchen · `{{2}}` offer · `{{3}}` menu URL | 7-day idle |
-| `poster_status_blast` | `damigos_grow_poster` | MARKETING | `{{1}}` kitchen · `{{2}}` headline · `{{3}}` link | Prefer **IMAGE** header + body; or text-only first |
-
-**Sample — weekend special**
-
-```
-🎉 Weekend at {{1}}
-{{2}}
-Order here: {{3}}
-Reply STOP to opt out.
-— Spark by D'aMigo's
-```
-
-Today CRM still sends **plain text** via Kapso until these are approved and wired to `sendKapsoTemplate("spark", …)`. Wallet debit already uses ₹2.50 / message (`WHATSAPP_MSG_COST_PAISE`).
+Guest web base for buttons: `https://damigos-guest-web.vercel.app`
 
 ---
 
-## D. Create order in Meta / Kapso
+## Code wiring
 
-1. WhatsApp Manager → Message templates → Create  
-2. Pick category (UTILITY vs MARKETING)  
-3. Add body + `{{n}}` placeholders only (no emojis in some regions if rejected — retry)  
-4. Submit → wait **Approved**  
-5. Put exact name in Vercel + local `.env`:
+| Flow | Template name | Params sent |
+|------|---------------|-------------|
+| Paid order confirm | `damigos_order_confirmed` | kitchen, short id, total digits |
+| Status / track update | `damigos_order_track` | status only |
+| Out for delivery | `damigos_order_out_for_delivery` | kitchen, ETA/AWB |
+| Delivered | `damigos_order_delivered` | kitchen |
+| Spark opt-in (cold) | `damigos_spark_opt_in` | kitchen |
+| Spark claim nudge | `damigos_spark_claim_nudge` | kitchen, reward |
+| Grow weekend | `damigos_grow_weekend_special` | kitchen, offer |
+| Grow new menu | `damigos_grow_new_menu` | kitchen, copy |
+| Grow winback | `damigos_grow_winback` | kitchen, offer |
+| Grow paycheck | `damigos_grow_paycheck` | kitchen, offer |
+| Grow poster | `damigos_grow_poster` | headline, message + **header image** |
+| Open hub / reward unlocked | `damigos_open_hub` / `damigos_spark_reward_unlocked` | none |
+
+### CRM Grow `templateKey` → Meta name
+
+| CRM key | Meta name |
+|---------|-----------|
+| `weekend_special` | `damigos_grow_weekend_special` |
+| `new_menu_drop` | `damigos_grow_new_menu` |
+| `winback_7d` | `damigos_grow_winback` |
+| `poster_status_blast` | `damigos_grow_poster` |
+| `grow_paycheck` / `paycheck` | `damigos_grow_paycheck` |
+
+Poster sends need a public image URL (or media id). Until campaign rows store a poster URL, set:
+
+```env
+KAPSO_GROW_POSTER_IMAGE_LINK=https://…/poster.png
+```
+
+Without it, Grow falls back to free-form text for that recipient.
+
+---
+
+## WhatsApp in-app browser (IAB)
+
+Meta controls this — no Kapso toggle. CTA URL buttons on **approved templates** are the path to IAB (when messaging-limit tier allows). Free-form HI/`cta_url` may still open an external browser.
+
+---
+
+## Env overrides (optional)
+
+Defaults are the approved names above. Overrides only if Meta renames:
 
 ```env
 KAPSO_FOOD_TEMPLATE_ORDER_CONFIRMED=damigos_order_confirmed
 KAPSO_FOOD_TEMPLATE_TRACK_UPDATE=damigos_order_track
+KAPSO_FOOD_TEMPLATE_OUT_FOR_DELIVERY=damigos_order_out_for_delivery
+KAPSO_FOOD_TEMPLATE_DELIVERED=damigos_order_delivered
+KAPSO_SPARK_TEMPLATE_OPT_IN=damigos_spark_opt_in
+KAPSO_SPARK_TEMPLATE_CLAIM_NUDGE=damigos_spark_claim_nudge
+KAPSO_GROW_POSTER_IMAGE_LINK=
 ```
-
-6. Redeploy `damigos-guest-api`
-
-**Minimum to go live this week:** `damigos_order_confirmed` + `damigos_order_track`.  
-Grow Meta templates after wallet Razorpay top-up is proven.
 
 ---
 
-## E. Wallet ↔ broadcast credits (CRM)
+## Wallet ↔ broadcast credits (CRM)
 
 | Pack | Amount | ≈ Credits (@ ₹2.50/msg) |
 |------|--------|-------------------------|
@@ -127,4 +162,4 @@ Grow Meta templates after wallet Razorpay top-up is proven.
 | Standard | ₹999 | ~399 |
 | Pro | ₹2499 | ~999 |
 
-`WALLET_TOPUP_MODE=live` + Razorpay → CRM **Grow → Wallet** → pay → balance + credit count update.
+`WALLET_TOPUP_MODE=live` + Razorpay → CRM **Grow → Wallet**.

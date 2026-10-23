@@ -8,6 +8,7 @@ import { coverForSlug, cuisineForSlug, hubDemoMeta } from "@/lib/hub-media";
 type Props = {
   restaurant: HubRestaurant;
   index?: number;
+  href?: string;
   onClick?: (e: React.MouseEvent) => void;
   forceBadge?: "delivery_promise" | "lowest_price";
   distanceKm?: number;
@@ -18,6 +19,7 @@ type Props = {
 export function OwnlyRestaurantRow({
   restaurant: r,
   index = 0,
+  href,
   onClick,
   forceBadge,
   distanceKm,
@@ -31,7 +33,7 @@ export function OwnlyRestaurantRow({
 
   return (
     <Link
-      href={r.menuPath}
+      href={href ?? r.menuPath}
       onClick={onClick}
       className="pressable flex gap-3 overflow-hidden rounded-[1.15rem] bg-white p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] ring-1 ring-black/5"
       data-testid="ownly-restaurant-row"

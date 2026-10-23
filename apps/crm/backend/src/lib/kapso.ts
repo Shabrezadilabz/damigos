@@ -1,7 +1,15 @@
 /**
  * Spark agent sends for Grow campaigns (Kapso Meta Proxy).
  * KAPSO_MODE: mock | live | off
+ * Templates: send by Meta **name** + en_US positional params (@damigos/domain).
  */
+
+import {
+  DAMIGOS_WA_TEMPLATES,
+  KAPSO_CONNECTED,
+  resolveGrowTemplateName,
+  type DamigosWaTemplateName,
+} from "@damigos/domain";
 
 export type KapsoMode = "mock" | "live" | "off";
 
@@ -116,16 +124,14 @@ export async function sendFoodDeliveryOtpMessage(input: {
   return sendFoodText(input.toPhone, body);
 }
 
-/** Marketing text via Spark WABA */
-export async function sendSparkMarketingText(toPhone: string, text: string): Promise<KapsoSendResult> {
+async function postSparkMessage(body: Record<string, unknown>): Promise<KapsoSendResult> {
   const mode = kapsoMode();
   if (mode === "off") {
     return { ok: false, mode, messageId: null, error: "KAPSO_MODE=off" };
   }
-
   if (mode === "mock") {
     const messageId = `kapso_mock_spark_${Date.now().toString(36)}`;
-    console.info("[kapso:mock:spark]", JSON.stringify({ to: normalizeWaPhone(toPhone), text: text.slice(0, 200) }));
+    console.info("[kapso:mock:spark]", JSON.stringify(body).slice(0, 400));
     return { ok: true, mode, messageId };
   }
 
@@ -146,9 +152,7 @@ export async function sendSparkMarketingText(toPhone: string, text: string): Pro
       body: JSON.stringify({
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to: normalizeWaPhone(toPhone),
-        type: "text",
-        text: { preview_url: true, body: text },
+        ...body,
       }),
     });
     const data = (await res.json().catch(() => ({}))) as {
@@ -167,4 +171,97 @@ export async function sendSparkMarketingText(toPhone: string, text: string): Pro
       error: err instanceof Error ? err.message : "Kapso network error",
     };
   }
+}
+
+/** Marketing text via Spark WABA (session / fallback). */
+export async function sendSparkMarketingText(toPhone: string, text: string): Promise<KapsoSendResult> {
+  return postSparkMessage({
+    to: normalizeWaPhone(toPhone),
+    type: "text",
+    text: { preview_url: true, body: text },
+  });
+}
+
+export type KapsoTemplateHeaderImage = { link: string } | { id: string };
+
+/** Send approved Grow/Spark template by Meta **name**. */
+export async function sendSparkTemplate(
+  toPhone: string,
+  templateName: DamigosWaTemplateName | string,
+  bodyParams: string[],
+  opts?: { headerImage?: KapsoTemplateHeaderImage; languageCode?: string },
+): Promise<KapsoSendResult> {
+  const components: Record<string, unknown>[] = [];
+  if (opts?.headerImage) {
+    const image =
+      "id" in opts.headerImage
+        ? { id: opts.headerImage.id }
+        : { link: opts.headerImage.link };
+    components.push({
+      type: "header",
+      parameters: [{ type: "image", image }],
+    });
+  }
+  if (bodyParams.length > 0) {
+    components.push({
+      type: "body",
+      parameters: bodyParams.map((text) => ({ type: "text", text: String(text) })),
+    });
+  }
+
+  return postSparkMessage({
+    to: normalizeWaPhone(toPhone),
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: opts?.languageCode ?? KAPSO_CONNECTED.language },
+      ...(components.length > 0 ? { components } : {}),
+    },
+  });
+}
+
+/**
+ * Map CRM `templateKey` → approved Meta name and send with correct body params.
+ * `damigos_grow_poster` requires `headerImage` (fresh media id or public link).
+ */
+export async function sendGrowCampaignTemplate(input: {
+  toPhone: string;
+  templateKey: string | null;
+  kitchenName: string;
+  offerOrCopy: string;
+  headline?: string;
+  headerImage?: KapsoTemplateHeaderImage;
+}): Promise<KapsoSendResult & { templateName?: DamigosWaTemplateName }> {
+  const name = resolveGrowTemplateName(input.templateKey);
+  if (!name) {
+    return { ok: false, mode: kapsoMode(), messageId: null, error: "unknown_template_key" };
+  }
+
+  const meta = DAMIGOS_WA_TEMPLATES[name];
+  if (meta.headerImage && !input.headerImage) {
+    return {
+      ok: false,
+      mode: kapsoMode(),
+      messageId: null,
+      error: "damigos_grow_poster requires headerImage (media id or public link)",
+      templateName: name,
+    };
+  }
+
+  let bodyParams: string[] = [];
+  if (name === "damigos_grow_poster") {
+    bodyParams = [
+      (input.headline ?? input.offerOrCopy).slice(0, 60),
+      input.offerOrCopy.slice(0, 1024),
+    ];
+  } else if (meta.bodyParams.length === 2) {
+    bodyParams = [input.kitchenName, input.offerOrCopy];
+  } else if (meta.bodyParams.length === 1) {
+    bodyParams = [input.kitchenName];
+  }
+
+  const result = await sendSparkTemplate(input.toPhone, name, bodyParams, {
+    headerImage: input.headerImage,
+  });
+  return { ...result, templateName: name };
 }

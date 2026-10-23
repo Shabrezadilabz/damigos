@@ -241,6 +241,31 @@ export async function saveGuestProfile(token: string, name: string) {
   return data;
 }
 
+/** Profile feedback → partners@damigos.in (Resend when configured). */
+export async function sendGuestFeedback(input: {
+  message: string;
+  rating?: number;
+  email?: string;
+  name?: string;
+  token?: string | null;
+}) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (input.token) headers.Authorization = `Bearer ${input.token}`;
+  const res = await fetch(`${base}/v1/me/feedback`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      message: input.message,
+      rating: input.rating,
+      email: input.email,
+      name: input.name,
+    }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Feedback failed"));
+  return data as { ok: boolean; emailed: boolean; to: string };
+}
+
 export type CartAppliedClaim = {
   claimId: string;
   title: string;

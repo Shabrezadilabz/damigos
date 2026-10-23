@@ -43,19 +43,8 @@ export async function registerHubRoutes(app: FastifyInstance) {
       if ((count ?? 0) > 0) filtered.push(r);
     }
 
-    const searched = search
-      ? filtered.filter(
-          (r) =>
-            r.name.toLowerCase().includes(search) ||
-            r.slug.toLowerCase().includes(search) ||
-            (r.city ?? "").toLowerCase().includes(search),
-        )
-      : filtered;
-
-    searched.sort((a, b) => a.name.localeCompare(b.name));
-
     const restaurantsOut = [];
-    for (const r of searched) {
+    for (const r of filtered) {
       const items = await db
         .select({
           id: menuItems.id,
@@ -72,11 +61,27 @@ export async function registerHubRoutes(app: FastifyInstance) {
             eq(menuItems.available, true),
           ),
         )
-        .limit(8);
+        .limit(24);
 
       const vegCount = items.filter((i) => i.isVeg).length;
       const coverImageUrl =
         items.find((i) => i.imageUrl?.trim())?.imageUrl?.trim() ?? null;
+
+      const nameHit =
+        !search ||
+        r.name.toLowerCase().includes(search) ||
+        r.slug.toLowerCase().includes(search) ||
+        (r.city ?? "").toLowerCase().includes(search);
+      const dishHit =
+        !search ||
+        items.some(
+          (i) =>
+            i.name.toLowerCase().includes(search) ||
+            // token match: "south indian" → south / dosa / idli in dish names
+            search.split(/\s+/).some((tok) => tok.length >= 3 && i.name.toLowerCase().includes(tok)),
+        );
+
+      if (search && !nameHit && !dishHit) continue;
 
       restaurantsOut.push({
         id: r.id,
@@ -98,12 +103,15 @@ export async function registerHubRoutes(app: FastifyInstance) {
       });
     }
 
+    restaurantsOut.sort((a, b) => a.name.localeCompare(b.name));
+
     return {
       city: cityFilter,
       q: search || null,
       restaurants: restaurantsOut,
     };
   });
+
 
   /** Ownly WA-02 — Bestsellers under ₹149 across hub kitchens */
   app.get("/hub/bestsellers", async () => {

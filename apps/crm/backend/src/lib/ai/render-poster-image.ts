@@ -1,8 +1,17 @@
 import type { PosterSpec } from "./generate-poster-spec.js";
 import {
+  getPosterTypographyById,
   pickPosterTypography,
   splitHeadlineForTypography,
   type PosterTypography,
+} from "./poster-typography.js";
+
+export {
+  getPosterTypographyById,
+  listPosterTypographyOptions,
+  pickPosterTypography,
+  type PosterTypography,
+  type PosterTypographyOption,
 } from "./poster-typography.js";
 
 function escapeXml(s: string): string {
@@ -160,4 +169,7 @@ export function renderPosterSvgDataUrl(
   return `data:image/svg+xml;base64,${b64}`;
 }
 
-export { pickPosterTypography, type PosterTypography };
+/** Resolve typography by id, falling back to default soft editorial. */
+export function resolvePosterTypography(id?: string | null, seed?: string): PosterTypography {
+  return getPosterTypographyById(id) ?? pickPosterTypography(seed ?? "default");
+}

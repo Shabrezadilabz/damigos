@@ -938,6 +938,20 @@ export type CrmWallet = {
   packsPaise?: number[];
 };
 
+export type PosterTypographyOption = {
+  id: string;
+  label: string;
+  description: string;
+  layout: "left-stack" | "center-hero";
+};
+
+export type PosterImageOption = {
+  id: string;
+  url: string;
+  source: "hive" | "stock";
+  label: string;
+};
+
 export type GrowPosterJob = {
   id: string;
   restaurantId: string;
@@ -960,14 +974,29 @@ export type GrowPosterJob = {
   previewNote?: string;
   marketingMessage?: string;
   campaignTemplateKey?: string;
+  imageOptions?: PosterImageOption[];
+  selectedImageId?: string;
+  selectedTypographyId?: string;
   createdAt: string;
   approvedAt: string | null;
 };
+
+export async function fetchPosterTypographyOptions() {
+  const res = await fetch(`${base}/v1/grow/poster/typography`, {
+    cache: "no-store",
+    headers: crmAuthHeaders(),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Typography options failed"));
+  return (data.options ?? []) as PosterTypographyOption[];
+}
 
 export async function generateGrowPoster(input: {
   restaurantId: string;
   headline: string;
   offerLine: string;
+  typographyId?: string;
+  imageCount?: number;
 }) {
   const res = await fetch(`${base}/v1/grow/poster/generate`, {
     method: "POST",
@@ -976,7 +1005,33 @@ export async function generateGrowPoster(input: {
   });
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Poster generate failed"));
-  return data.poster as GrowPosterJob;
+  return {
+    poster: data.poster as GrowPosterJob,
+    typographyOptions: (data.typographyOptions ?? []) as PosterTypographyOption[],
+  };
+}
+
+export async function restyleGrowPoster(input: {
+  restaurantId: string;
+  posterId: string;
+  typographyId?: string;
+  imageId?: string;
+}) {
+  const res = await fetch(`${base}/v1/grow/poster/${input.posterId}/restyle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({
+      restaurantId: input.restaurantId,
+      typographyId: input.typographyId,
+      imageId: input.imageId,
+    }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Poster restyle failed"));
+  return {
+    poster: data.poster as GrowPosterJob,
+    typographyOptions: (data.typographyOptions ?? []) as PosterTypographyOption[],
+  };
 }
 
 export async function fetchGrowPoster(restaurantId: string, posterId: string) {
