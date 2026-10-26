@@ -16,6 +16,7 @@ import { ensureOperationsSchema } from "../lib/ensure-operations-schema.js";
 import { ensureSettlementSchema } from "../lib/ensure-settlement-schema.js";
 import { notifyPartnersEmail } from "../lib/partner-notify.js";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
+import { sendStaffOtpSms } from "../lib/sms-otp.js";
 import {
   computeDayEarnings,
   istBusinessDate,
@@ -578,13 +579,18 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
       });
     }
 
+    // Fire-and-forget SMS via MSG91 so invite API stays fast
+    void sendStaffOtpSms(normalized).catch(() => undefined);
+
     return {
       invited: true,
       alreadyMember: existing.length > 0,
       phoneLast4: user.phoneLast4,
       displayName: displayName ?? user.displayName,
       role,
-      loginHint: "They log in at /start with this phone + OTP 000000 (pilot).",
+      loginHint: process.env.MSG91_AUTH_KEY?.trim()
+        ? "Invite SMS dispatched via MSG91. They log in at /start with their phone + SMS OTP (or 000000 in pilot)."
+        : "They log in at /start with this phone + OTP 000000 (pilot).",
     };
   });
 
@@ -607,12 +613,14 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
             primaryColor: kit.primaryColor,
             backgroundColor: kit.backgroundColor,
             accentColor: kit.accentColor,
+            logoDataUrl: kit.logoDataUrl ?? null,
           }
         : {
             displayName: row?.name ?? "Kitchen",
             primaryColor: "#B7122A",
             backgroundColor: "#FCF9F8",
             accentColor: "#775600",
+            logoDataUrl: null,
           },
     };
   });
@@ -625,6 +633,8 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
         backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
         accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
         displayName: z.string().min(1).max(120).optional(),
+        /** Optional kitchen logo — data URL or https URL (max ~1.5MB data URL) */
+        logoDataUrl: z.string().max(2_000_000).nullable().optional(),
       })
       .safeParse(request.body);
 
@@ -650,12 +660,16 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
     }
 
     const prev = parseBrandKit(row.brandKit);
+    const logoNext =
+      body.data.logoDataUrl === undefined
+        ? (prev?.logoDataUrl ?? null)
+        : body.data.logoDataUrl;
     const next = restaurantBrandKitSchema.parse({
       displayName: body.data.displayName?.trim() || prev?.displayName || row.name,
       primaryColor: body.data.primaryColor,
       backgroundColor: body.data.backgroundColor ?? prev?.backgroundColor ?? "#FCF9F8",
       accentColor: body.data.accentColor ?? prev?.accentColor ?? "#775600",
-      logoDataUrl: prev?.logoDataUrl ?? null,
+      logoDataUrl: logoNext,
       logoNotes: prev?.logoNotes ?? null,
       dishes: prev?.dishes ?? [],
       extractedAt: new Date().toISOString(),
@@ -673,6 +687,7 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
         primaryColor: next.primaryColor,
         backgroundColor: next.backgroundColor,
         accentColor: next.accentColor,
+        logoDataUrl: next.logoDataUrl ?? null,
       },
     };
   });

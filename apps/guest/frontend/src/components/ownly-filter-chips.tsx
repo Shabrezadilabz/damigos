@@ -41,7 +41,7 @@ export function OwnlyFilterChips({
       <div className="hub-h-scroll no-scrollbar flex gap-2 overflow-x-auto pb-1">
         <button
           type="button"
-          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-white px-3 py-1.5 text-[12px] font-semibold ${
+          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-surface-container-lowest px-3 py-1.5 text-[12px] font-semibold ${
             sort !== "relevancy" || sortOpen ? "border-primary text-primary" : "border-border"
           }`}
           onClick={(e) => {
@@ -56,7 +56,7 @@ export function OwnlyFilterChips({
         <button
           type="button"
           className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold ${
-            vegOnly ? "border-success bg-[#dcfce7] text-[#166534]" : "border-border bg-white"
+            vegOnly ? "border-success bg-tertiary-container text-success" : "border-border bg-surface-container-lowest"
           }`}
           onClick={(e) => {
             e.preventDefault();
@@ -70,7 +70,7 @@ export function OwnlyFilterChips({
             }`}
           >
             <span
-              className={`absolute h-3 w-3 rounded-full bg-white shadow transition-[left] ${
+              className={`absolute h-3 w-3 rounded-full bg-surface-container-lowest shadow transition-[left] ${
                 vegOnly ? "left-[12px]" : "left-0.5"
               }`}
             />
@@ -79,7 +79,7 @@ export function OwnlyFilterChips({
         </button>
         <button
           type="button"
-          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-white px-3 py-1.5 text-[12px] font-semibold ${
+          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-surface-container-lowest px-3 py-1.5 text-[12px] font-semibold ${
             rating4Plus ? "border-primary text-primary" : "border-border"
           }`}
           onClick={(e) => {
@@ -95,7 +95,7 @@ export function OwnlyFilterChips({
         </button>
         <button
           type="button"
-          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-white px-3 py-1.5 text-[12px] font-semibold ${
+          className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border bg-surface-container-lowest px-3 py-1.5 text-[12px] font-semibold ${
             lowestPrice ? "border-primary text-primary" : "border-border"
           }`}
           onClick={(e) => {
@@ -109,7 +109,7 @@ export function OwnlyFilterChips({
         </button>
       </div>
       {sortOpen && onPickSort ? (
-        <div className="absolute left-0 top-11 z-20 w-56 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/8">
+        <div className="absolute left-0 top-11 z-20 w-56 rounded-lg bg-surface-container-lowest p-2 shadow-xl border border-border">
           {(Object.keys(SORT_LABELS) as HubSort[]).map((key) => (
             <button
               key={key}

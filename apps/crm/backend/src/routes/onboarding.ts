@@ -17,6 +17,7 @@ const applicationBody = z.object({
   email: z.string().email(),
   city: z.string().min(2).max(80),
   cuisineTags: z.array(z.string()).max(12).optional(),
+  dietType: z.enum(["veg", "non_veg", "both"]).optional(),
   fssai: z.string().optional(),
   dpdpAccepted: z.literal(true),
   whatsappGatewayAccepted: z.literal(true),
@@ -59,6 +60,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
           email: parsed.data.email,
           city: parsed.data.city,
           cuisineTags: parsed.data.cuisineTags,
+          dietType: parsed.data.dietType,
           fssai: parsed.data.fssai,
           fssaiVerification: fssaiVerification,
         });

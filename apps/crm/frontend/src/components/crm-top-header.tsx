@@ -46,7 +46,7 @@ export function CrmTopHeader() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:h-16 sm:px-5 md:px-6 lg:left-64 lg:px-8">
+      <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-zinc-200/70 bg-[#FAFAFA]/80 px-3 backdrop-blur sm:h-16 sm:px-5 md:px-6 lg:left-64 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"

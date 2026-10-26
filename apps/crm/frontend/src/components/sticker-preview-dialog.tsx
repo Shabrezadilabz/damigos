@@ -13,8 +13,10 @@ import {
   fetchCrmWallet,
   fetchStickerPrintSheet,
   formatInr,
+  prepareStickerPrintPay,
   requestStickerPrint,
 } from "@/lib/api";
+import { loadRazorpayCheckoutScript, openRazorpayCheckout } from "@/lib/razorpay-checkout";
 import { quoteStickerPrint } from "@/lib/sticker-print-pricing";
 
 export type StickerPreviewPayload = {
@@ -119,6 +121,38 @@ export function StickerPreviewDialog({
     setMessage(null);
     try {
       const q = quoteStickerPrint(batch.quantity);
+      let razorpayOrderId: string | undefined;
+      let razorpayPaymentId: string | undefined;
+
+      if (method === "external") {
+        const prepared = await prepareStickerPrintPay({
+          restaurantId,
+          batchId: batch.batchId,
+          quantity: batch.quantity,
+          totalPaise: q.totalPaise,
+        });
+        if (prepared.mode === "live" && prepared.razorpayKeyId && prepared.razorpayOrderId) {
+          await loadRazorpayCheckoutScript();
+          await new Promise<void>((resolve, reject) => {
+            try {
+              openRazorpayCheckout({
+                keyId: prepared.razorpayKeyId!,
+                orderId: prepared.razorpayOrderId!,
+                amountPaise: prepared.amountPaise,
+                onSuccess: (response) => {
+                  razorpayOrderId = response.razorpay_order_id;
+                  razorpayPaymentId = response.razorpay_payment_id;
+                  resolve();
+                },
+                onDismiss: () => reject(new Error("Payment cancelled")),
+              });
+            } catch (e) {
+              reject(e);
+            }
+          });
+        }
+      }
+
       const res = await requestStickerPrint({
         restaurantId,
         batchId: batch.batchId,
@@ -130,13 +164,21 @@ export function StickerPreviewDialog({
         totalPaise: q.totalPaise,
         paymentConfirmed: true,
         paymentMethod: method,
+        razorpayOrderId,
+        razorpayPaymentId,
       });
       const at = res.printRequestedAt ?? new Date().toISOString();
       setSentAt(at);
       onSent?.(at);
       setPayOpen(false);
       const via =
-        method === "wallet" ? "from wallet" : res.paymentMethod === "razorpay" ? "via Razorpay" : "paid";
+        method === "wallet"
+          ? "from wallet"
+          : razorpayPaymentId
+            ? "via Razorpay"
+            : res.paymentMethod === "razorpay"
+              ? "via Razorpay"
+              : "paid";
       setMessage(
         res.emailed
           ? `${formatInr(q.totalPaise)} ${via} · print request emailed to ${res.to}.`
@@ -180,7 +222,7 @@ export function StickerPreviewDialog({
           <div className="flex items-center gap-2">
             {alreadySent ? (
               <span className="rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#24963F]">
-                Sent to Damigos
+                Sent to D'aMigo's
               </span>
             ) : (
               <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-900">
@@ -234,7 +276,7 @@ export function StickerPreviewDialog({
               <h3 className="text-sm font-semibold text-on-surface">
                 Samples ({samples.length || 0} of 3)
               </h3>
-              <p className="text-[11px] text-on-surface-variant">Testable · full sheet stays with Damigos</p>
+              <p className="text-[11px] text-on-surface-variant">Testable · full sheet stays with D'aMigo's</p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" data-testid="sticker-sample-preview">
               {samples.map((s) => (
@@ -265,7 +307,7 @@ export function StickerPreviewDialog({
           </div>
 
           <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950">
-            Scan a sample to verify the WhatsApp flow. Send a print request and Damigos prints the full count and
+            Scan a sample to verify the WhatsApp flow. Send a print request and D'aMigo's prints the full count and
             ships — CRM never downloads the full sheet.
           </div>
 
@@ -295,7 +337,7 @@ export function StickerPreviewDialog({
               data-testid="sticker-send-print-request"
             >
               <MaterialIcon name="payments" className="text-[18px]" />
-              {alreadySent ? "Pay & send again" : "Send request to Damigos"}
+              {alreadySent ? "Pay & send again" : "Send request to D'aMigo's"}
             </Button>
           </div>
         </div>

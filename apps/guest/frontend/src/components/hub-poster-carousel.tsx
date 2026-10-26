@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { withVegQuery } from "@/components/hub-filters-context";
 import { FOOD } from "@/lib/hub-media";
 
 type Poster = {
@@ -12,6 +13,7 @@ type Poster = {
   cta: string;
   href: string;
   image: string;
+  vegSafe: boolean;
 };
 
 const POSTERS: Poster[] = [
@@ -23,6 +25,7 @@ const POSTERS: Poster[] = [
     cta: "Order Now",
     href: "/hub/collections/festival",
     image: FOOD.festival,
+    vegSafe: true,
   },
   {
     id: "promise",
@@ -31,7 +34,8 @@ const POSTERS: Poster[] = [
     subtitle: "Skip aggregator wait · Direct D2C",
     cta: "See kitchens",
     href: "/hub/collections/promise",
-    image: FOOD.biryani,
+    image: FOOD.bowl,
+    vegSafe: true,
   },
   {
     id: "value",
@@ -40,7 +44,8 @@ const POSTERS: Poster[] = [
     subtitle: "Matched dishes · 0% commission",
     cta: "Shop deals",
     href: "/hub/collections/bestsellers",
-    image: FOOD.bowl,
+    image: FOOD.healthy,
+    vegSafe: true,
   },
   {
     id: "grill",
@@ -50,6 +55,7 @@ const POSTERS: Poster[] = [
     cta: "Explore",
     href: "/hub/collections/new",
     image: FOOD.grill,
+    vegSafe: false,
   },
   {
     id: "dessert",
@@ -59,6 +65,17 @@ const POSTERS: Poster[] = [
     cta: "Browse",
     href: "/hub/collections/brands",
     image: FOOD.dessert,
+    vegSafe: true,
+  },
+  {
+    id: "south",
+    eyebrow: "Pure comfort",
+    title: "South Indian favourites",
+    subtitle: "Dosa · idli · filter-friendly",
+    cta: "Explore veg",
+    href: "/hub/search?q=dosa%20idli",
+    image: FOOD.dosa,
+    vegSafe: true,
   },
 ];
 
@@ -66,11 +83,16 @@ function liveClockLabel(d: Date) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-/** Hub hero carousel — photo-forward, auto-scroll without transform flicker */
-export function HubPosterCarousel() {
+/** Hub hero carousel — photo-forward; veg mode hides non-veg banners */
+export function HubPosterCarousel({ vegOnly = false }: { vegOnly?: boolean }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => new Date());
   const [active, setActive] = useState(0);
+
+  const posters = useMemo(
+    () => (vegOnly ? POSTERS.filter((p) => p.vegSafe) : POSTERS),
+    [vegOnly],
+  );
 
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 30_000);
@@ -80,6 +102,8 @@ export function HubPosterCarousel() {
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
+    el.scrollLeft = 0;
+    setActive(0);
     let raf = 0;
     let paused = false;
     let resumeTimer: number | undefined;
@@ -93,8 +117,8 @@ export function HubPosterCarousel() {
           el.scrollLeft -= mid;
         }
         const cardW = el.clientWidth * 0.82 + 12;
-        if (cardW > 0) {
-          const idx = Math.round(el.scrollLeft / cardW) % POSTERS.length;
+        if (cardW > 0 && posters.length > 0) {
+          const idx = Math.round(el.scrollLeft / cardW) % posters.length;
           setActive(idx);
         }
       }
@@ -127,13 +151,13 @@ export function HubPosterCarousel() {
       el.removeEventListener("mouseleave", scheduleResume);
       el.removeEventListener("touchend", scheduleResume);
     };
-  }, []);
+  }, [posters]);
 
   return (
     <section className="relative mb-6" data-testid="hub-festival-hero">
       <div className="mb-2 flex items-end justify-between px-0.5">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-          Happening now
+          {vegOnly ? "Veg picks · happening now" : "Happening now"}
         </p>
         <p className="text-[11px] font-semibold tabular text-on-surface-variant" suppressHydrationWarning>
           {liveClockLabel(now)} · live
@@ -144,10 +168,10 @@ export function HubPosterCarousel() {
         ref={scrollerRef}
         className="hub-h-scroll no-scrollbar relative -mx-4 flex gap-3 overflow-x-auto px-4 pb-2"
       >
-        {[...POSTERS, ...POSTERS].map((p, i) => (
+        {[...posters, ...posters].map((p, i) => (
           <Link
             key={`${p.id}-${i}`}
-            href={p.href}
+            href={withVegQuery(p.href, vegOnly)}
             className="relative h-[12.5rem] w-[82%] max-w-[20rem] shrink-0 overflow-hidden rounded-[1.35rem] text-white shadow-[0_10px_28px_rgba(40,20,20,0.22)] ring-1 ring-black/10"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -167,7 +191,7 @@ export function HubPosterCarousel() {
                 {p.title}
               </h2>
               <p className="mt-1 max-w-[16rem] text-[12px] font-medium text-white/90">{p.subtitle}</p>
-              <span className="mt-3 inline-flex w-fit rounded-full bg-white px-4 py-1.5 text-[12px] font-extrabold text-primary">
+              <span className="mt-3 inline-flex w-fit rounded-full bg-surface-container-lowest px-4 py-1.5 text-[12px] font-extrabold text-primary">
                 {p.cta}
               </span>
             </div>
@@ -176,11 +200,11 @@ export function HubPosterCarousel() {
       </div>
 
       <div className="relative flex justify-center gap-1.5 pt-1">
-        {POSTERS.map((p, i) => (
+        {posters.map((p, i) => (
           <span
             key={p.id}
             className={`h-1.5 rounded-full transition-all ${
-              i === active ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
+              i === active ? "w-5 bg-primary" : "w-1.5 bg-outline-variant"
             }`}
           />
         ))}

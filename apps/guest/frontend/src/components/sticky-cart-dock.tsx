@@ -52,23 +52,23 @@ export function StickyCartDock({
     <div className="fixed inset-x-0 bottom-0 z-40 pb-safe">
       <div className="mx-auto w-full max-w-lg px-3 pb-3 md:max-w-3xl lg:max-w-5xl">
         {promoLine ? (
-          <div className="rounded-t-xl bg-promo-strip px-3 py-1.5 text-center text-[12px] font-semibold text-promo-strip-fg">
+          <div className="rounded-t-lg border border-b-0 border-border bg-promo-strip px-3 py-1.5 text-center text-[12px] font-semibold text-promo-strip-fg">
             {promoLine}
           </div>
         ) : null}
         <div
-          className={`flex items-center gap-2 bg-surface-container-lowest px-3 py-2.5 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] ${
-            promoLine ? "rounded-b-2xl" : "rounded-2xl"
+          className={`flex items-center gap-2 border border-border bg-surface-container-lowest px-3 py-2.5 shadow-sm ${
+            promoLine ? "rounded-b-lg border-t-0" : "rounded-lg"
           }`}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container">
             <MaterialIcon name="restaurant" className="text-[20px] text-primary" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-semibold">
               {restaurantName}
               {extraKitchenCount > 0 ? (
-                <span className="ml-1.5 inline-flex rounded-full bg-primary-fixed px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                <span className="ml-1.5 inline-flex rounded-md bg-primary-fixed px-1.5 py-0.5 text-[10px] font-bold text-primary">
                   +{extraKitchenCount} kitchen
                 </span>
               ) : null}
@@ -95,7 +95,7 @@ export function StickyCartDock({
           </div>
           <Link
             href={`/r/${restaurantId}/checkout`}
-            className="pressable inline-flex min-h-11 shrink-0 flex-col items-center justify-center rounded-full bg-primary px-5 py-2 text-primary-foreground shadow-sm"
+            className="pressable inline-flex min-h-11 shrink-0 flex-col items-center justify-center rounded-md bg-primary px-5 py-2 text-primary-foreground shadow-sm"
           >
             <span className="text-[14px] font-bold leading-tight">Checkout</span>
             <span className="text-[11px] font-medium tabular leading-tight opacity-90">
@@ -107,7 +107,7 @@ export function StickyCartDock({
             aria-label="Keep cart and hide bar"
             title="Keep cart"
             data-testid="sticky-cart-keep"
-            className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant"
+            className="pressable flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant"
             onClick={() => setHidden(true)}
           >
             <MaterialIcon name="close" className="text-[16px]" />

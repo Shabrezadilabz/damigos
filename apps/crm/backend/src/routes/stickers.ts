@@ -10,11 +10,20 @@ import {
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 import { formatInrPaise, quoteStickerPrint } from "../lib/sticker-print-pricing.js";
 import { debitForStickerPrint, recordStickerPrintPayment } from "../lib/wallet.js";
+import {
+  createRazorpayOrder,
+  razorpayConfigured,
+  razorpayKeyId,
+} from "../lib/razorpay.js";
+import { ensureStickerSchema } from "../lib/ensure-sticker-schema.js";
 
 /** C-06.04 — owner activate / generate / print-request (no full download for owners) */
 export async function registerStickerRoutes(app: FastifyInstance) {
   const ownerStickers = requireRoles("RESTAURANT_OWNER", "STAFF", "PLATFORM_ADMIN");
   const ownerMint = requireRoles("RESTAURANT_OWNER", "PLATFORM_ADMIN");
+
+  // Warm sticker columns once when routes load (avoids first-request 500s / DDL races)
+  void ensureStickerSchema().catch(() => undefined);
 
 
 
@@ -310,7 +319,64 @@ export async function registerStickerRoutes(app: FastifyInstance) {
     };
   });
 
-  /** Email Damigos ops to print & ship — owners cannot download full sheets. */
+  /** Prepare Razorpay order for Pay & send (print & ship). */
+  app.post("/stickers/print-prepare", { preHandler: ownerMint }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        batchId: z.string().uuid(),
+        quantity: z.number().int().min(1).max(2000),
+        totalPaise: z.number().int().min(1),
+      })
+      .safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+    await enforceRestaurantScope(request, reply, body.data.restaurantId);
+    if (reply.sent) return;
+
+    const quote = quoteStickerPrint(body.data.quantity);
+    if (body.data.totalPaise !== quote.totalPaise) {
+      return reply.status(400).send({
+        error: {
+          code: "QUOTE_MISMATCH",
+          message: `Expected total ${formatInrPaise(quote.totalPaise)}`,
+          correlationId: request.id,
+        },
+      });
+    }
+
+    if (!razorpayConfigured()) {
+      return {
+        mode: "stub" as const,
+        amountPaise: quote.totalPaise,
+        razorpayOrderId: null,
+        razorpayKeyId: null,
+      };
+    }
+
+    const receipt = `stk_${body.data.batchId.slice(0, 8)}_${Date.now().toString(36)}`;
+    const razorpayOrderId = await createRazorpayOrder({
+      amountPaise: quote.totalPaise,
+      receipt,
+      notes: {
+        restaurantId: body.data.restaurantId,
+        batchId: body.data.batchId,
+        purpose: "sticker_print_ship",
+      },
+    });
+
+    return {
+      mode: "live" as const,
+      amountPaise: quote.totalPaise,
+      razorpayOrderId,
+      razorpayKeyId: razorpayKeyId(),
+    };
+  });
+
+  /** Email D'aMigo's ops to print & ship — owners cannot download full sheets. */
   app.post("/stickers/print-request", { preHandler: ownerMint }, async (request, reply) => {
     const body = z
       .object({

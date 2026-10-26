@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { hashPhone, phoneLast4, signStaffToken } from "@damigos/auth";
 import { db, userRestaurantRoles, users } from "@damigos/db";
 import { isOtpBypassCode } from "./otp-bypass.js";
+import { verifyMsg91Otp } from "./sms-otp.js";
 
 export type StaffOtpVerifyResult = {
   verified: true;
@@ -28,7 +29,9 @@ export async function verifyStaffOtp(phone: string, code: string): Promise<Staff
   if (!code || code.length < 5) {
     throw new StaffOtpError(400, "INVALID_REQUEST", "phone and code required");
   }
-  if (!isOtpBypassCode(code)) {
+  const validBypass = isOtpBypassCode(code);
+  const validLiveOtp = validBypass ? true : await verifyMsg91Otp(phone, code);
+  if (!validLiveOtp) {
     throw new StaffOtpError(401, "OTP_INVALID", "Invalid code");
   }
 

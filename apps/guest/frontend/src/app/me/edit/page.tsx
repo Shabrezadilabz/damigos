@@ -77,26 +77,26 @@ export default function MeEditPage() {
 
   return (
     <main className="min-h-dvh bg-surface-container-low pb-10">
-      <div className="relative bg-gradient-to-b from-primary to-[#92001c] px-4 pb-10 pt-safe">
+      <div className="relative border-b border-[#E4E4E7] bg-[#FAFAFA] px-4 pb-8 pt-safe">
         <div className="flex items-center justify-between py-3">
           <Link
             href="/me"
-            className="pressable flex h-11 w-11 items-center justify-center text-white"
+            className="pressable flex h-11 w-11 items-center justify-center rounded-full text-[#171717] hover:bg-neutral-900/5"
             aria-label="Back to profile"
           >
             <MaterialIcon name="arrow_back" className="text-[22px]" />
           </Link>
-          <h1 className="font-display text-[18px] font-bold text-white">Edit profile</h1>
+          <h1 className="font-display text-[18px] font-medium tracking-tight text-[#171717]">Edit profile</h1>
           <span className="w-11" aria-hidden />
         </div>
       </div>
 
-      <div className="-mt-6 rounded-t-[1.75rem] bg-[#fafafa] px-4 pt-6">
+      <div className="-mt-6 rounded-t-[1.75rem] bg-background px-4 pt-6">
         {loading ? (
           <p className="py-8 text-center text-sm text-on-surface-variant">Loading…</p>
         ) : (
           <form onSubmit={(e) => void onSave(e)} className="space-y-4">
-            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+            <div className="space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
               <label className="block text-[13px] font-semibold text-on-surface-variant">
                 Display name
                 <input
@@ -166,7 +166,7 @@ export default function MeEditPage() {
               </label>
             </div>
 
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+            <div className="rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
               <p className="text-[13px] font-bold">Phone (soft update)</p>
               <p className="mt-1 text-[12px] text-on-surface-variant">
                 Current ···{phoneLast4 ?? "————"}

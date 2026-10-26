@@ -59,29 +59,29 @@ export function CrmSidebar() {
       <aside
         id="crm-sidebar"
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-full w-[min(100vw-3rem,16rem)] flex-col justify-between bg-surface-container-low py-6 shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-transform duration-200 ease-out lg:w-64 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-full w-[min(100vw-3rem,16rem)] flex-col justify-between border-r border-[#E2E5EE] bg-white/95 py-5 backdrop-blur-xl transition-transform duration-200 ease-out lg:w-64 lg:translate-x-0",
           navOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
-          <div className="px-5">
-            <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          <div className="px-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-[family-name:var(--font-display)] text-sm font-bold text-primary-foreground">
-                  D
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#0F1115] font-display text-xs font-extrabold text-[#EAFF81] shadow-[0_4px_12px_rgba(15,17,21,0.2)]">
+                  D&apos;A
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-[family-name:var(--font-display)] text-sm font-semibold tracking-tight">
+                  <div className="truncate font-display text-[16px] font-extrabold tracking-tight text-[#0F1115]">
                     D&apos;aMigo&apos;s
                   </div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                     {kitchenOnly ? "Kitchen OS" : "Guest OS"}
                   </div>
                 </div>
               </div>
               <button
                 type="button"
-                className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-high lg:hidden"
+                className="rounded-md p-2 text-on-surface-variant hover:bg-surface-container-high lg:hidden"
                 onClick={closeNav}
                 aria-label="Close menu"
               >
@@ -89,16 +89,16 @@ export function CrmSidebar() {
               </button>
             </div>
             {!kitchenOnly ? (
-              <div className="rounded-xl bg-surface-container-lowest p-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+              <div className="rounded-md border border-border bg-surface-container-lowest p-2.5">
                 <CrmGuestStorefrontToggle restaurantId={restaurantId} />
               </div>
             ) : (
-              <p className="rounded-xl bg-surface-container-lowest p-2.5 text-[11px] text-on-surface-variant shadow-sm">
+              <p className="rounded-md border border-border bg-surface-container-lowest p-2.5 text-[11px] text-on-surface-variant">
                 Orders only — accept, prep, and dispatch.
               </p>
             )}
           </div>
-          <nav className="flex flex-col gap-1 px-3" aria-label="CRM">
+          <nav className="flex flex-col gap-0.5 px-2" aria-label="CRM">
             {nav.map((item) => {
               const active =
                 pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -108,10 +108,10 @@ export function CrmSidebar() {
                   href={item.href}
                   onClick={closeNav}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
+                    "flex items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[14px] font-bold tracking-tight transition-all",
                     active
-                      ? "bg-primary-container text-on-primary-container shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
-                      : "text-on-surface-variant hover:bg-surface-container-high hover:text-foreground",
+                      ? "bg-[#0F1115] text-white shadow-[0_6px_14px_-4px_rgba(15,17,21,0.28)]"
+                      : "text-[#475569] hover:bg-[#EEF0F5] hover:text-[#0F1115]",
                   )}
                 >
                   <MaterialIcon name={item.icon} className="text-[20px]" />

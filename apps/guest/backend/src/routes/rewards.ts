@@ -95,6 +95,10 @@ export async function registerRewardsRoutes(app: FastifyInstance) {
         title: o.title,
         description: o.description,
         terms: o.terms,
+        prizeType: o.prizeType,
+        prizeValue: o.prizeValue,
+        minOrderPaise: o.minOrderPaise,
+        scope: o.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED",
       })),
     };
   });

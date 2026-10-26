@@ -84,15 +84,15 @@ function SparkBridgeInner() {
     <>
       <WaChrome title="Spark by D'aMigo's" subtitle="Marketing opt-in · Packaging perks" />
       <main className="mx-auto max-w-lg space-y-5 px-4 pb-16 pt-[7.25rem]">
-        <div className="rounded-3xl bg-inverse-surface p-5 text-inverse-on-surface shadow-lg">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tertiary-fixed-dim">
+        <div className="rounded-xl border border-[#E4E4E7] bg-white p-5 text-[#171717] shadow-xs">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#737373]">
             Step 1 · WhatsApp
           </p>
-          <h1 className="mt-2 font-display text-[26px] font-extrabold leading-tight">
-            Unlock rewards on Spark
+          <h1 className="mt-2 font-display text-[26px] font-medium leading-tight tracking-tight">
+            Unlock <span className="qa-highlight">rewards on Spark</span>
           </h1>
-          <p className="mt-2 text-[14px] text-white/70">
-            You scanned packaging from <strong className="text-white">{kitchenHint}</strong>. Opt in
+          <p className="mt-2 text-[14px] font-light text-[#525252]">
+            You scanned packaging from <strong className="font-medium text-[#171717]">{kitchenHint}</strong>. Opt in
             for kitchen offers, then play the spinner in WhatsApp&apos;s browser and redeem on the
             menu.
           </p>

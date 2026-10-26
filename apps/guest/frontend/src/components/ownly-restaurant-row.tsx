@@ -35,26 +35,28 @@ export function OwnlyRestaurantRow({
     <Link
       href={href ?? r.menuPath}
       onClick={onClick}
-      className="pressable flex gap-3 overflow-hidden rounded-[1.15rem] bg-white p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] ring-1 ring-black/5"
+      className="pressable flex gap-3.5 overflow-hidden rounded-[22px] border border-[#E2E5EE] bg-white p-3 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
       data-testid="ownly-restaurant-row"
     >
-      <div className="relative h-[6.75rem] w-[6.75rem] shrink-0 overflow-hidden rounded-2xl bg-surface-container">
+      <div className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-[16px] bg-surface-container">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cover} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1 py-0.5">
         {badge === "delivery_promise" ? (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#ffe4e6] px-2 py-0.5 text-[10px] font-bold text-primary">
+          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#EEF0F5] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115]">
             <MaterialIcon name="timer" className="text-[12px]" />
             Delivery Promise
           </span>
         ) : (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#dcfce7] px-2 py-0.5 text-[10px] font-bold text-[#166534]">
+          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115]">
             <MaterialIcon name="sell" className="text-[12px]" />
             Lowest Price
           </span>
         )}
-        <p className="truncate text-[15px] font-bold leading-tight">{r.name}</p>
+        <p className="truncate font-display text-[16px] font-extrabold leading-snug tracking-tight text-[#0F1115]">
+          {r.name}
+        </p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1 text-[11px] font-semibold text-on-surface-variant">
           <span className="inline-flex items-center gap-0.5 text-success">
             <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success text-white">

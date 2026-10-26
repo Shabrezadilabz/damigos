@@ -56,6 +56,11 @@ export const restaurants = pgTable("restaurants", {
   brandKit: text("brand_kit"),
   /** Shiprocket pickup_location nickname (must exist on SR account). One per kitchen. */
   shiprocketPickupLocation: varchar("shiprocket_pickup_location", { length: 36 }),
+  /** veg | non_veg | both — kitchen dietary flag for hub VEG filter */
+  dietType: varchar("diet_type", { length: 16 }),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+  fssaiNumber: varchar("fssai_number", { length: 32 }),
+  fssaiVerifiedAt: timestamp("fssai_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -158,13 +158,13 @@ export default function RewardsScanPage() {
   }
 
   const waHref = waDigits
-    ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi — I scanned Damigos packaging")}`
+    ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi — I scanned D'aMigo's packaging")}`
     : null;
 
   return (
     <MeSubpageShell title="Scan packaging">
       <p className="mb-3 text-[13px] text-on-surface-variant">
-        Scan the Damigos sticker QR → we open the kitchen play flow and WhatsApp opt-in (one test
+        Scan the D'aMigo's sticker QR → we open the kitchen play flow and WhatsApp opt-in (one test
         number for now).
       </p>
 
@@ -186,7 +186,7 @@ export default function RewardsScanPage() {
 
       {error ? <p className="mb-3 text-sm text-red-700">{error}</p> : null}
 
-      <form onSubmit={onManual} className="mb-4 space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+      <form onSubmit={onManual} className="mb-4 space-y-2 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
         <label className="block text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
           Or paste sticker code / link
           <input

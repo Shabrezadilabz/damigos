@@ -192,7 +192,7 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
 
   return (
     <>
-      <div className="rounded-2xl border border-border bg-surface-container-lowest p-3" data-testid="checkout-delivery">
+      <div className="rounded-lg border border-border bg-surface-container-lowest p-3" data-testid="checkout-delivery">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -290,7 +290,7 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
                       <button
                         type="button"
                         className={`pressable flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left ${
-                          selected ? "border-primary bg-primary/5" : "border-border bg-white"
+                          selected ? "border-primary bg-primary/5" : "border-border bg-surface-container-lowest"
                         }`}
                         onClick={() => pickSaved(row)}
                       >

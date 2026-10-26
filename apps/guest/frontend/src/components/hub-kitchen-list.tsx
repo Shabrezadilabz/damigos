@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useHubFilters } from "@/components/hub-filters-context";
+import { useHubFilters, withVegQuery } from "@/components/hub-filters-context";
 import { MaterialIcon } from "@/components/material-icon";
 import { SwitchKitchenModal } from "@/components/switch-kitchen-modal";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import {
   MIND_CATEGORIES,
 } from "@/lib/hub-media";
 import { getGuestToken } from "@/lib/session";
+
+const VEG_MIND_IDS = new Set(["festival", "south", "chinese", "dessert", "healthy", "new"]);
 
 type Enriched = HubRestaurant & {
   rating: number;
@@ -62,25 +64,27 @@ function KitchenCard({
     <Link
       href={href ?? r.menuPath}
       onClick={onClick}
-      className="pressable block w-[11.5rem] shrink-0 overflow-hidden rounded-[1.15rem] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.07)] ring-1 ring-black/5"
+      className="pressable block w-[12rem] shrink-0 overflow-hidden rounded-[22px] border border-[#E2E5EE] bg-white shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={r.cover} alt="" className="h-full w-full object-cover" />
         {r.badge === "delivery_promise" ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-bold text-primary shadow-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115] shadow-sm">
             <MaterialIcon name="timer" className="text-[12px]" />
             Delivery Promise
           </span>
         ) : (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-[#dcfce7] px-2 py-0.5 text-[10px] font-bold text-[#166534] shadow-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115] shadow-sm">
             <MaterialIcon name="sell" className="text-[12px]" />
             Lowest Price
           </span>
         )}
       </div>
-      <div className="px-2.5 py-2.5">
-        <p className="truncate text-[14px] font-bold leading-tight">{r.name}</p>
+      <div className="px-3 py-3">
+        <p className="truncate font-display text-[15px] font-extrabold leading-snug tracking-tight text-[#0F1115]">
+          {r.name}
+        </p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1 text-[11px] font-semibold text-on-surface-variant">
           <span className="inline-flex items-center gap-0.5 text-success">
             <MaterialIcon name="star" className="text-[13px] [font-variation-settings:'FILL'_1]" />
@@ -119,7 +123,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     const handle = window.setTimeout(() => {
       setLoading(true);
-      void fetchHubRestaurants("bangalore", filters.search)
+      void fetchHubRestaurants("bangalore", filters.search, filters.vegOnly)
         .then((list) => {
           setRows(list);
           setError(null);
@@ -128,13 +132,13 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
         .finally(() => setLoading(false));
     }, filters.search ? 250 : 0);
     return () => window.clearTimeout(handle);
-  }, [filters.search]);
+  }, [filters.search, filters.vegOnly]);
 
   useEffect(() => {
-    void fetchHubBestsellers()
+    void fetchHubBestsellers(filters.vegOnly)
       .then((b) => setBestsellers(b.items))
       .catch(() => setBestsellers([]));
-  }, []);
+  }, [filters.vegOnly]);
 
   useEffect(() => {
     if (!getGuestToken()) return;
@@ -181,10 +185,15 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
   const searching = filters.search.trim().length > 0;
 
   function menuHref(path: string) {
-    if (!filters.vegOnly) return path;
-    const join = path.includes("?") ? "&" : "?";
-    return `${path}${join}veg=1`;
+    return withVegQuery(path, filters.vegOnly);
   }
+
+  const mindCats = useMemo(() => {
+    if (!filters.vegOnly) return MIND_CATEGORIES;
+    return MIND_CATEGORIES.filter(
+      (c) => VEG_MIND_IDS.has(c.id) || !/biryani|shawarma|burger|grill|chicken|meat/i.test(`${c.id} ${c.label} ${c.q}`),
+    );
+  }, [filters.vegOnly]);
 
   const promiseRail = useMemo(() => {
     const base = filtered.filter((r) => r.badge === "delivery_promise");
@@ -344,12 +353,12 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
               </Link>
             </div>
             {addNote ? (
-              <p className="mb-2 text-[12px] font-semibold text-[#166534]">{addNote}</p>
+              <p className="mb-2 text-[12px] font-semibold text-success">{addNote}</p>
             ) : null}
             <div className="hub-h-scroll no-scrollbar flex gap-3 overflow-x-auto pb-1">
               {bestsellerItems.map((item, idx) => (
                 <div key={item.id} className="w-[8.5rem] shrink-0">
-                  <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm">
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm">
                     <Link href={menuHref(item.menuPath)} className="pressable absolute inset-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -401,17 +410,18 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
               What&apos;s On Your Mind?
             </h3>
             <div className="hub-h-scroll no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
-              {MIND_CATEGORIES.map((c) => (
+              {mindCats.map((c) => (
                 <Link
                   key={c.id}
-                  href={
+                  href={withVegQuery(
                     c.id === "festival"
                       ? "/hub/collections/festival"
-                      : `/hub/search?q=${encodeURIComponent(c.q)}`
-                  }
+                      : `/hub/search?q=${encodeURIComponent(c.q)}`,
+                    filters.vegOnly,
+                  )}
                   className="pressable flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5"
                 >
-                  <div className="h-[4.75rem] w-[4.75rem] overflow-hidden rounded-full bg-white shadow-md ring-2 ring-white">
+                  <div className="h-[4.75rem] w-[4.75rem] overflow-hidden rounded-full bg-surface-container-lowest shadow-md ring-2 ring-white">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={c.image} alt="" className="h-full w-full object-cover" />
                   </div>

@@ -1,59 +1,158 @@
 @import "tailwindcss";
 
+/* iPhone (iOS HIG) + CRED Tactile Luxury Design System
+ * Grouped Alabaster Canvas: #F4F5F8 | Pure Squircle Surface: #FFFFFF
+ * Obsidian Ink: #0F1115 | Secondary Slate: #475569 | Muted: #64748B
+ * Accents: CRED Neon Lime #EAFF81 + Emerald #10B981
+ */
+:root {
+  --qa-page: 225 25% 96%;
+  --qa-surface: 0 0% 100%;
+  --qa-inset: 220 20% 94%;
+  --qa-hairline: 220 16% 90%;
+  --qa-hairline-strong: 220 14% 83%;
+  --qa-accent: 70 100% 75%;
+  --qa-accent-foreground: 220 17% 7%;
+  --qa-ink: 220 17% 7%;
+  --qa-ink-strong: 215 25% 18%;
+  --qa-ink-body: 215 19% 32%;
+  --qa-ink-meta: 215 16% 45%;
+  --qa-ink-muted: 215 14% 60%;
+  --radius: 1rem;
+}
+
 @theme {
-  --color-background: #fcf9f8;
-  --color-foreground: #1b1b1b;
-  --color-primary: #e23744;
+  --color-background: #f4f5f8;
+  --color-foreground: #0f1115;
+  --color-primary: #0f1115;
   --color-primary-foreground: #ffffff;
-  --color-muted: #f0eded;
-  --color-border: #e4bebc;
-  --color-ring: #b7122a;
+  --color-secondary: #eef0f5;
+  --color-secondary-foreground: #0f1115;
+  --color-secondary-container: #eaff81;
+  --color-outline: #64748b;
+  --color-outline-variant: #e2e5ee;
+  --color-on-primary-fixed: #0f1115;
+  --color-tertiary-fixed: #eaff81;
+  --color-on-tertiary-fixed: #0f1115;
+  --color-tertiary-fixed-dim: #d8f259;
+  --color-surface-container-highest: #e2e5ee;
+  --color-muted: #eef0f5;
+  --color-border: #e2e5ee;
+  --color-ring: #0f1115;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f6f3f2;
-  --color-surface-container: #f0eded;
-  --color-surface-container-high: #eae7e7;
-  --color-on-surface-variant: #5b403f;
-  --color-primary-fixed: #ffdad8;
-  --color-tertiary: #775600;
-  --color-tertiary-container: #966e00;
-  --color-tertiary-fixed: #ffdea3;
-  --color-tertiary-fixed-dim: #f3bf51;
-  --color-inverse-surface: #161616;
-  --color-inverse-on-surface: #f3f0ef;
-  --color-success: #16a34a;
-  --color-promo-strip: #dcfce7;
-  --color-promo-strip-fg: #166534;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui,
+  --color-surface-container-low: #f8f9fb;
+  --color-surface-container: #eef0f5;
+  --color-surface-container-high: #e5e8f0;
+  --color-on-surface-variant: #475569;
+  --color-primary-container: #eaff81;
+  --color-on-primary-container: #0f1115;
+  --color-primary-fixed: #eef0f5;
+  --color-tertiary: #10b981;
+  --color-tertiary-container: #d1fae5;
+  --color-inverse-surface: #0f1115;
+  --color-inverse-on-surface: #ffffff;
+  --color-success: #10b981;
+  --color-promo-strip: #eaff81;
+  --color-promo-strip-fg: #0f1115;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f1115;
+  --color-destructive: #e11d48;
+  --color-accent: #eaff81;
+  --color-accent-foreground: #0f1115;
+  --color-qa-accent: #eaff81;
+  --color-input: #e2e5ee;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.375rem;
+  --font-sans: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    system-ui, sans-serif;
+  --font-display: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui,
     sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, system-ui,
-    sans-serif;
-  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-mono: var(--font-mono-code), "SF Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 .material-symbols-outlined {
-  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+  font-size: 15px;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.012em;
   overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
 }
 
+h1,
+h2,
+h3,
+h4,
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.018em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.font-light {
+  font-weight: 500 !important;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Apple press response — DEC-009 principle 1 */
+.font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+/* CRED / QA highlighter & eyebrow */
+.qa-highlight {
+  background: linear-gradient(to top, #eaff81 60%, transparent 60%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding-inline: 0.3rem;
+  border-radius: 4px;
+}
+
+.qa-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+}
+
+/* CRED brushed obsidian vault surface */
+.bg-inverse-surface {
+  background: linear-gradient(145deg, #181b22 0%, #0b0d12 100%) !important;
+  box-shadow:
+    0 14px 32px -10px rgba(15, 17, 21, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.qa-hairline {
+  border: 1px solid var(--color-border);
+}
+
 .pressable {
-  transition: transform 100ms ease-out;
+  transition:
+    transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 140ms ease,
+    background-color 120ms ease;
   touch-action: manipulation;
 }
 .pressable:active {
@@ -71,11 +170,12 @@ body {
   }
 }
 
-/* Single-layer glass (never nest) */
+/* iOS Dynamic Frosted Glass Bar */
 .glass-header {
-  background: rgba(252, 249, 248, 0.82);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(244, 245, 248, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
 }
 
 .pb-safe {
@@ -85,7 +185,6 @@ body {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Hide scrollbars on horizontal rails */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -94,7 +193,6 @@ body {
   scrollbar-width: none;
 }
 
-/* Fortune wheel + Sparkle Win sheet (P1-T17 / Apple spring) */
 @keyframes damigos-spin-wheel {
   from {
     transform: rotate(0deg);
@@ -153,7 +251,7 @@ body {
 }
 @keyframes win-sparkle-flash {
   0% {
-    background: radial-gradient(circle at 50% 20%, rgba(243, 191, 81, 0.45), transparent 55%);
+    background: radial-gradient(circle at 50% 20%, rgba(234, 255, 129, 0.55), transparent 55%);
     opacity: 1;
   }
   100% {
@@ -181,10 +279,6 @@ body {
   }
 }
 
-/*
- * Hub poster / offer motion — animate INNER content only.
- * Transform on the scroll item itself glitches horizontal rails on mobile.
- */
 @keyframes hub-float-inner-a {
   0%,
   100% {
@@ -206,7 +300,6 @@ body {
 .hub-poster-float-a,
 .hub-poster-float-b,
 .hub-craving-float {
-  /* keep scroll item transform-stable */
   transform: none;
   animation: none;
 }
@@ -220,7 +313,6 @@ body {
   animation: hub-float-inner-a 3.2s ease-in-out infinite;
 }
 
-/* Horizontal rails — allow vertical page scroll while finger is on the rail */
 .hub-h-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
@@ -229,7 +321,6 @@ body {
   scroll-behavior: auto;
 }
 
-/* Don't steal vertical gestures from the page when pressing cards inside rails */
 .hub-h-scroll .pressable {
   touch-action: pan-x pan-y;
 }

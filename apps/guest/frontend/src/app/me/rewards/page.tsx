@@ -80,7 +80,7 @@ export default function MeRewardsPage() {
       </Link>
 
       {!signedIn ? (
-        <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-black/5">
+        <div className="rounded-lg bg-surface-container-lowest p-5 text-center shadow-sm border border-border">
           <p className="text-[15px] font-semibold">Sign in from WhatsApp</p>
           <p className="mt-1 text-[12px] text-on-surface-variant">
             Claimed rewards appear here after Spark play.
@@ -91,7 +91,7 @@ export default function MeRewardsPage() {
       ) : error ? (
         <p className="text-sm text-red-700">{error}</p>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-black/5">
+        <div className="rounded-lg bg-surface-container-lowest p-5 text-center shadow-sm border border-border">
           <MaterialIcon name="card_giftcard" className="text-[32px] text-on-surface-variant/50" />
           <p className="mt-2 text-[15px] font-semibold">No rewards claimed yet</p>
           <p className="mt-1 text-[12px] text-on-surface-variant">
@@ -99,7 +99,7 @@ export default function MeRewardsPage() {
           </p>
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+        <ul className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
           {rows.map((row, i) => (
             <li
               key={`${row.claimId}-${row.restaurantId}`}

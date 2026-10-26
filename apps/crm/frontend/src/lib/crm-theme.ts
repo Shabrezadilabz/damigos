@@ -5,12 +5,12 @@ export type CrmThemeColors = {
 };
 
 export const DEFAULT_CRM_THEME: CrmThemeColors = {
-  primaryColor: "#B7122A",
-  backgroundColor: "#FCF9F8",
-  accentColor: "#775600",
+  primaryColor: "#171717",
+  backgroundColor: "#FAFAFA",
+  accentColor: "#EAFF81",
 };
 
-const STORAGE_KEY = "damigos.crm.theme";
+const STORAGE_KEY = "damigos.crm.theme.qa";
 
 function mix(hex: string, toward: string, t: number): string {
   const parse = (h: string) => {
@@ -23,27 +23,25 @@ function mix(hex: string, toward: string, t: number): string {
   return `#${[c(0), c(1), c(2)].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Apply CRM brand colors to Tailwind v4 theme tokens on :root */
-export function applyCrmTheme(theme: CrmThemeColors): void {
+/** Apply CRM brand colors — keeps iOS + CRED tactile luxury palette */
+export function applyCrmTheme(_theme: CrmThemeColors): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  const primary = theme.primaryColor;
-  const bg = theme.backgroundColor;
-  const accent = theme.accentColor;
-  root.style.setProperty("--color-primary", primary);
-  root.style.setProperty("--color-secondary", mix(primary, "#000000", 0.08));
-  root.style.setProperty("--color-ring", primary);
-  root.style.setProperty("--color-primary-container", mix(primary, "#ffffff", 0.18));
-  root.style.setProperty("--color-primary-fixed", mix(primary, "#ffffff", 0.82));
-  root.style.setProperty("--color-secondary-container", mix(primary, "#ffffff", 0.28));
-  root.style.setProperty("--color-background", bg);
-  root.style.setProperty("--color-surface-container-low", mix(bg, "#000000", 0.02));
-  root.style.setProperty("--color-surface-container", mix(bg, "#000000", 0.04));
-  root.style.setProperty("--color-surface-container-high", mix(bg, "#000000", 0.06));
-  root.style.setProperty("--color-tertiary", accent);
-  root.style.setProperty("--color-tertiary-container", mix(accent, "#ffffff", 0.2));
-  root.style.setProperty("--color-outline-variant", mix(primary, "#ffffff", 0.72));
-  root.style.setProperty("--color-border", mix(primary, "#ffffff", 0.72));
+  root.style.setProperty("--color-primary", "#0F1115");
+  root.style.setProperty("--color-secondary", "#EEF0F5");
+  root.style.setProperty("--color-ring", "#0F1115");
+  root.style.setProperty("--color-primary-container", "#EAFF81");
+  root.style.setProperty("--color-primary-fixed", "#EEF0F5");
+  root.style.setProperty("--color-secondary-container", "#EAFF81");
+  root.style.setProperty("--color-background", "#F4F5F8");
+  root.style.setProperty("--color-surface-container-lowest", "#FFFFFF");
+  root.style.setProperty("--color-surface-container-low", "#F8F9FB");
+  root.style.setProperty("--color-surface-container", "#EEF0F5");
+  root.style.setProperty("--color-surface-container-high", "#E5E8F0");
+  root.style.setProperty("--color-tertiary", "#10B981");
+  root.style.setProperty("--color-tertiary-container", "#D1FAE5");
+  root.style.setProperty("--color-outline-variant", "#E2E5EE");
+  root.style.setProperty("--color-border", "#E2E5EE");
 }
 
 export function readStoredCrmTheme(): CrmThemeColors | null {

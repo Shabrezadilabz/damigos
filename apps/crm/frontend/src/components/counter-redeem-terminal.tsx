@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { Button } from "@/components/ui/button";
 import {
+  applyCrmCounterRedeem,
   fetchCrmCustomerDetail,
   fetchCrmCustomers,
   formatInr,
@@ -302,14 +303,42 @@ export function CounterRedeemTerminal() {
                 <Button
                   type="button"
                   className="flex-1 gap-2 py-6"
-                  disabled={!selected || applied}
-                  onClick={() => setApplied(true)}
+                  disabled={!selected || applied || busy || !detail || discountPaise <= 0}
+                  onClick={() => {
+                    if (!restaurantId || !detail || discountPaise <= 0) return;
+                    setBusy(true);
+                    setError(null);
+                    void applyCrmCounterRedeem({
+                      restaurantId,
+                      customerId: detail.customer.id,
+                      amountPaise: discountPaise,
+                    })
+                      .then(() => {
+                        setApplied(true);
+                        setDetail({
+                          ...detail,
+                          customer: {
+                            ...detail.customer,
+                            creditsPaise: Math.max(
+                              0,
+                              (detail.customer.creditsPaise || 0) - discountPaise,
+                            ),
+                          },
+                        });
+                      })
+                      .catch((e) =>
+                        setError(e instanceof Error ? e.message : "Redeem failed"),
+                      )
+                      .finally(() => setBusy(false));
+                  }}
                   data-testid="redeem-apply-btn"
                 >
                   <MaterialIcon name="check_circle" className="text-[20px]" />
                   {applied
-                    ? "Reward marked redeemed (pilot)"
-                    : `Apply & burn ${formatInr(discountPaise)} to bill`}
+                    ? "Redeemed · kitchen wallet credited"
+                    : busy
+                      ? "Burning…"
+                      : `Apply & burn ${formatInr(discountPaise)} to bill`}
                 </Button>
               </div>
             </div>

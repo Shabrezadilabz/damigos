@@ -99,7 +99,7 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
               <dd className="font-semibold tabular-nums">{formatInr(report.avoidedCommissionPaise)}</dd>
             </div>
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-              <dt className="text-on-surface-variant">Damigos take rate</dt>
+              <dt className="text-on-surface-variant">D'aMigo's take rate</dt>
               <dd className="font-semibold text-[#24963F]">0%</dd>
             </div>
           </dl>

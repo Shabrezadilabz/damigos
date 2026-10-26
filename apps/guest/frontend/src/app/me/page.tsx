@@ -67,32 +67,32 @@ export default function MePage() {
   }
 
   return (
-    <main className="min-h-dvh bg-surface-container-low pb-10">
-      <div className="relative bg-gradient-to-b from-primary to-[#92001c] px-4 pb-16 pt-safe">
+    <main className="min-h-dvh bg-background pb-10">
+      <div className="relative border-b border-border bg-surface-container-low px-4 pb-14 pt-safe">
         <div className="flex items-center justify-between py-3">
           <Link
             href="/hub"
-            className="pressable flex h-11 w-11 items-center justify-center text-white"
+            className="pressable flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface-container"
             aria-label="Back to hub"
           >
             <MaterialIcon name="arrow_back" className="text-[22px]" />
           </Link>
           <Link
             href="/me/edit"
-            className="pressable rounded-full bg-white px-4 py-1.5 text-[13px] font-bold text-primary"
+            className="pressable rounded-md bg-primary px-4 py-1.5 text-[13px] font-bold text-primary-foreground"
             data-testid="profile-edit"
           >
             Edit
           </Link>
         </div>
-        <h1 className="font-display text-[32px] font-extrabold tracking-tight text-white">
+        <h1 className="font-display text-[32px] font-extrabold tracking-tight text-foreground">
           {name || "Guest"}
         </h1>
-        <p className="mt-1 text-[14px] text-white/85">{phoneHint}</p>
+        <p className="mt-1 text-[14px] text-on-surface-variant">{phoneHint}</p>
       </div>
 
-      <div className="-mt-10 space-y-3 rounded-t-[1.75rem] bg-[#fafafa] px-4 pt-6">
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+      <div className="space-y-3 px-4 pt-4">
+        <div className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
           {ROWS.slice(0, 4).map((row, i) => (
             <Link
               key={row.title}
@@ -113,7 +113,7 @@ export default function MePage() {
           ))}
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+        <div className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
           {ROWS.slice(4).map((row, i) => (
             <Link
               key={row.title}
@@ -136,13 +136,13 @@ export default function MePage() {
 
         <Link
           href="/me/feedback"
-          className="pressable flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+          className="pressable flex items-center justify-between gap-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border"
           data-testid="profile-feedback"
         >
           <div>
             <p className="text-[15px] font-semibold">Got feedback? Let us know</p>
             <p className="mt-1 text-[13px] font-semibold text-primary">
-              Send to partners@damigos.in
+              Tell us what to improve
             </p>
           </div>
           <span className="text-[28px]" aria-hidden>

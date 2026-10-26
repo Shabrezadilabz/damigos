@@ -7,6 +7,7 @@ import { fetchCrmBrandKit, patchCrmBrandKit } from "@/lib/api";
 import { applyCrmTheme, storeCrmTheme } from "@/lib/crm-theme";
 
 const PRESETS = [
+  { name: "QA Ink", primary: "#171717", background: "#FAFAFA", accent: "#EAFF81" },
   { name: "Crimson", primary: "#B7122A", background: "#FCF9F8", accent: "#775600" },
   { name: "Forest", primary: "#1B4332", background: "#F4F7F5", accent: "#95D5B2" },
   { name: "Indigo", primary: "#312E81", background: "#F8F7FC", accent: "#A5B4FC" },
@@ -25,9 +26,10 @@ export function BrandThemeDialog({
   restaurantId: string;
   onSaved?: (primary: string) => void;
 }) {
-  const [primary, setPrimary] = useState("#B7122A");
-  const [background, setBackground] = useState("#FCF9F8");
-  const [accent, setAccent] = useState("#775600");
+  const [primary, setPrimary] = useState("#171717");
+  const [background, setBackground] = useState("#FAFAFA");
+  const [accent, setAccent] = useState("#EAFF81");
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export function BrandThemeDialog({
         setPrimary(kit.primaryColor);
         setBackground(kit.backgroundColor);
         setAccent(kit.accentColor);
+        setLogoDataUrl(kit.logoDataUrl ?? null);
       })
       .catch(() => undefined);
   }, [open, restaurantId]);
@@ -59,6 +62,7 @@ export function BrandThemeDialog({
         primaryColor: primary,
         backgroundColor: background,
         accentColor: accent,
+        logoDataUrl,
       });
       const theme = {
         primaryColor: kit.primaryColor,
@@ -161,6 +165,49 @@ export function BrandThemeDialog({
               <span className="mt-1 block font-mono text-[10px] text-on-surface-variant">{accent}</span>
             </label>
           </div>
+
+          <label className="block text-sm">
+            <span className="font-semibold">Kitchen logo (optional)</span>
+            <p className="mt-0.5 text-[11px] text-on-surface-variant">
+              Shown on the guest hub card. PNG/JPG/WebP · under ~800KB.
+            </p>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="mt-2 block w-full text-xs"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 900_000) {
+                  setError("Logo too large — keep under 900KB");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setLogoDataUrl(typeof reader.result === "string" ? reader.result : null);
+                  setError(null);
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            {logoDataUrl ? (
+              <div className="mt-2 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoDataUrl}
+                  alt="Kitchen logo preview"
+                  className="h-14 w-14 rounded-lg border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-primary underline"
+                  onClick={() => setLogoDataUrl(null)}
+                >
+                  Remove logo
+                </button>
+              </div>
+            ) : null}
+          </label>
 
           <div className="rounded-xl border border-outline-variant/40 p-4" style={{ backgroundColor: background }}>
             <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Live preview</p>

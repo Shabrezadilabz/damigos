@@ -7,8 +7,18 @@ export const OFFER_PRESETS = {
   pct_20: { label: "20% off (weekend)", prizeType: "percent", prizeValue: 20, title: "20% weekend off" },
   flat_50: { label: "₹50 off next order", prizeType: "flat_off_paise", prizeValue: 5000, title: "₹50 off" },
   flat_100: { label: "₹100 instant cashback", prizeType: "flat_off_paise", prizeValue: 10000, title: "₹100 cashback" },
-  free_drink: { label: "Free mocktail / beverage", prizeType: "free_item", prizeValue: 0, title: "Free mocktail" },
-  royal_feast: { label: "Complimentary biryani platter", prizeType: "free_item", prizeValue: 0, title: "Royal feast upgrade" },
+  free_drink: {
+    label: "Free mocktail / beverage (upto ₹99)",
+    prizeType: "free_item",
+    prizeValue: 9900,
+    title: "Free mocktail",
+  },
+  royal_feast: {
+    label: "Complimentary biryani platter (upto ₹249)",
+    prizeType: "free_item",
+    prizeValue: 24900,
+    title: "Royal feast upgrade",
+  },
 } as const;
 
 export type OfferPresetId = keyof typeof OFFER_PRESETS;
@@ -99,7 +109,7 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
         localId: "s2",
         title: "Free mocktail",
         prizeType: "free_item",
-        prizeValue: 0,
+        prizeValue: 9900,
         weight: 25,
         scope: "RESTAURANT_SCOPED",
       },
@@ -152,8 +162,46 @@ export function validateSpinWeights(config: GrowLoyaltyConfig): { ok: boolean; w
   return { ok: weightSum > 0, weightSum };
 }
 
-export function configToOffersRows(restaurantId: string, config: GrowLoyaltyConfig) {
-  return config.spinSegments.map((seg) => {
+type OfferInsert = {
+  restaurantId: string;
+  scope: string;
+  title: string;
+  description: string;
+  prizeType: string;
+  prizeValue: number;
+  weight: number;
+  active: boolean;
+  minOrderPaise: number;
+  terms: string;
+};
+
+function presetToRow(
+  restaurantId: string,
+  title: string,
+  description: string,
+  presetId: OfferPresetId,
+  active: boolean,
+  minOrderPaise: number,
+  weight: number,
+): OfferInsert {
+  const preset = OFFER_PRESETS[presetId];
+  return {
+    restaurantId,
+    scope: "RESTAURANT_SCOPED",
+    title: title || preset.title,
+    description,
+    prizeType: preset.prizeType,
+    prizeValue: preset.prizeValue,
+    weight,
+    active,
+    minOrderPaise,
+    terms: "Configured in Grow → Campaign programs · D'aMigo's",
+  };
+}
+
+/** Spin segments + enabled campaign program presets → guest-visible `offers` rows. */
+export function configToOffersRows(restaurantId: string, config: GrowLoyaltyConfig): OfferInsert[] {
+  const rows: OfferInsert[] = config.spinSegments.map((seg) => {
     const scope = seg.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED";
     return {
       restaurantId,
@@ -174,4 +222,125 @@ export function configToOffersRows(restaurantId: string, config: GrowLoyaltyConf
           : "Configured in Grow → Offers & game",
     };
   });
+
+  if (config.dineIn.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.dineIn.offerPresetId].title,
+        "Packaging QR welcome · Direct D2C",
+        config.dineIn.offerPresetId,
+        true,
+        config.minCartPaise,
+        80,
+      ),
+    );
+  }
+  if (config.winback15.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.winback15.offerPresetId].title,
+        "15-day pullback offer",
+        config.winback15.offerPresetId,
+        true,
+        config.minCartPaise,
+        60,
+      ),
+    );
+  }
+  if (config.winback30.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.winback30.offerPresetId].title,
+        "30-day win-back offer",
+        config.winback30.offerPresetId,
+        true,
+        config.minCartPaise,
+        55,
+      ),
+    );
+  }
+  if (config.calendar.weekend.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.calendar.weekend.offerPresetId].title,
+        "Weekend boost",
+        config.calendar.weekend.offerPresetId,
+        true,
+        config.minCartPaise,
+        70,
+      ),
+    );
+  }
+  if (config.calendar.monthend.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.calendar.monthend.offerPresetId].title,
+        "Month-end push",
+        config.calendar.monthend.offerPresetId,
+        true,
+        config.minCartPaise,
+        50,
+      ),
+    );
+  }
+  if (config.calendar.festivals.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.calendar.festivals.offerPresetId].title,
+        "Festival & events",
+        config.calendar.festivals.offerPresetId,
+        true,
+        config.minCartPaise,
+        65,
+      ),
+    );
+  }
+  if (config.calendar.birthdays.enabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.calendar.birthdays.offerPresetId].title,
+        "Birthday treat",
+        config.calendar.birthdays.offerPresetId,
+        true,
+        config.minCartPaise,
+        40,
+      ),
+    );
+  }
+  if (config.scratchEnabled) {
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[config.scratch.offerPresetId].title,
+        "Scratch card milestone",
+        config.scratch.offerPresetId,
+        true,
+        config.scratch.minOrderPaise || config.minCartPaise,
+        45,
+      ),
+    );
+  }
+  for (const rule of config.orderThresholdRules) {
+    if (!rule.enabled) continue;
+    rows.push(
+      presetToRow(
+        restaurantId,
+        OFFER_PRESETS[rule.offerPresetId].title,
+        `Order threshold · min ₹${Math.round(rule.minOrderPaise / 100)}`,
+        rule.offerPresetId,
+        true,
+        rule.minOrderPaise,
+        35,
+      ),
+    );
+  }
+
+  return rows;
 }

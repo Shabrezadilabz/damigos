@@ -1,5 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mono-code",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "D'aMigo's CRM",
@@ -12,17 +27,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-/** Apple SF Pro system stack — DEC-009 */
+/** iOS + CRED tactile luxury design system */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${jakarta.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0"
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-dvh font-sans antialiased">{children}</body>
+      <body className="min-h-dvh bg-[#F4F5F8] font-sans text-[#0F1115] antialiased">{children}</body>
     </html>
   );
 }

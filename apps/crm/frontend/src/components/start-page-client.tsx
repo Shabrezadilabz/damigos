@@ -98,6 +98,7 @@ export function StartPageClient() {
   const [selectedCuisines, setSelectedCuisines] = useState<Set<string>>(
     () => new Set(["Artisanal Italian", "Woodfired Sourdough"]),
   );
+  const [dietType, setDietType] = useState<"veg" | "non_veg" | "both">("both");
   const [loginOnly, setLoginOnly] = useState(false);
   const [fssai, setFssai] = useState("");
   const [fssaiBusy, setFssaiBusy] = useState(false);
@@ -169,6 +170,7 @@ export function StartPageClient() {
         email: billingEmail.trim(),
         city: "Bangalore",
         cuisineTags: [...selectedCuisines],
+        dietType,
         fssai: fssaiChoice === "verify" && fssaiOk ? fssaiOk.fssaiNumber : fssai.trim() || undefined,
         dpdpAccepted: true,
         whatsappGatewayAccepted: true,
@@ -451,6 +453,39 @@ export function StartPageClient() {
                     only. You can enable delivery later in Settings.
                   </p>
                 )}
+                <p className="rounded-lg border border-border bg-surface-container-low px-3 py-2 text-[11px] text-on-surface-variant">
+                  Optional kitchen logo: after activation, upload in{" "}
+                  <strong className="text-foreground">Settings → Brand &amp; theme</strong>. Guest hub
+                  uses your logo (or a neutral animated placeholder until then).
+                </p>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-on-surface-variant">
+                    Kitchen diet (guest VEG filter)
+                  </span>
+                  <div className="flex flex-wrap gap-2" data-testid="onboarding-diet-type">
+                    {(
+                      [
+                        { value: "veg", label: "Veg kitchen" },
+                        { value: "non_veg", label: "Non-veg kitchen" },
+                        { value: "both", label: "Veg + non-veg" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setDietType(opt.value)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                          dietType === opt.value
+                            ? "bg-success text-white"
+                            : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold text-on-surface-variant">Core culinary identifiers</span>
                   <div className="flex flex-wrap gap-2">
@@ -622,6 +657,17 @@ export function StartPageClient() {
                       configure payouts in <strong className="text-foreground">Settings → Payout</strong>.
                     </p>
                     {[
+                      {
+                        icon: "eco",
+                        title: "Kitchen diet",
+                        value:
+                          dietType === "veg"
+                            ? "Veg kitchen"
+                            : dietType === "non_veg"
+                              ? "Non-veg kitchen"
+                              : "Veg + non-veg",
+                        tone: "bg-emerald-50",
+                      },
                       {
                         icon: "local_shipping",
                         title: "Fulfillment",

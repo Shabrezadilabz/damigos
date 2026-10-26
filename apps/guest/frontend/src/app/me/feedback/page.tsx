@@ -43,11 +43,11 @@ export default function MeFeedbackPage() {
   return (
     <MeSubpageShell title="Feedback">
       {done ? (
-        <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
-          <MaterialIcon name="check_circle" className="text-[40px] text-[#24963F]" />
+        <div className="rounded-lg bg-surface-container-lowest p-6 text-center shadow-sm border border-border">
+          <MaterialIcon name="check_circle" className="text-[40px] text-success" />
           <p className="mt-2 text-[16px] font-bold">Thanks — we got it</p>
           <p className="mt-1 text-[13px] text-on-surface-variant">
-            Your note was sent to partners@damigos.in
+            Your note is with the D&apos;aMigo&apos;s team. We&apos;ll use it to improve the app.
           </p>
           <button
             type="button"
@@ -60,11 +60,11 @@ export default function MeFeedbackPage() {
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
           <p className="text-[13px] text-on-surface-variant">
-            Share what&apos;s working or broken — we read every message at{" "}
-            <span className="font-semibold text-foreground">partners@damigos.in</span>.
+            Share what&apos;s working or broken — we read every message. Optional email below if
+            you want a reply.
           </p>
 
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <div className="rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
             <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
               Rating
             </p>
@@ -85,7 +85,7 @@ export default function MeFeedbackPage() {
             </div>
           </div>
 
-          <label className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <label className="block rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
             <span className="text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
               Your message
             </span>
@@ -100,7 +100,7 @@ export default function MeFeedbackPage() {
             />
           </label>
 
-          <label className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <label className="block rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
             <span className="text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
               Email (optional)
             </span>
@@ -122,15 +122,8 @@ export default function MeFeedbackPage() {
             className="pressable flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[15px] font-bold text-on-primary disabled:opacity-60"
             data-testid="feedback-send"
           >
-            {sending ? "Sending…" : "Send to partners@damigos.in"}
+            {sending ? "Sending…" : "Send feedback"}
           </button>
-
-          <a
-            href={`mailto:partners@damigos.in?subject=${encodeURIComponent("Guest app feedback")}`}
-            className="block text-center text-[12px] font-semibold text-on-surface-variant underline"
-          >
-            Or open mail app instead
-          </a>
 
           <Link href="/me" className="block py-2 text-center text-[14px] font-semibold text-on-surface-variant">
             Cancel

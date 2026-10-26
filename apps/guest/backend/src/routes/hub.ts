@@ -18,20 +18,37 @@ export async function registerHubRoutes(app: FastifyInstance) {
       .object({
         city: z.string().optional(),
         q: z.string().max(64).optional(),
+        veg: z.enum(["0", "1", "true", "false"]).optional(),
       })
       .parse(request.query);
 
-    const cityFilter = query.city?.toLowerCase() ?? "bangalore";
+    const vegOnly = query.veg === "1" || query.veg === "true";
+    const cityFilter = (query.city?.toLowerCase() ?? "bangalore").trim();
     const search = query.q?.trim().toLowerCase() ?? "";
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[''`]/g, "")
+        .replace(/[^a-z0-9\s]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const searchNorm = normalize(search);
+    const searchTokens = searchNorm.split(" ").filter((t) => t.length >= 2);
+    const cityAliases =
+      cityFilter === "bangalore" || cityFilter === "bengaluru"
+        ? new Set(["bangalore", "bengaluru", "blr", ""])
+        : new Set([cityFilter]);
 
+    // All hub-listed kitchens (no artificial cap). Soft city match for Bangalore pilot.
     const rows = await db.select().from(restaurants).where(eq(restaurants.hubListed, true));
 
     const filtered: typeof rows = [];
     for (const r of rows) {
-      if (!r.orderingEnabled) continue;
-      if ((r.city ?? "Bangalore").toLowerCase() !== cityFilter) continue;
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)::int` })
+      const cityNorm = normalize(r.city ?? "bangalore");
+      if (!cityAliases.has(cityNorm) && !cityAliases.has("")) continue;
+      // Prefer live menus; still list kitchens that only have draft items so owners see them while publishing
+      const [{ liveCount }] = await db
+        .select({ liveCount: sql<number>`count(*)::int` })
         .from(menuItems)
         .where(
           and(
@@ -40,7 +57,13 @@ export async function registerHubRoutes(app: FastifyInstance) {
             eq(menuItems.available, true),
           ),
         );
-      if ((count ?? 0) > 0) filtered.push(r);
+      const [{ anyCount }] = await db
+        .select({ anyCount: sql<number>`count(*)::int` })
+        .from(menuItems)
+        .where(eq(menuItems.restaurantId, r.id));
+      if ((liveCount ?? 0) > 0 || (anyCount ?? 0) > 0 || r.orderingEnabled) {
+        filtered.push(r);
+      }
     }
 
     const restaurantsOut = [];
@@ -64,24 +87,49 @@ export async function registerHubRoutes(app: FastifyInstance) {
         .limit(24);
 
       const vegCount = items.filter((i) => i.isVeg).length;
-      const coverImageUrl =
-        items.find((i) => i.imageUrl?.trim())?.imageUrl?.trim() ?? null;
+      let logoUrl: string | null = null;
+      if (r.brandKit) {
+        try {
+          const kit = JSON.parse(r.brandKit) as { logoDataUrl?: string | null };
+          if (kit.logoDataUrl?.trim()) logoUrl = kit.logoDataUrl.trim();
+        } catch {
+          /* ignore */
+        }
+      }
+      const dishCover = items.find((i) => i.imageUrl?.trim())?.imageUrl?.trim() ?? null;
+      const coverImageUrl = logoUrl || dishCover;
 
+      const dietType = r.dietType ?? null;
+      const nameBlob = normalize(`${r.name} ${r.slug} ${r.city ?? ""}`);
       const nameHit =
-        !search ||
-        r.name.toLowerCase().includes(search) ||
-        r.slug.toLowerCase().includes(search) ||
-        (r.city ?? "").toLowerCase().includes(search);
-      const dishHit =
-        !search ||
-        items.some(
-          (i) =>
-            i.name.toLowerCase().includes(search) ||
-            // token match: "south indian" → south / dosa / idli in dish names
-            search.split(/\s+/).some((tok) => tok.length >= 3 && i.name.toLowerCase().includes(tok)),
-        );
+        !searchNorm ||
+        nameBlob.includes(searchNorm) ||
+        searchTokens.every((tok) => nameBlob.includes(tok)) ||
+        searchTokens.some((tok) => tok.length >= 3 && nameBlob.includes(tok));
+      const matchingDishes = !searchNorm
+        ? items
+        : items.filter((i) => {
+            const n = normalize(i.name);
+            return (
+              n.includes(searchNorm) ||
+              searchTokens.some((tok) => tok.length >= 2 && n.includes(tok))
+            );
+          });
+      const dishHit = !searchNorm || matchingDishes.length > 0;
 
       if (search && !nameHit && !dishHit) continue;
+
+      const pureFromDiet = dietType === "veg";
+      const mixedFromDiet = dietType === "both" || dietType === "non_veg";
+      const vegFriendly = pureFromDiet || mixedFromDiet || vegCount > 0;
+      const pureVeg =
+        pureFromDiet || (items.length > 0 && vegCount === items.length && dietType !== "non_veg");
+
+      // Veg mode: hide kitchens with zero vegetarian dishes (and non_veg-only diet)
+      if (vegOnly && (vegCount === 0 || dietType === "non_veg")) continue;
+
+      const dishPool = nameHit && !dishHit ? items : matchingDishes.length ? matchingDishes : items;
+      const samplePool = vegOnly ? dishPool.filter((i) => i.isVeg) : dishPool;
 
       restaurantsOut.push({
         id: r.id,
@@ -91,15 +139,18 @@ export async function registerHubRoutes(app: FastifyInstance) {
         orderingEnabled: r.orderingEnabled,
         menuPath: `/r/${r.id}/menu`,
         coverImageUrl,
-        vegFriendly: vegCount > 0,
-        pureVeg: items.length > 0 && vegCount === items.length,
-        sampleDishes: items.slice(0, 3).map((i) => ({
+        logoUrl,
+        dietType: dietType === "veg" || dietType === "non_veg" || dietType === "both" ? dietType : null,
+        vegFriendly,
+        pureVeg,
+        sampleDishes: samplePool.slice(0, 3).map((i) => ({
           id: i.id,
           name: i.name,
           pricePaise: i.pricePaise,
           isVeg: i.isVeg,
           imageUrl: i.imageUrl,
         })),
+        matchedBy: searchNorm ? (nameHit ? (dishHit ? "both" : "kitchen") : "dish") : null,
       });
     }
 
@@ -108,13 +159,19 @@ export async function registerHubRoutes(app: FastifyInstance) {
     return {
       city: cityFilter,
       q: search || null,
+      vegOnly,
       restaurants: restaurantsOut,
     };
   });
 
 
-  /** Ownly WA-02 — Bestsellers under ₹149 across hub kitchens */
-  app.get("/hub/bestsellers", async () => {
+  /** Ownly WA-02 — Bestsellers under ₹149 across hub kitchens (?veg=1 = vegetarian only) */
+  app.get("/hub/bestsellers", async (request) => {
+    const query = z
+      .object({ veg: z.enum(["0", "1", "true", "false"]).optional() })
+      .parse(request.query);
+    const vegOnly = query.veg === "1" || query.veg === "true";
+
     const rows = await db
       .select({
         id: menuItems.id,
@@ -135,6 +192,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
           eq(menuItems.draft, false),
           eq(menuItems.available, true),
           lte(menuItems.pricePaise, 14900),
+          ...(vegOnly ? [eq(menuItems.isVeg, true)] : []),
         ),
       )
       .orderBy(menuItems.pricePaise)
@@ -197,13 +255,11 @@ export async function registerHubRoutes(app: FastifyInstance) {
       coinsHint: number;
     }[] = [];
 
-    const seenKitchen = new Set<string>();
-
     for (const row of activeOffers) {
       const scope =
         row.offer.scope === "PLATFORM_WIDE" ? "PLATFORM_WIDE" : "RESTAURANT_SCOPED";
       if (scope === "PLATFORM_WIDE") {
-        if (platform.length >= 4) continue;
+        if (platform.length >= 6) continue;
         platform.push({
           id: row.offer.id,
           title: row.offer.title,
@@ -215,9 +271,9 @@ export async function registerHubRoutes(app: FastifyInstance) {
         });
         continue;
       }
-      if (!row.hubListed || seenKitchen.has(row.restaurantId)) continue;
-      if (kitchenCards.length >= 8) continue;
-      seenKitchen.add(row.restaurantId);
+      // One card per active kitchen offer (not one-per-kitchen) so Grow segments show up
+      if (!row.hubListed) continue;
+      if (kitchenCards.length >= 16) continue;
       kitchenCards.push({
         id: row.offer.id,
         title: row.offer.title,
@@ -226,12 +282,16 @@ export async function registerHubRoutes(app: FastifyInstance) {
             ? `${row.offer.prizeValue}% OFF`
             : row.offer.prizeType === "flat_off_paise"
               ? `₹${Math.round(row.offer.prizeValue / 100)} OFF`
-              : "Perk unlocked",
+              : row.offer.prizeType === "free_item"
+                ? row.offer.prizeValue > 0
+                  ? `Free · upto ₹${Math.round(row.offer.prizeValue / 100)}`
+                  : "Free item"
+                : "Kitchen perk",
         kitchenName: row.restaurantName,
         restaurantId: row.restaurantId,
         scope: "RESTAURANT_SCOPED",
         href: `/r/${row.restaurantId}/menu`,
-        coinsHint: Math.min(200, Math.max(20, Math.round(row.offer.prizeValue / 50))),
+        coinsHint: Math.min(200, Math.max(20, Math.round(Math.max(1, row.offer.prizeValue) / 50))),
       });
     }
 

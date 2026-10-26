@@ -41,6 +41,7 @@ export async function ensureKitchenSchema() {
     sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_tracking_at timestamptz`,
     sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS food_delivery boolean NOT NULL DEFAULT true`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS shiprocket_pickup_location varchar(36)`,
+    sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS diet_type varchar(16)`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_code varchar(8)`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_verified_at timestamptz`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_hash varchar(64)`,

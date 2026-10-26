@@ -266,12 +266,12 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
 
     <div className="space-y-4">
 
-      <div className="rounded-2xl bg-primary px-4 py-3 text-center text-[14px] font-bold text-primary-foreground shadow-sm">
+      <div className="rounded-lg bg-primary px-4 py-3 text-center text-[14px] font-bold text-primary-foreground shadow-sm">
         No confusing fees. No hidden charges.
       </div>
 
       {loyaltyAvailable > 0 || loyaltyApplied > 0 ? (
-        <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3">
+        <div className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -308,7 +308,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
         </div>
       ) : null}
 
-      <ul className="divide-y divide-border rounded-2xl border border-border bg-surface-container-lowest" data-testid="checkout-lines">
+      <ul className="divide-y divide-border rounded-lg border border-border bg-surface-container-lowest" data-testid="checkout-lines">
         {cart?.items.map((line) => (
           <li key={line.id} className="flex items-center justify-between gap-2 p-3 text-sm">
             <div className="min-w-0 flex-1">
@@ -318,7 +318,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="inline-flex items-center rounded-full border border-border bg-white">
+              <div className="inline-flex items-center rounded-full border border-border bg-surface-container-lowest">
                 <button
                   type="button"
                   aria-label="Decrease quantity"
@@ -369,7 +369,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
       {otherLegs.map((leg) => (
         <div
           key={leg.restaurantId}
-          className="rounded-2xl border border-border bg-surface-container-lowest p-3"
+          className="rounded-lg border border-border bg-surface-container-lowest p-3"
         >
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
             Cross-By · Kitchen {leg.legIndex}
@@ -510,11 +510,11 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
         onPayAllowedChange={setDeliveryPayAllowed}
       />
 
-      <div className="overflow-hidden rounded-2xl bg-white text-sm shadow-sm ring-1 ring-black/5">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface-container-lowest text-sm shadow-sm">
         <div className="bg-primary px-4 py-2.5 text-center text-[13px] font-bold text-white">
           No confusing fees. No hidden charges.
         </div>
-        <div className="space-y-2.5 bg-[#f8f8f8] p-4">
+        <div className="space-y-2.5 bg-surface-container-low p-4">
 
         <div className="flex justify-between">
 
@@ -524,8 +524,8 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
 
         </div>
 
-        {discountPaise > 0 && (
-          <div className="flex justify-between text-success">
+        {(discountPaise > 0 || applied) && (
+          <div className={`flex justify-between ${discountPaise > 0 ? "text-success" : "text-on-surface-variant"}`}>
             <span>
               {applied?.billLabel ??
                 (applied?.scope === "PLATFORM_WIDE"
@@ -533,14 +533,18 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
                   : "Restaurant scoped reward")}
               {applied ? ` (${applied.title})` : ""}
             </span>
-            <span className="tabular font-semibold">−{formatInr(discountPaise)}</span>
+            <span className="tabular font-semibold">
+              {discountPaise > 0 ? `−${formatInr(discountPaise)}` : applied?.eligible === false ? "Min order" : "—"}
+            </span>
           </div>
         )}
 
-        {loyaltyApplied > 0 && (
-          <div className="flex justify-between text-success">
-            <span>Kitchen loyalty</span>
-            <span className="tabular font-semibold">−{formatInr(loyaltyApplied)}</span>
+        {(loyaltyApplied > 0 || loyaltyAvailable > 0) && (
+          <div className={`flex justify-between ${loyaltyApplied > 0 ? "text-success" : "text-on-surface-variant"}`}>
+            <span>Kitchen loyalty{loyaltyApplied > 0 ? "" : " (tap Add above)"}</span>
+            <span className="tabular font-semibold">
+              {loyaltyApplied > 0 ? `−${formatInr(loyaltyApplied)}` : formatInr(0)}
+            </span>
           </div>
         )}
 

@@ -60,15 +60,15 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
   }
 
   useEffect(() => {
-    void fetchHubRestaurants("bangalore", initialQuery || undefined)
+    void fetchHubRestaurants("bangalore", initialQuery || undefined, vegOnly)
       .then(setRows)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed"));
     if (hero.mode === "dishes") {
-      void fetchHubBestsellers()
+      void fetchHubBestsellers(vegOnly)
         .then((b) => setDishes(b.items))
         .catch(() => setDishes([]));
     }
-  }, [hero.mode, initialQuery]);
+  }, [hero.mode, initialQuery, vegOnly]);
 
   const restaurants = useMemo(() => {
     let list = rows.map((r, i) => ({ r, i, meta: hubDemoMeta(r.slug) }));
@@ -116,7 +116,7 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
   const lightHero = hero.slug === "shawarma" || hero.slug === "biryani" || hero.slug === "bestsellers";
 
   return (
-    <div className="min-h-dvh bg-[#fafafa] pb-32">
+    <div className="min-h-dvh bg-background pb-32">
       <header className={`relative overflow-hidden pt-safe ${hero.heroClass}`}>
         <div className="relative z-10 px-4 pb-5 pt-3">
           <Link
@@ -151,7 +151,7 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
                 {hero.subtitle}
               </p>
               {hero.badge ? (
-                <span className="mt-2 inline-flex rounded-full bg-[#fef08a] px-2.5 py-1 text-[11px] font-bold text-[#166534]">
+                <span className="mt-2 inline-flex rounded-full bg-[#fef08a] px-2.5 py-1 text-[11px] font-bold text-success">
                   {hero.badge}
                 </span>
               ) : null}
@@ -219,13 +219,13 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
         />
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        {addNote ? <p className="mb-2 text-[12px] font-semibold text-[#166534]">{addNote}</p> : null}
+        {addNote ? <p className="mb-2 text-[12px] font-semibold text-success">{addNote}</p> : null}
 
         {hero.mode === "dishes" ? (
           <ul className="space-y-3" data-testid="hub-collection-dishes">
             {dishList.map(({ d, meta }, idx) => (
               <li key={d.id}>
-                <div className="relative flex gap-3 rounded-[1.15rem] bg-white p-3 shadow-sm ring-1 ring-black/5">
+                <div className="relative flex gap-3 rounded-lg bg-surface-container-lowest p-3 shadow-sm border border-border">
                   <Link
                     href={vegOnly ? `${d.menuPath}?veg=1` : d.menuPath}
                     className="pressable min-w-0 flex-1"

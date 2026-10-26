@@ -65,7 +65,7 @@ export default function MeLoyaltyPage() {
       </p>
 
       {!signedIn ? (
-        <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-black/5">
+        <div className="rounded-lg bg-surface-container-lowest p-5 text-center shadow-sm border border-border">
           <p className="text-[15px] font-semibold">Sign in from WhatsApp</p>
           <p className="mt-1 text-[12px] text-on-surface-variant">
             Loyalty balances sync to your guest account after you order.
@@ -80,7 +80,7 @@ export default function MeLoyaltyPage() {
         <p className="text-sm text-red-700">{error}</p>
       ) : (
         <>
-          <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+          <div className="mb-4 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
             <p className="text-[12px] font-semibold uppercase tracking-wide text-on-surface-variant">
               Total available
             </p>
@@ -90,7 +90,7 @@ export default function MeLoyaltyPage() {
           </div>
 
           {rows.length === 0 ? (
-            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-black/5">
+            <div className="rounded-lg bg-surface-container-lowest p-5 text-center shadow-sm border border-border">
               <MaterialIcon name="loyalty" className="text-[32px] text-on-surface-variant/50" />
               <p className="mt-2 text-[15px] font-semibold">No kitchen credits yet</p>
               <p className="mt-1 text-[12px] text-on-surface-variant">
@@ -101,7 +101,7 @@ export default function MeLoyaltyPage() {
               </Link>
             </div>
           ) : (
-            <ul className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+            <ul className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
               {rows.map((row, i) => (
                 <li
                   key={row.restaurantId}

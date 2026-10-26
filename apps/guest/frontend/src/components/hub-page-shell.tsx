@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { HubAddressSheet } from "@/components/hub-address-sheet";
 import { HubFiltersProvider, useHubFilters } from "@/components/hub-filters-context";
 import { HubPosterCarousel } from "@/components/hub-poster-carousel";
 import { HubTodaysOffers } from "@/components/hub-todays-offers";
@@ -69,6 +70,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
   const [activeCount, setActiveCount] = useState(0);
   const [perks, setPerks] = useState<HubPerkRailItem[]>(FALLBACK_PERKS);
   const [addr, setAddr] = useState<GuestSavedAddress | null>(null);
+  const [addressOpen, setAddressOpen] = useState(false);
 
   useEffect(() => {
     const syncAddr = () => setAddr(getActiveAddress());
@@ -95,40 +97,44 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background pb-32">
-      <header className="fixed top-0 z-50 w-full bg-gradient-to-b from-primary to-[#b7122a] pt-safe text-white shadow-[0_4px_20px_rgba(178,18,42,0.28)]">
+      <header className="fixed top-0 z-50 w-full border-b border-[#E2E5EE]/80 bg-[#F4F5F8]/85 pt-safe text-foreground backdrop-blur-xl">
         <div className="mx-auto w-full max-w-lg md:max-w-3xl lg:max-w-5xl">
-          <div className="flex h-9 items-center justify-between px-4 text-[11px] text-white/85">
-            <div className="flex items-center gap-1">
-              <MaterialIcon name="lock" className="text-[14px]" />
-              <span className="font-semibold tracking-tight">d-amigos.in</span>
-              <span className="mx-1 h-1 w-1 rounded-full bg-white/40" />
-              <MaterialIcon name="verified" className="text-[14px] text-tertiary-fixed-dim" />
-              <span className="font-bold">WhatsApp</span>
+          <div className="flex h-9 items-center justify-between px-4 text-[11px] font-bold text-[#64748B]">
+            <div className="flex items-center gap-1.5">
+              <MaterialIcon name="lock" className="text-[14px] text-[#0F1115]" />
+              <span className="font-extrabold tracking-tight text-[#0F1115]">d-amigos.in</span>
+              <span className="mx-1 h-1 w-1 rounded-full bg-[#10B981]" />
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#0F1115] shadow-2xs">
+                <MaterialIcon name="verified" className="text-[12px] text-[#0F1115]" />
+                WhatsApp
+              </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-3 px-4 pb-3">
-            <Link
-              href="/me/addresses"
+            <button
+              type="button"
               className="pressable flex min-w-0 items-center gap-1.5 text-left"
               data-testid="hub-location"
+              aria-label="Choose delivery location"
+              onClick={() => setAddressOpen(true)}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-0.5">
-                  <span className="truncate text-[13px] font-medium text-white/90">
+                  <span className="truncate text-[13px] font-medium text-on-surface-variant">
                     {addr ? formatAddressSubline(addr) : "Delivery location"}
                   </span>
-                  <MaterialIcon name="expand_more" className="text-[18px]" />
+                  <MaterialIcon name="expand_more" className="text-[18px] text-on-surface-variant" />
                 </div>
-                <span className="mt-0.5 block truncate text-[15px] font-bold leading-tight">
+                <span className="mt-0.5 block truncate text-[15px] font-bold leading-tight text-foreground">
                   {formatAddressHeadline(addr, "Add address…")}
                 </span>
               </div>
-            </Link>
+            </button>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end gap-0.5">
                 <label className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide">
-                  <span className={vegOnly ? "text-white" : "text-white/70"}>VEG</span>
+                  <span className={vegOnly ? "text-success" : "text-on-surface-variant"}>VEG</span>
                   <button
                     type="button"
                     role="switch"
@@ -140,26 +146,26 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
                     }
                     title={vegOnly ? "Veg only" : "Non-veg & veg mix"}
                     data-testid="hub-veg-toggle"
-                    className={`pressable relative h-6 w-11 shrink-0 overflow-hidden rounded-full transition-colors ${
-                      vegOnly ? "bg-success" : "bg-white/30"
+                    className={`pressable relative h-6 w-11 shrink-0 overflow-hidden rounded-full border border-[#E4E4E7] transition-colors ${
+                      vegOnly ? "bg-[#46B881]" : "bg-[#EFEFEF]"
                     }`}
                     onClick={() => setVegOnly(!vegOnly)}
                   >
                     {/* ON = knob on the right (inside track); OFF = left */}
                     <span
                       className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200 ease-out ${
-                        vegOnly ? "left-[22px]" : "left-0.5"
+                        vegOnly ? "left-[21px]" : "left-0.5"
                       }`}
                     />
                   </button>
                 </label>
-                <span className="max-w-[4.5rem] text-right text-[9px] font-semibold leading-none text-white/65">
+                <span className="max-w-[4.5rem] text-right text-[9px] font-semibold leading-none text-on-surface-variant">
                   {vegOnly ? "Veg only" : "Veg + non-veg"}
                 </span>
               </div>
               <Link
                 href="/me"
-                className="pressable flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 ring-2 ring-white/40"
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-container"
               >
                 <MaterialIcon name="person" className="text-[20px]" />
               </Link>
@@ -178,7 +184,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
             />
             <input
               data-testid="hub-search"
-              className="h-12 w-full rounded-full border-0 bg-white pl-11 pr-4 text-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.08)] outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-primary/30"
+              className="h-12 w-full rounded-full border border-border bg-surface-container-lowest pl-11 text-foreground placeholder:text-on-surface-variant pr-4 text-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.08)] outline-none border border-border focus:ring-2 focus:ring-primary/30"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -191,14 +197,14 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             href="/hub/save-and-win"
-            className="pressable relative flex w-[5.5rem] shrink-0 flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#f59e0b] px-2 py-1.5 text-center shadow-md"
+            className="pressable relative flex w-[6.25rem] shrink-0 flex-col justify-center overflow-hidden rounded-[18px] bg-[#0F1115] px-2.5 py-1.5 text-center shadow-[0_6px_16px_-4px_rgba(15,17,21,0.3)]"
             data-testid="hub-save-and-win"
           >
-            <span className="text-[8px] font-extrabold uppercase leading-tight tracking-wide text-white">
-              Save your friend
+            <span className="text-[8px] font-extrabold uppercase leading-tight tracking-wider text-white/75">
+              Refer &amp; Win
             </span>
-            <span className="text-[10px] font-black leading-tight text-tertiary-fixed">
-              WIN UP TO ₹600
+            <span className="mt-0.5 text-[11px] font-extrabold leading-tight text-[#EAFF81]">
+              WIN ₹600
             </span>
           </Link>
         </div>
@@ -206,7 +212,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         {activeCount > 0 ? (
           <Link
             href="/orders"
-            className="pressable mb-4 flex items-center gap-3 rounded-2xl border border-border bg-white px-3.5 py-3 shadow-sm"
+            className="pressable mb-4 flex items-center gap-3 rounded-2xl border border-border bg-surface-container-lowest px-3.5 py-3 shadow-sm"
           >
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
@@ -222,15 +228,16 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         {search.trim() ? null : (
         <>
         {/* Map backdrop + floating side-by-side ad posters */}
-        <HubPosterCarousel />
+        <HubPosterCarousel vegOnly={vegOnly} />
 
         {/* Today's Offers (images) + all offers combined */}
-        <HubTodaysOffers perks={perks} />
+        <HubTodaysOffers perks={perks} vegOnly={vegOnly} />
         </>
         )}
 
         {children}
       </main>
+      <HubAddressSheet open={addressOpen} onClose={() => setAddressOpen(false)} />
     </div>
   );
 }

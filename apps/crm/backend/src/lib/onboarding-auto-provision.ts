@@ -12,6 +12,8 @@ export type AutoProvisionInput = {
   email: string;
   city: string;
   cuisineTags?: string[];
+  /** veg | non_veg | both */
+  dietType?: "veg" | "non_veg" | "both";
   fssai?: string;
   fssaiVerification?: FssaiVerifyResult | null;
 };
@@ -80,6 +82,11 @@ export async function autoProvisionOnboardingTenant(input: AutoProvisionInput) {
     input.fssai?.replace(/\D/g, "").slice(0, 14) ||
     null;
 
+  const dietType =
+    input.dietType === "veg" || input.dietType === "non_veg" || input.dietType === "both"
+      ? input.dietType
+      : "both";
+
   const [restaurant] = await db
     .insert(restaurants)
     .values({
@@ -91,6 +98,7 @@ export async function autoProvisionOnboardingTenant(input: AutoProvisionInput) {
       onboardingCompletedAt: now,
       fssaiNumber,
       fssaiVerifiedAt: input.fssaiVerification ? now : null,
+      dietType,
     })
     .returning({ id: restaurants.id, slug: restaurants.slug });
 

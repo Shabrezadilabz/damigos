@@ -137,7 +137,7 @@ export default function MeSettingsPage() {
         addresses are separate.
       </p>
 
-      <section className="mb-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+      <section className="mb-3 overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
         <p className="border-b border-border/60 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
           Device permissions
         </p>
@@ -171,7 +171,7 @@ export default function MeSettingsPage() {
         </button>
       </section>
 
-      <section className="mb-3 space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+      <section className="mb-3 space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
         <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
           In-app preferences
         </p>
@@ -194,7 +194,7 @@ export default function MeSettingsPage() {
               onClick={() => patchPrefs({ [key]: !on })}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface-container-lowest shadow transition-[left] ${
                   on ? "left-[22px]" : "left-0.5"
                 }`}
               />
@@ -203,7 +203,7 @@ export default function MeSettingsPage() {
         ))}
       </section>
 
-      <section className="mb-3 space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+      <section className="mb-3 space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
         <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
           WhatsApp consents
         </p>
@@ -230,7 +230,7 @@ export default function MeSettingsPage() {
               }}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface-container-lowest shadow transition-[left] ${
                   on ? "left-[22px]" : "left-0.5"
                 }`}
               />
@@ -247,7 +247,7 @@ export default function MeSettingsPage() {
         </button>
       </section>
 
-      <div className="mb-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+      <div className="mb-3 overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
         <Link href="/me/edit" className="pressable flex items-center gap-3 px-4 py-3.5">
           <MaterialIcon name="person" className="text-[22px]" />
           <span className="flex-1 text-[15px] font-semibold">Edit profile details</span>

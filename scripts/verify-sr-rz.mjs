@@ -1,4 +1,4 @@
-﻿import { readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 for (const line of readFileSync(resolve(".env"), "utf8").split(/\r?\n/)) {

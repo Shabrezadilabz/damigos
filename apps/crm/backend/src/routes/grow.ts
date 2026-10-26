@@ -6,6 +6,7 @@ import {
   consentRecords,
   customers,
   db,
+  guestLoyaltyCredits,
   offers,
   orders,
   restaurants,
@@ -47,7 +48,7 @@ import {
   previewCampaignAudience,
 } from "../lib/campaign-queue.js";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
-import { debitForCampaign, WHATSAPP_MSG_COST_PAISE } from "../lib/wallet.js";
+import { creditTopUp, debitForCampaign, WHATSAPP_MSG_COST_PAISE } from "../lib/wallet.js";
 import { ensureGrowSchema } from "../lib/ensure-grow-schema.js";
 import { ensureKitchenSchema } from "../lib/ensure-kitchen-schema.js";
 import {
@@ -221,6 +222,17 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     const next = setCampaignProgramEnabled(config, params.programId, body.enabled);
     await writeGrowConfig(body.restaurantId, next);
 
+    // Re-sync guest-visible offers so campaign toggles show in the app
+    await ensureKitchenSchema();
+    await db
+      .update(offers)
+      .set({ active: false })
+      .where(eq(offers.restaurantId, body.restaurantId));
+    const rows = configToOffersRows(body.restaurantId, next);
+    if (rows.length > 0) {
+      await db.insert(offers).values(rows);
+    }
+
     return {
       programId: params.programId,
       enabled: body.enabled,
@@ -255,6 +267,16 @@ export async function registerGrowRoutes(app: FastifyInstance) {
           .where(and(eq(consentRecords.customerId, r.id), eq(consentRecords.kind, "marketing")))
           .orderBy(desc(consentRecords.createdAt))
           .limit(1);
+        const [cred] = await db
+          .select({ balancePaise: guestLoyaltyCredits.balancePaise })
+          .from(guestLoyaltyCredits)
+          .where(
+            and(
+              eq(guestLoyaltyCredits.customerId, r.id),
+              eq(guestLoyaltyCredits.restaurantId, query.restaurantId),
+            ),
+          )
+          .limit(1);
         return {
           id: r.id,
           phoneMasked: r.phoneLast4 ? `******${r.phoneLast4}` : "******",
@@ -262,7 +284,7 @@ export async function registerGrowRoutes(app: FastifyInstance) {
           lastOrderAt: r.lastOrderAt,
           orderCount: r.orderCount,
           marketingOptIn: consent ? consent.granted : null,
-          creditsPaise: 0,
+          creditsPaise: Math.max(0, cred?.balancePaise ?? 0),
         };
       }),
     );
@@ -340,7 +362,21 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         marketingOptIn: await latestConsent("marketing"),
         gameOptIn: await latestConsent("game"),
         activeRewardClaims: activeClaims ?? 0,
-        creditsPaise: 0,
+        creditsPaise: Math.max(
+          0,
+          (
+            await db
+              .select({ balancePaise: guestLoyaltyCredits.balancePaise })
+              .from(guestLoyaltyCredits)
+              .where(
+                and(
+                  eq(guestLoyaltyCredits.customerId, params.id),
+                  eq(guestLoyaltyCredits.restaurantId, query.restaurantId),
+                ),
+              )
+              .limit(1)
+          )[0]?.balancePaise ?? 0,
+        ),
       },
       recentOrders: recentOrders.map((o) => ({
         id: o.id,
@@ -348,6 +384,71 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         totalPaise: o.totalPaise,
         createdAt: o.createdAt.toISOString(),
       })),
+    };
+  });
+
+  /** Counter redeem — burn guest kitchen loyalty; credit restaurant wallet ledger */
+  app.post("/grow/counter-redeem", { preHandler: staffGrow }, async (request, reply) => {
+    const body = z
+      .object({
+        restaurantId: z.string().uuid(),
+        customerId: z.string().uuid(),
+        amountPaise: z.number().int().positive().max(500_000),
+      })
+      .safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: body.error.message, correlationId: request.id },
+      });
+    }
+    await enforceRestaurantScope(request, reply, body.data.restaurantId);
+    if (reply.sent) return;
+
+    const [cred] = await db
+      .select()
+      .from(guestLoyaltyCredits)
+      .where(
+        and(
+          eq(guestLoyaltyCredits.customerId, body.data.customerId),
+          eq(guestLoyaltyCredits.restaurantId, body.data.restaurantId),
+        ),
+      )
+      .limit(1);
+    const available = Math.max(0, cred?.balancePaise ?? 0);
+    if (available < body.data.amountPaise) {
+      return reply.status(409).send({
+        error: {
+          code: "INSUFFICIENT_CREDITS",
+          message: `Guest only has ₹${(available / 100).toFixed(0)} kitchen credits`,
+          correlationId: request.id,
+        },
+      });
+    }
+
+    const nextBal = available - body.data.amountPaise;
+    if (cred) {
+      await db
+        .update(guestLoyaltyCredits)
+        .set({ balancePaise: nextBal, updatedAt: new Date() })
+        .where(eq(guestLoyaltyCredits.id, cred.id));
+    }
+
+    const wallet = await creditTopUp({
+      restaurantId: body.data.restaurantId,
+      amountPaise: body.data.amountPaise,
+      idempotencyKey: `counter-redeem:${body.data.customerId}:${body.data.restaurantId}:${body.data.amountPaise}:${Math.floor(Date.now() / 60_000)}`,
+      meta: {
+        paymentMethod: "external",
+        note: "Counter loyalty redeem — guest credit burned, kitchen wallet credited",
+        transactionId: body.data.customerId,
+      },
+    });
+
+    return {
+      ok: true,
+      burnedPaise: body.data.amountPaise,
+      guestCreditsRemainingPaise: nextBal,
+      walletBalancePaise: wallet.balancePaise,
     };
   });
 

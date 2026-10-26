@@ -60,7 +60,16 @@ export async function fetchActiveOffers(restaurantId: string) {
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Offers failed"));
-  return data.offers as { id: string; title: string; description: string | null; terms: string | null }[];
+  return data.offers as {
+    id: string;
+    title: string;
+    description: string | null;
+    terms: string | null;
+    prizeType?: string;
+    prizeValue?: number;
+    minOrderPaise?: number;
+    scope?: string;
+  }[];
 }
 
 export async function fetchPlayByScan(scanId: string) {
@@ -466,8 +475,11 @@ export type HubRestaurant = {
   orderingEnabled: boolean;
   menuPath: string;
   coverImageUrl?: string | null;
+  logoUrl?: string | null;
+  dietType?: "veg" | "non_veg" | "both" | null;
   vegFriendly?: boolean;
   pureVeg?: boolean;
+  matchedBy?: "kitchen" | "dish" | "both" | null;
   sampleDishes?: Array<{
     id: string;
     name: string;
@@ -678,9 +690,10 @@ export async function fetchHubPerks() {
   return data as { rail: HubPerkRailItem[] };
 }
 
-export async function fetchHubRestaurants(city = "bangalore", q?: string) {
+export async function fetchHubRestaurants(city = "bangalore", q?: string, vegOnly = false) {
   const params = new URLSearchParams({ city });
   if (q?.trim()) params.set("q", q.trim());
+  if (vegOnly) params.set("veg", "1");
   const res = await fetch(`${base}/v1/hub/restaurants?${params}`, {
     cache: "no-store",
   });
@@ -689,8 +702,11 @@ export async function fetchHubRestaurants(city = "bangalore", q?: string) {
   return data.restaurants as HubRestaurant[];
 }
 
-export async function fetchHubBestsellers() {
-  const res = await fetch(`${base}/v1/hub/bestsellers`, { cache: "no-store" });
+export async function fetchHubBestsellers(vegOnly = false) {
+  const params = new URLSearchParams();
+  if (vegOnly) params.set("veg", "1");
+  const qs = params.toString();
+  const res = await fetch(`${base}/v1/hub/bestsellers${qs ? `?${qs}` : ""}`, { cache: "no-store" });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Bestsellers failed"));
   return data as { title: string; maxPricePaise: number; items: HubBestsellerItem[] };

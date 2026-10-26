@@ -53,7 +53,7 @@ function useStickerBatches(mode: "active" | "all", statusFilter: StickerBatchSta
   return { restaurantId, batches, error, reload, setError, setBatches };
 }
 
-/** Left column — active batch peek + optional activate code from Damigos shipment */
+/** Left column — active batch peek + optional activate code from D'aMigo's shipment */
 export function SettingsStickersOwnerPeek() {
   const { restaurantId, batches, error, reload, setError } = useStickerBatches("active", "active");
   const [batchCode, setBatchCode] = useState("");
@@ -110,7 +110,7 @@ export function SettingsStickersOwnerPeek() {
           </p>
         ) : (
           <p className="text-[11px] text-on-surface-variant">
-            Generate samples on the right, then send a print request to Damigos.
+            Generate samples on the right, then send a print request to D'aMigo's.
           </p>
         )}
       </div>
@@ -119,7 +119,7 @@ export function SettingsStickersOwnerPeek() {
         onSubmit={(e) => void onActivate(e)}
         className="flex flex-col gap-2.5 rounded-xl bg-surface-container-lowest p-3.5 shadow-sm"
       >
-        <span className="text-sm font-semibold text-on-surface">Got stickers from Damigos?</span>
+        <span className="text-sm font-semibold text-on-surface">Got stickers from D'aMigo's?</span>
         <p className="text-[11px] leading-relaxed text-on-surface-variant">
           If we shipped a pre-printed pack, enter the batch code on the carton to activate.
         </p>
@@ -242,7 +242,7 @@ export function SettingsStickersOwnerWorkspace() {
           <div>
             <h2 className="text-base font-semibold text-on-surface">Generate table QR stickers</h2>
             <p className="mt-0.5 text-xs text-on-surface-variant">
-              Create codes, open a full sticker preview with samples, then request Damigos to print and ship.
+              Create codes, open a full sticker preview with samples, then request D'aMigo's to print and ship.
             </p>
           </div>
           <MaterialIcon name="qr_code_2" className="text-[28px] text-primary" />
@@ -278,7 +278,7 @@ export function SettingsStickersOwnerWorkspace() {
           </label>
           <label className="col-span-12 flex flex-col gap-1.5 md:col-span-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-              Notes for Damigos (optional)
+              Notes for D'aMigo's (optional)
             </span>
             <input
               className="h-11 w-full rounded-xl bg-surface-container-low px-3.5 text-sm outline-none"
@@ -346,7 +346,7 @@ export function SettingsStickersOwnerWorkspace() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-2 text-xs text-on-surface-variant">
             <MaterialIcon name="lock" className="text-[16px] text-tertiary" />
-            No PDF / print download — request physical print from Damigos
+            No PDF / print download — request physical print from D'aMigo's
           </p>
           <Button type="submit" className="h-11 gap-2 px-6 font-bold" disabled={busy} data-testid="sticker-generate-btn">
             <MaterialIcon name="bolt" className="text-[18px]" />

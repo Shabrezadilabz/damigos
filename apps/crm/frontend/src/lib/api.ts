@@ -218,6 +218,7 @@ export async function submitOnboardingApplication(payload: {
   email: string;
   city: string;
   cuisineTags: string[];
+  dietType?: "veg" | "non_veg" | "both";
   fssai?: string;
   dpdpAccepted: true;
   whatsappGatewayAccepted: true;
@@ -1432,6 +1433,7 @@ export type CrmBrandKitColors = {
   primaryColor: string;
   backgroundColor: string;
   accentColor: string;
+  logoDataUrl?: string | null;
 };
 
 export async function fetchCrmBrandKit(restaurantId: string) {
@@ -1452,6 +1454,7 @@ export async function patchCrmBrandKit(
     backgroundColor?: string;
     accentColor?: string;
     displayName?: string;
+    logoDataUrl?: string | null;
   },
 ) {
   const res = await fetch(`${base}/v1/settings/brand-kit`, {
@@ -1462,4 +1465,42 @@ export async function patchCrmBrandKit(
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Save theme failed"));
   return data.brandKit as CrmBrandKitColors;
+}
+
+export async function prepareStickerPrintPay(input: {
+  restaurantId: string;
+  batchId: string;
+  quantity: number;
+  totalPaise: number;
+}) {
+  return stickerFetch<{
+    mode: "live" | "stub";
+    amountPaise: number;
+    razorpayOrderId: string | null;
+    razorpayKeyId: string | null;
+  }>(`/v1/stickers/print-prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function applyCrmCounterRedeem(input: {
+  restaurantId: string;
+  customerId: string;
+  amountPaise: number;
+}) {
+  const res = await fetch(`${base}/v1/grow/counter-redeem`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify(input),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Redeem failed"));
+  return data as {
+    ok: boolean;
+    burnedPaise: number;
+    guestCreditsRemainingPaise: number;
+    walletBalancePaise: number;
+  };
 }

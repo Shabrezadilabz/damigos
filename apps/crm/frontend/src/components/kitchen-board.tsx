@@ -47,8 +47,8 @@ function VegDot({ veg }: { veg?: boolean }) {
     );
   }
   return (
-    <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-[#24963F]">
-      <span className="h-1.5 w-1.5 rounded-full bg-[#24963F]" />
+    <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-success">
+      <span className="h-1.5 w-1.5 rounded-full bg-success" />
     </span>
   );
 }
@@ -134,13 +134,10 @@ function OrderCard({
     }
   }
 
-  async function onDispatch() {
+  async function onDispatch(explicitToken?: string) {
     setHandoffError(null);
-    const token = pickupToken.trim();
-    if (!token) {
-      setHandoffError("Ask rider for AWB / order id / pickup code");
-      return;
-    }
+    // Riders typically only state the order id — default to short order id
+    const token = (explicitToken ?? pickupToken).trim() || shortId;
     setBusy(true);
     try {
       await patchCrmOrderStatus(order.id, "DISPATCHED", { pickupToken: token });
@@ -165,14 +162,14 @@ function OrderCard({
   const remainSec = prep ? Math.floor((prep.deadlineMs - now) / 1000) : null;
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl bg-surface-container-lowest p-5 shadow-md transition-shadow hover:shadow-lg">
+    <article className="flex flex-col gap-4 rounded-lg border border-border bg-surface-container-lowest p-4 shadow-sm transition-colors hover:border-outline">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-on-surface">
+            <p className="font-mono text-lg font-bold tracking-tight text-on-surface">
               #{shortId}
             </p>
-            <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+            <span className="rounded-md bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
               WhatsApp
             </span>
           </div>
@@ -186,12 +183,21 @@ function OrderCard({
           </p>
         </div>
         {hasDiscount ? (
-          <div className="flex items-center gap-1.5 rounded-lg bg-surface-dim px-2.5 py-1 text-[10px] font-semibold shadow-sm">
-            <MaterialIcon name="stars" className="text-[15px] text-tertiary-container [font-variation-settings:'FILL'_1]" />
+          <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold">
+            <MaterialIcon name="stars" className="text-[15px] text-success [font-variation-settings:'FILL'_1]" />
             <span>Reward applied</span>
           </div>
         ) : (
-          <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase">{order.status}</span>
+          <span
+            className={cn(
+              "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+              order.status === "READY" || order.status === "DISPATCHED" || order.status === "DELIVERED"
+                ? "bg-success/15 text-success"
+                : "bg-muted text-on-surface-variant",
+            )}
+          >
+            {order.status}
+          </span>
         )}
       </div>
 
@@ -250,7 +256,7 @@ function OrderCard({
           </Button>
           <Button
             size="sm"
-            className="h-11 gap-1 rounded-xl bg-[#24963F] text-white hover:bg-[#1E7D34]"
+            className="h-11 gap-1 rounded-xl bg-success text-white hover:bg-success/90"
             disabled={busy}
             onClick={() => void onAccept()}
           >
@@ -430,27 +436,28 @@ function OrderCard({
           ) : null}
           {order.status === "READY" ? (
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Rider states (AWB / #{shortId} / pickup code)
-              </label>
-              <input
-                className="h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 font-mono text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder={order.pickupCode ?? order.shipment?.awb?.slice(-6) ?? shortId}
-                value={pickupToken}
-                onChange={(e) => setPickupToken(e.target.value)}
-                data-testid="kitchen-pickup-token"
-              />
+              <div className="rounded-lg border border-border bg-surface-container-low px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  Order ID (rider will say this)
+                </p>
+                <p className="mt-0.5 font-mono text-lg font-bold tracking-tight">#{shortId}</p>
+                {order.pickupCode ? (
+                  <p className="mt-1 text-[11px] text-on-surface-variant">
+                    Optional bag code {order.pickupCode}
+                  </p>
+                ) : null}
+              </div>
               <Button
                 size="sm"
-                className="h-11 w-full rounded-xl bg-[#24963F] text-white hover:bg-[#1E7D34]"
+                className="h-11 w-full rounded-xl bg-success text-white hover:bg-success/90"
                 disabled={busy}
-                onClick={() => void onDispatch()}
+                onClick={() => void onDispatch(shortId)}
                 data-testid="kitchen-out-for-delivery"
               >
                 Verify &amp; out for delivery
               </Button>
               <p className="text-[10px] text-on-surface-variant">
-                Guest gets a delivery OTP on WhatsApp after this step.
+                Tap when the rider confirms order #{shortId}. Guest gets a door OTP on WhatsApp after this.
               </p>
             </div>
           ) : (
@@ -469,7 +476,7 @@ function OrderCard({
               </p>
               {order.deliveryVerifySource === "shiprocket_webhook" ||
               order.deliveryVerifySource === "courier_pod" ? (
-                <p className="text-[11px] font-semibold text-[#24963F]">
+                <p className="text-[11px] font-semibold text-success">
                   Courier marked delivered via Shiprocket.
                 </p>
               ) : (
@@ -530,13 +537,21 @@ function Column({
   onKotNotice: (msg: string) => void;
 }) {
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between px-2">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface-container-low/40 p-3">
+      <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className={cn("h-3 w-3 rounded-full", dotClass)} />
-          <h2 className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight">{title}</h2>
-          <span className="rounded-full bg-primary-fixed px-2 py-0.5 text-[10px] font-bold text-on-primary-fixed">
-            {orders.length} {badge}
+          <span className={cn("h-2.5 w-2.5 rounded-full", dotClass)} />
+          <h2 className="font-display text-sm font-semibold tracking-tight">{title}</h2>
+          <span
+            className={cn(
+              "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+              column === "out"
+                ? "bg-success/15 text-success"
+                : "bg-primary/15 text-primary",
+            )}
+          >
+            {orders.length}
+            {badge ? ` ${badge}` : ""}
           </span>
         </div>
       </div>
@@ -628,7 +643,7 @@ function SlaBreachDialog({
             </Button>
             <Button
               type="button"
-              className="bg-[#24963F] text-white hover:bg-[#1E7D34]"
+              className="bg-success text-white hover:bg-success/90"
               disabled={busy}
               onClick={() => void run(onMarkReady)}
             >
@@ -666,7 +681,7 @@ export function KitchenBoard({
   const [kotNotice, setKotNotice] = useState<string | null>(null);
   const seenPaidIdsRef = useRef<Set<string> | null>(null);
   const alertedSlaIdsRef = useRef<Set<string>>(new Set());
-  const kitchenLabel = "Damigos Kitchen";
+  const kitchenLabel = "D'aMigo's Kitchen";
 
   const reload = useCallback(async () => {
     if (!restaurantId) return;
@@ -907,7 +922,7 @@ export function KitchenBoard({
             <Column
               title="Out for delivery"
               badge="active"
-              dotClass="bg-tertiary-container"
+              dotClass="bg-success"
               orders={cols.out}
               column="out"
               onRefresh={reload}
@@ -941,7 +956,7 @@ export function KitchenBoard({
           <Column
             title="Out"
             badge=""
-            dotClass="bg-tertiary"
+            dotClass="bg-success"
             orders={cols.out}
             column="out"
             onRefresh={reload}

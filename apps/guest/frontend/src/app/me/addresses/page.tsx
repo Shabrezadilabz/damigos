@@ -44,14 +44,14 @@ export default function MeAddressesPage() {
   }
 
   return (
-    <MeSubpageShell title="Addresses">
+    <MeSubpageShell title="Addresses" backHref="/hub" backLabel="Back to home">
       <p className="mb-4 text-[13px] text-on-surface-variant">
         Saved delivery areas show on the home hub and checkout bill. Tap{" "}
         <span className="font-semibold">Use</span> to set the active drop location.
       </p>
 
       {rows.length === 0 ? (
-        <div className="mb-4 rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-black/5">
+        <div className="mb-4 rounded-lg bg-surface-container-lowest p-5 text-center shadow-sm border border-border">
           <MaterialIcon name="location_off" className="text-[32px] text-on-surface-variant/50" />
           <p className="mt-2 text-[15px] font-semibold">No saved addresses yet</p>
           <p className="mt-1 text-[12px] text-on-surface-variant">
@@ -59,7 +59,7 @@ export default function MeAddressesPage() {
           </p>
         </div>
       ) : (
-        <ul className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+        <ul className="mb-4 overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
           {rows.map((row, i) => {
             const isActive = activeId === row.id || (!activeId && i === 0);
             return (
@@ -117,7 +117,7 @@ export default function MeAddressesPage() {
         </ul>
       )}
 
-      <form onSubmit={onAdd} className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+      <form onSubmit={onAdd} className="space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
         <p className="text-[13px] font-bold">Add address</p>
         <label className="block text-[12px] font-semibold text-on-surface-variant">
           Label

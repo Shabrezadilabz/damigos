@@ -79,10 +79,35 @@ export function hubDemoMeta(slug: string): {
   };
 }
 
+/** Neutral animated kitchen art (not a competitor brand) when no logo/dish photo. */
+export function kitchenPlaceholderArt(seed: string, index = 0): string {
+  const palette = ["#171717", "#46B881", "#2563EB", "#7C3AED", "#0D9488", "#D97706"];
+  const c = palette[(seed.length + index) % palette.length]!;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${c}" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0A0A0B" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" fill="url(#g)"/>
+  <circle cx="320" cy="280" r="90" fill="#fff" fill-opacity="0.12">
+    <animate attributeName="r" values="80;100;80" dur="3.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="200" cy="420" r="40" fill="#fff" fill-opacity="0.08">
+    <animate attributeName="cy" values="410;430;410" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="460" cy="160" r="28" fill="#fff" fill-opacity="0.1">
+    <animate attributeName="cx" values="450;470;450" dur="2.8s" repeatCount="indefinite"/>
+  </circle>
+  <text x="320" y="520" text-anchor="middle" fill="#F4F4F5" font-family="system-ui,sans-serif" font-size="28" font-weight="700">Kitchen</text>
+</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export function coverForSlug(slug: string, fallbackIndex = 0): string {
   if (SLUG_COVER[slug]) return SLUG_COVER[slug]!;
-  const pool = Object.values(FOOD);
-  return pool[fallbackIndex % pool.length]!;
+  return kitchenPlaceholderArt(slug || `k${fallbackIndex}`, fallbackIndex);
 }
 
 export function cuisineForSlug(slug: string, city?: string | null): string {

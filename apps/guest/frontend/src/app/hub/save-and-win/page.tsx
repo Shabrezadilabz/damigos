@@ -124,34 +124,34 @@ export default function SaveAndWinPage() {
 
   return (
     <main className="min-h-dvh bg-surface-container-low pb-10">
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#f59e0b] px-4 pb-14 pt-safe text-white">
+      <div className="relative overflow-hidden border-b border-[#E4E4E7] bg-[#FAFAFA] px-4 pb-14 pt-safe text-[#171717]">
         <div className="flex items-center justify-between py-3">
           <Link
             href="/hub"
-            className="pressable flex h-11 w-11 items-center justify-center rounded-full bg-white/15"
+            className="pressable flex h-11 w-11 items-center justify-center rounded-full border border-[#E4E4E7] bg-white"
             aria-label="Back to hub"
           >
             <MaterialIcon name="arrow_back" className="text-[22px]" />
           </Link>
-          <span className="text-[12px] font-bold uppercase tracking-wider text-white/80">
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#737373]">
             Refer &amp; Win
           </span>
           <span className="w-11" aria-hidden />
         </div>
-        <h1 className="font-display text-[30px] font-black leading-tight tracking-tight">
-          Win up to ₹600
+        <h1 className="font-display text-[32px] font-medium leading-tight tracking-tight">
+          Win up to <span className="qa-highlight">₹600</span>
         </h1>
-        <p className="mt-2 max-w-sm text-[14px] text-white/90">
+        <p className="mt-2 max-w-sm text-[14px] font-light text-[#525252]">
           Share your invite link to a friend&apos;s WhatsApp. When they open it and opt in, you unlock
           scratch cards &amp; random kitchen offers.
         </p>
-        <p className="mt-3 inline-flex rounded-full bg-white/20 px-3 py-1 text-[12px] font-bold">
+        <p className="mt-3 inline-flex rounded-full border border-[#E4E4E7] bg-white px-3 py-1 font-mono text-[11px] font-medium text-[#171717]">
           Your code · {refCode} · shares {shareCount}
         </p>
       </div>
 
       <div className="-mt-8 space-y-3 px-4">
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <div className="rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
           <p className="text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">
             Your invite link
           </p>
@@ -159,7 +159,7 @@ export default function SaveAndWinPage() {
           <div className="mt-3 flex flex-col gap-2">
             <button
               type="button"
-              className="pressable flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-bold text-on-primary"
+              className="pressable flex h-11 items-center justify-center gap-2 rounded-full bg-[#171717] text-[14px] font-medium text-white hover:bg-zinc-700"
               onClick={() => void onShareNative()}
             >
               <MaterialIcon name="ios_share" className="text-[18px]" />
@@ -178,11 +178,11 @@ export default function SaveAndWinPage() {
 
         <form
           onSubmit={onWhatsAppToFriend}
-          className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+          className="space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border"
         >
           <p className="text-[13px] font-bold">Send to friend&apos;s number</p>
           <p className="text-[12px] text-on-surface-variant">
-            Opens a chat with <span className="font-semibold">their</span> WhatsApp — not Damigos line —
+            Opens a chat with <span className="font-semibold">their</span> WhatsApp — not D'aMigo's line —
             with your referral link prefilled.
           </p>
           <input

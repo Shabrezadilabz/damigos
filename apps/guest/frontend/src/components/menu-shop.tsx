@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/material-icon";
@@ -9,6 +10,7 @@ import {
   addCartItem,
   applyCartClaim,
   clearOpenCart,
+  fetchActiveOffers,
   fetchCart,
   fetchRewardClaims,
   fetchOpenCartSession,
@@ -73,12 +75,14 @@ export function MenuShop({
   items,
   initialFilter = "all",
 }: Props) {
+  const router = useRouter();
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [selected, setSelected] = useState<GuestMenuItem | null>(null);
   const [qty, setQty] = useState(1);
   const [authOpen, setAuthOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>(initialFilter);
+  const vegLocked = initialFilter === "veg";
   const [menuOpen, setMenuOpen] = useState(false);
   const [topOpen, setTopOpen] = useState(true);
   const [query, setQuery] = useState("");
@@ -87,6 +91,9 @@ export function MenuShop({
   const [limitModal, setLimitModal] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [claims, setClaims] = useState<RewardClaimOption[]>([]);
+  const [kitchenOffers, setKitchenOffers] = useState<
+    { id: string; title: string; description: string | null; prizeType?: string; prizeValue?: number }[]
+  >([]);
   const [dropArea, setDropArea] = useState("Add address");
 
   const demo = useMemo(() => hubDemoMeta(restaurantName.toLowerCase().replace(/\s+/g, "-")), [restaurantName]);
@@ -122,6 +129,12 @@ export function MenuShop({
   useEffect(() => {
     void refreshCart();
   }, [refreshCart]);
+
+  useEffect(() => {
+    void fetchActiveOffers(restaurantId)
+      .then((rows) => setKitchenOffers(rows.slice(0, 8)))
+      .catch(() => setKitchenOffers([]));
+  }, [restaurantId]);
 
   const stickyClaim = useMemo(() => {
     if (cart?.appliedClaim) {
@@ -249,9 +262,9 @@ export function MenuShop({
 
   return (
     <>
-      <main className="mx-auto min-h-dvh w-full max-w-lg bg-white px-4 pb-36 pt-safe md:max-w-3xl lg:max-w-4xl">
+      <main className="mx-auto min-h-dvh w-full max-w-lg bg-background px-4 pb-36 pt-safe md:max-w-3xl lg:max-w-4xl">
         {/* Ownly header: back · search · share */}
-        <div className="sticky top-0 z-40 -mx-4 mb-3 bg-white/95 px-4 pb-2 pt-3 backdrop-blur-md">
+        <div className="sticky top-0 z-40 -mx-4 mb-3 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <Link
               href="/hub"
@@ -266,7 +279,7 @@ export function MenuShop({
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant"
               />
               <input
-                className="h-10 w-full rounded-full border-0 bg-surface-container-low pl-10 pr-3 text-[15px] outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-primary/25"
+                className="h-10 w-full rounded-full border-0 bg-surface-container-low pl-10 pr-3 text-[15px] outline-none border border-border focus:ring-2 focus:ring-primary/25"
                 placeholder="Search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -316,35 +329,52 @@ export function MenuShop({
         </header>
 
         {stickyClaim ? (
-          <div className="mb-3 flex items-center gap-2 rounded-2xl bg-inverse-surface px-3.5 py-3 text-inverse-on-surface shadow-md">
-            <Link
-              href={`/r/${restaurantId}/checkout`}
-              className="pressable flex min-w-0 flex-1 items-center gap-3"
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-surface-container px-3.5 py-3 shadow-sm">
+            <button
+              type="button"
+              className="pressable flex min-w-0 flex-1 items-center gap-3 text-left"
+              data-testid="menu-sticky-redeem"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    if (!stickyClaim.applied) {
+                      const first = claims[0];
+                      if (first) {
+                        await applyCartClaim(restaurantId, first.claimId);
+                        await refreshCart();
+                      }
+                    }
+                    router.push(`/r/${restaurantId}/checkout`);
+                  } catch {
+                    router.push(`/r/${restaurantId}/checkout`);
+                  }
+                })();
+              }}
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary-fixed-dim/25 text-tertiary-fixed-dim">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
                 <MaterialIcon name="auto_awesome" className="text-[20px]" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-tertiary-fixed-dim">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-success">
                   {stickyClaim.applied ? "Auto-applied · " : ""}
                   {stickyClaim.billLabel}
                 </span>
                 <span className="block truncate text-[14px] font-semibold">{stickyClaim.title}</span>
                 {stickyClaim.applied && stickyClaim.discountPaise > 0 ? (
-                  <span className="block text-[11px] font-semibold text-tertiary-fixed-dim">
+                  <span className="block text-[11px] font-semibold text-success">
                     −{formatInr(stickyClaim.discountPaise)}
                   </span>
                 ) : null}
               </span>
-              <span className="shrink-0 text-[12px] font-bold text-tertiary-fixed-dim">
+              <span className="shrink-0 text-[12px] font-bold text-success">
                 {stickyClaim.applied ? "Checkout" : "Redeem"}
               </span>
-            </Link>
+            </button>
             {stickyClaim.applied ? (
               <button
                 type="button"
                 onClick={(e) => void onRemoveStickyReward(e)}
-                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-inverse-on-surface/70 underline"
+                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-on-surface-variant underline"
               >
                 Remove
               </button>
@@ -352,8 +382,28 @@ export function MenuShop({
           </div>
         ) : null}
 
+        {kitchenOffers.length > 0 ? (
+          <div className="mb-3 no-scrollbar flex gap-2 overflow-x-auto" data-testid="menu-kitchen-offers">
+            {kitchenOffers.map((o) => (
+              <div
+                key={o.id}
+                className="min-w-[10rem] shrink-0 rounded-lg border border-border bg-surface-container-lowest px-3 py-2.5"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-wide text-success">
+                  {o.prizeType === "percent" && o.prizeValue != null
+                    ? `${o.prizeValue}% off`
+                    : o.prizeType === "flat_off_paise" && o.prizeValue != null
+                      ? `₹${Math.round(o.prizeValue / 100)} off`
+                      : "Kitchen offer"}
+                </p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-snug">{o.title}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         {/* Best Value banner — Ownly P-UI-05 */}
-        <section className="mb-4 flex items-center gap-3 rounded-2xl bg-[#f3f4f6] px-3 py-3">
+        <section className="mb-4 flex items-center gap-3 rounded-2xl bg-surface-container px-3 py-3">
           <div
             className="relative flex h-14 w-14 shrink-0 items-center justify-center bg-success text-center text-[9px] font-black uppercase leading-[1.05] text-white shadow-sm"
             style={{
@@ -380,9 +430,15 @@ export function MenuShop({
           <button
             type="button"
             className={`pressable inline-flex shrink-0 items-center gap-1 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
-              filter === "all" ? "border-foreground bg-foreground text-background" : "border-border bg-white"
+              filter === "all" ? "border-foreground bg-foreground text-background" : "border-border bg-surface-container-lowest"
             }`}
-            onClick={() => setFilter("all")}
+            onClick={() => {
+              if (vegLocked) {
+                setFilter("veg");
+                return;
+              }
+              setFilter("all");
+            }}
           >
             Filters
             <MaterialIcon name="expand_more" className="text-[16px]" />
@@ -391,38 +447,49 @@ export function MenuShop({
             type="button"
             className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
               filter === "veg"
-                ? "border-success bg-[#dcfce7] text-[#166534]"
-                : "border-border bg-white"
+                ? "border-success bg-tertiary-container text-success"
+                : "border-border bg-surface-container-lowest"
             }`}
-            onClick={() => setFilter(filter === "veg" ? "all" : "veg")}
+            onClick={() => {
+              if (vegLocked) return;
+              setFilter(filter === "veg" ? "all" : "veg");
+            }}
           >
             <span className="inline-flex h-3.5 w-3.5 items-center justify-center border border-success">
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
             </span>
-            Veg
+            {vegLocked ? "Veg only" : "Veg"}
           </button>
-          <button
-            type="button"
-            className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
-              filter === "nonveg" ? "border-primary bg-primary/5 text-primary" : "border-border bg-white"
-            }`}
-            onClick={() => setFilter(filter === "nonveg" ? "all" : "nonveg")}
-          >
-            <span className="inline-flex h-3.5 w-3.5 items-center justify-center border border-primary">
-              <span className="h-0 w-0 border-x-[3.5px] border-b-[6px] border-x-transparent border-b-primary" />
-            </span>
-            Non Veg
-          </button>
-          <button
-            type="button"
-            className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
-              filter === "egg" ? "border-[#f59e0b] bg-[#fffbeb] text-[#b45309]" : "border-border bg-white"
-            }`}
-            onClick={() => setFilter(filter === "egg" ? "all" : "egg")}
-          >
-            <span className="inline-block h-3 w-2.5 rounded-[40%] bg-[#f59e0b]" />
-            Egg
-          </button>
+          {!vegLocked ? (
+            <>
+              <button
+                type="button"
+                className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
+                  filter === "nonveg"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-surface-container-lowest"
+                }`}
+                onClick={() => setFilter(filter === "nonveg" ? "all" : "nonveg")}
+              >
+                <span className="inline-flex h-3.5 w-3.5 items-center justify-center border border-primary">
+                  <span className="h-0 w-0 border-x-[3.5px] border-b-[6px] border-x-transparent border-b-primary" />
+                </span>
+                Non Veg
+              </button>
+              <button
+                type="button"
+                className={`pressable inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold ${
+                  filter === "egg"
+                    ? "border-[#f59e0b] bg-amber-500/10 text-[#b45309]"
+                    : "border-border bg-surface-container-lowest"
+                }`}
+                onClick={() => setFilter(filter === "egg" ? "all" : "egg")}
+              >
+                <span className="inline-block h-3 w-2.5 rounded-[40%] bg-[#f59e0b]" />
+                Egg
+              </button>
+            </>
+          ) : null}
         </div>
 
         {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
@@ -579,7 +646,7 @@ export function MenuShop({
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="sheet-spring w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl"
+            className="sheet-spring w-full max-w-lg rounded-lg bg-surface-container-lowest p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
@@ -615,7 +682,7 @@ export function MenuShop({
 
       {selected ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-inverse-surface/50">
-          <div className="sheet-spring w-full max-w-lg rounded-t-[24px] bg-white p-6 pb-safe shadow-2xl">
+          <div className="sheet-spring w-full max-w-lg rounded-t-[24px] bg-surface-container-lowest p-6 pb-safe shadow-2xl">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
             <div className="mb-3 aspect-[16/10] overflow-hidden rounded-2xl bg-surface-container">
               {/* eslint-disable-next-line @next/next/no-img-element */}
