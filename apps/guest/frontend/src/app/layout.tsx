@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { GuestLocationBootstrap } from "@/components/guest-location-bootstrap";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -38,7 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-dvh bg-[#F4F5F8] font-sans text-[#0F1115] antialiased">{children}</body>
+      <body className="min-h-dvh bg-[#F4F5F8] font-sans text-[#0F1115] antialiased">
+        <GuestLocationBootstrap />
+        {children}
+      </body>
     </html>
   );
 }

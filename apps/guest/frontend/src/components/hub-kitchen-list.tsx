@@ -162,7 +162,12 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
      * Not pureVeg-only — that hid most onboarded menus and looked like “only Promise” moved.
      */
     if (filters.vegOnly) {
-      list = list.filter((r) => r.pureVeg === true || r.vegFriendly === true);
+      list = list.filter(
+        (r) =>
+          r.pureVeg === true ||
+          r.vegFriendly === true ||
+          (r.pureVeg === undefined && r.vegFriendly === undefined),
+      );
     }
     if (filters.rating4Plus) list = list.filter((r) => r.rating >= 4);
     if (filters.lowestPrice) list = list.filter((r) => r.badge === "lowest_price");
@@ -250,7 +255,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
   async function onAddSecond() {
     if (!pending) return;
     setPending(null);
-    router.push(pending.menuPath);
+    router.push(menuHref(pending.menuPath));
   }
 
   async function onReplace() {
@@ -261,7 +266,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
       setOpenCarts([]);
       setCrossBy(null);
       setPending(null);
-      router.push(pending.menuPath);
+      router.push(menuHref(pending.menuPath));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not clear cart");
     } finally {
@@ -460,7 +465,7 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
           sort={filters.sort}
           onSortClick={() => setSortOpen((o) => !o)}
           vegOnly={filters.vegOnly}
-          onVegToggle={() => filters.setVegOnly(!filters.vegOnly)}
+          onVegToggle={() => filters.setVegOnly((v) => !v)}
           rating4Plus={filters.rating4Plus}
           onRatingToggle={() => filters.setRating4Plus(!filters.rating4Plus)}
           lowestPrice={filters.lowestPrice}

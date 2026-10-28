@@ -7,6 +7,7 @@ import { ensureOperationsSchema } from "./ensure-operations-schema.js";
 import { ensureSettlementSchema } from "./ensure-settlement-schema.js";
 import { ensureStickerSchema } from "./ensure-sticker-schema.js";
 import { ensureWalletSchema } from "./ensure-wallet-schema.js";
+import { ensureDeliveryAddressSchema } from "./ensure-delivery-address-schema.js";
 
 export async function ensureSchemasIfConfigured(app: FastifyInstance) {
   if (!process.env.DATABASE_URL?.trim()) {
@@ -21,4 +22,5 @@ export async function ensureSchemasIfConfigured(app: FastifyInstance) {
   await ensureSettlementSchema();
   await ensureStickerSchema();
   await ensureWalletSchema();
+  await ensureDeliveryAddressSchema();
 }

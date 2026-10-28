@@ -98,6 +98,19 @@ export function CrmOrderDetailDialog({ order, onClose }: Props) {
                 {order.discountPaise > 0 ? `−${formatInr(order.discountPaise)}` : "—"}
               </dd>
             </div>
+            <div className="rounded-xl bg-surface-container-low px-3 py-2 sm:col-span-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                Delivery address
+              </dt>
+              <dd className="mt-0.5 font-semibold">
+                {order.deliveryAddressText?.trim() ||
+                  (order.deliveryPincode ? `PIN ${order.deliveryPincode}` : null) ||
+                  "No delivery address on this order"}
+              </dd>
+              {order.deliveryAddressText?.trim() && order.deliveryPincode ? (
+                <dd className="mt-0.5 text-xs text-on-surface-variant">PIN {order.deliveryPincode}</dd>
+              ) : null}
+            </div>
             {order.convenienceFeePaise > 0 ? (
               <div className="rounded-xl bg-surface-container-low px-3 py-2 sm:col-span-2">
                 <dt className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">

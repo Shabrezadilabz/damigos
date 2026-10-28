@@ -4,6 +4,7 @@ import { GUEST_API_PREFIX, loadMonorepoEnv } from "@damigos/domain";
 import { resolveCorsOrigin } from "./lib/cors-origins.js";
 import { startClaimOrderNudgeScheduler } from "./lib/claim-order-nudge.js";
 import { ensureCartLoyaltySchema } from "./lib/ensure-cart-loyalty-schema.js";
+import { ensureDeliveryAddressSchema } from "./lib/ensure-delivery-address-schema.js";
 import { ensureKitchenSchema } from "./lib/ensure-kitchen-schema.js";
 import { ensureMenuSchema } from "./lib/ensure-menu-schema.js";
 import { ensureWaSchema } from "./lib/ensure-wa-schema.js";
@@ -64,6 +65,7 @@ export async function buildGuestApp() {
       await ensureWaSchema();
       await ensureKitchenSchema();
       await ensureCartLoyaltySchema();
+      await ensureDeliveryAddressSchema();
     } else {
       app.log.warn("DATABASE_URL missing — configure on Vercel (damigos-guest-api) then redeploy");
     }

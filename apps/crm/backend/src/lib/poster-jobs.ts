@@ -4,9 +4,9 @@ import { buildPosterMarketingMessage, POSTER_CAMPAIGN_TEMPLATE_KEY } from "./pos
 
 export type PosterImageOption = {
   id: string;
-  /** Hive CDN or stock URL */
+  /** Hive CDN, stock URL, or uploaded data URL */
   url: string;
-  source: "hive" | "stock";
+  source: "hive" | "stock" | "upload";
   label: string;
 };
 

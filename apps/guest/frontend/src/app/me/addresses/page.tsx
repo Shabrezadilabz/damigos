@@ -18,6 +18,7 @@ export default function MeAddressesPage() {
   const [label, setLabel] = useState("Home");
   const [pincode, setPincode] = useState("");
   const [area, setArea] = useState("");
+  const [line, setLine] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function refresh() {
@@ -37,10 +38,11 @@ export default function MeAddressesPage() {
       return;
     }
     setError(null);
-    setRows(upsertGuestAddress({ label, pincode: pin, area, makeActive: true }));
+    setRows(upsertGuestAddress({ label, pincode: pin, area, line, makeActive: true }));
     setActiveId(getActiveAddressId());
     setPincode("");
     setArea("");
+    setLine("");
   }
 
   return (
@@ -86,6 +88,7 @@ export default function MeAddressesPage() {
                   <p className="text-[12px] text-on-surface-variant">
                     Pincode {row.pincode}
                     {row.area ? ` · ${row.area}` : ""}
+                    {row.line ? ` · ${row.line}` : ""}
                   </p>
                 </div>
                 {!isActive ? (
@@ -146,6 +149,17 @@ export default function MeAddressesPage() {
             value={area}
             onChange={(e) => setArea(e.target.value)}
             placeholder="HSR Layout / Indiranagar"
+          />
+        </label>
+        <label className="block text-[12px] font-semibold text-on-surface-variant">
+          House / street / landmark
+          <input
+            className="mt-1 w-full rounded-xl border border-outline-variant/50 bg-surface-container-low px-3 py-2.5 text-[14px]"
+            value={line}
+            onChange={(e) => setLine(e.target.value)}
+            placeholder="Flat 2B, 12th Main, near park"
+            maxLength={160}
+            data-testid="me-address-line"
           />
         </label>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}

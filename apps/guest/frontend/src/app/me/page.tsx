@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { clearGuestToken, getGuestToken } from "@/lib/session";
-import { fetchMe } from "@/lib/api";
+import { fetchMe, fetchOpenCartSession } from "@/lib/api";
+import { readGuestAvatar } from "@/lib/guest-avatar";
 
 const ROWS = [
   {
@@ -12,6 +13,12 @@ const ROWS = [
     icon: "receipt_long",
     title: "Past Orders",
     sub: "Browse and reorder from your history.",
+  },
+  {
+    href: "/hub",
+    icon: "shopping_cart",
+    title: "My Cart",
+    sub: "Open carts across kitchens — continue checkout.",
   },
   {
     href: "/me/addresses",
@@ -32,10 +39,34 @@ const ROWS = [
     sub: "Spin, scratch & packaging QR perks.",
   },
   {
+    href: "/me/offers",
+    icon: "local_offer",
+    title: "Upcoming offers",
+    sub: "Festivals, weekends & reminders.",
+  },
+  {
     href: "/me/settings",
-    icon: "settings",
-    title: "App Settings",
-    sub: "Preferences, permissions and more.",
+    icon: "tune",
+    title: "Preferences",
+    sub: "Diet, notifications, location & consents.",
+  },
+  {
+    href: "/me/feedback",
+    icon: "rate_review",
+    title: "Feedback",
+    sub: "Tell us what to improve.",
+  },
+  {
+    href: "/me/feedback",
+    icon: "star",
+    title: "Rate the app",
+    sub: "Leave a star rating with your note.",
+  },
+  {
+    href: "/me/about",
+    icon: "info",
+    title: "About",
+    sub: "What D'aMigo's is and how Direct works.",
   },
   {
     href: "mailto:partners@damigos.in?subject=Damigos%20guest%20help",
@@ -49,8 +80,11 @@ const ROWS = [
 export default function MePage() {
   const [name, setName] = useState<string | null>(null);
   const [phoneHint, setPhoneHint] = useState("Sign in to sync");
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [cartHint, setCartHint] = useState<string | null>(null);
 
   useEffect(() => {
+    setAvatar(readGuestAvatar());
     const token = getGuestToken();
     if (!token) return;
     void fetchMe(token)
@@ -59,12 +93,21 @@ export default function MePage() {
         setPhoneHint(me.profileComplete ? "Verified guest" : "Complete your profile");
       })
       .catch(() => undefined);
+    void fetchOpenCartSession()
+      .then((s) => {
+        const n = s.openCarts?.length ?? 0;
+        setCartHint(n > 0 ? `${n} open cart${n === 1 ? "" : "s"}` : null);
+      })
+      .catch(() => setCartHint(null));
   }, []);
 
   function onLogout() {
     clearGuestToken();
     window.location.href = "/hub";
   }
+
+  const primary = ROWS.slice(0, 6);
+  const secondary = ROWS.slice(6);
 
   return (
     <main className="min-h-dvh bg-background pb-10">
@@ -85,17 +128,36 @@ export default function MePage() {
             Edit
           </Link>
         </div>
-        <h1 className="font-display text-[32px] font-extrabold tracking-tight text-foreground">
-          {name || "Guest"}
-        </h1>
-        <p className="mt-1 text-[14px] text-on-surface-variant">{phoneHint}</p>
+        <div className="flex items-center gap-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-border bg-surface-container">
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-[28px] font-extrabold text-on-surface-variant">
+                {(name || "G").slice(0, 1).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-display text-[28px] font-extrabold tracking-tight text-foreground">
+              {name || "Guest"}
+            </h1>
+            <p className="mt-1 text-[14px] text-on-surface-variant">{phoneHint}</p>
+            {cartHint ? (
+              <Link href="/hub" className="mt-1 inline-block text-[12px] font-bold text-primary">
+                {cartHint} · view My Cart
+              </Link>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-3 px-4 pt-4">
         <div className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
-          {ROWS.slice(0, 4).map((row, i) => (
+          {primary.map((row, i) => (
             <Link
-              key={row.title}
+              key={`${row.title}-${row.href}`}
               href={row.href}
               className={`pressable flex items-center gap-3 px-4 py-3.5 ${
                 i > 0 ? "border-t border-border/60" : ""
@@ -114,9 +176,9 @@ export default function MePage() {
         </div>
 
         <div className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
-          {ROWS.slice(4).map((row, i) => (
+          {secondary.map((row, i) => (
             <Link
-              key={row.title}
+              key={`${row.title}-${row.href}-${i}`}
               href={row.href}
               className={`pressable flex items-center gap-3 px-4 py-3.5 ${
                 i > 0 ? "border-t border-border/60" : ""
@@ -133,22 +195,6 @@ export default function MePage() {
             </Link>
           ))}
         </div>
-
-        <Link
-          href="/me/feedback"
-          className="pressable flex items-center justify-between gap-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border"
-          data-testid="profile-feedback"
-        >
-          <div>
-            <p className="text-[15px] font-semibold">Got feedback? Let us know</p>
-            <p className="mt-1 text-[13px] font-semibold text-primary">
-              Tell us what to improve
-            </p>
-          </div>
-          <span className="text-[28px]" aria-hidden>
-            ⭐
-          </span>
-        </Link>
 
         <button
           type="button"

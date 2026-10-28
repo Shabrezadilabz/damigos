@@ -227,6 +227,8 @@ export const carts = pgTable("carts", {
   /** Optional restaurant loyalty credits applied this cart (paise) */
   loyaltyAppliedPaise: integer("loyalty_applied_paise").default(0).notNull(),
   deliveryPincode: varchar("delivery_pincode", { length: 6 }),
+  /** Free-text delivery area / house line captured at quote time */
+  deliveryAddressText: varchar("delivery_address_text", { length: 240 }),
   deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -273,6 +275,8 @@ export const orders = pgTable("orders", {
   convenienceFeePaise: integer("convenience_fee_paise").default(200).notNull(),
   discountPaise: integer("discount_paise").default(0).notNull(),
   deliveryPincode: varchar("delivery_pincode", { length: 6 }),
+  /** Guest delivery address line (area / landmark) at order time */
+  deliveryAddressText: varchar("delivery_address_text", { length: 240 }),
   deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
   totalPaise: integer("total_paise").notNull(),
   /** Cross-By leg (null = single-restaurant checkout) */

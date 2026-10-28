@@ -5,25 +5,59 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { OwnlyRestaurantRow } from "@/components/ownly-restaurant-row";
+import { readHubVegPreference } from "@/components/hub-filters-context";
 import {
+  fetchHubBestsellers,
   fetchHubRestaurants,
   formatInr,
+  type HubBestsellerItem,
   type HubRestaurant,
 } from "@/lib/api";
 import { coverForDish } from "@/lib/hub-media";
 
+type DishHit = {
+  id: string;
+  name: string;
+  pricePaise: number;
+  isVeg: boolean;
+  imageUrl: string | null;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantSlug: string;
+  menuPath: string;
+};
+
 function SearchInner() {
   const sp = useSearchParams();
   const q = (sp.get("q") ?? "").trim();
-  const vegOnly = sp.get("veg") === "1" || sp.get("veg") === "true";
+  const vegParam = sp.get("veg");
+  const vegFromUrl = vegParam === "1" || vegParam === "true";
+  const vegExplicitOff = vegParam === "0" || vegParam === "false";
+  const [vegOnly, setVegOnly] = useState(vegFromUrl);
   const [rows, setRows] = useState<HubRestaurant[]>([]);
+  const [bestsellers, setBestsellers] = useState<HubBestsellerItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (vegFromUrl || vegExplicitOff) {
+      setVegOnly(vegFromUrl);
+      return;
+    }
+    setVegOnly(readHubVegPreference());
+  }, [vegFromUrl, vegExplicitOff]);
+
+  useEffect(() => {
     setLoading(true);
-    void fetchHubRestaurants("bangalore", q || undefined, vegOnly)
-      .then(setRows)
+    void Promise.all([
+      fetchHubRestaurants("bangalore", q || undefined, vegOnly),
+      fetchHubBestsellers(vegOnly).catch(() => ({ items: [] as HubBestsellerItem[] })),
+    ])
+      .then(([list, best]) => {
+        setRows(list);
+        setBestsellers(best.items ?? []);
+        setError(null);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Search failed"))
       .finally(() => setLoading(false));
   }, [q, vegOnly]);
@@ -35,27 +69,27 @@ function SearchInner() {
           !q ||
           r.matchedBy === "kitchen" ||
           r.matchedBy === "both" ||
-          r.matchedBy == null,
+          r.matchedBy == null ||
+          r.name.toLowerCase().includes(q.toLowerCase()),
       ),
     [rows, q],
   );
 
   const dishHits = useMemo(() => {
-    const out: Array<{
-      id: string;
-      name: string;
-      pricePaise: number;
-      isVeg: boolean;
-      imageUrl: string | null;
-      restaurantId: string;
-      restaurantName: string;
-      restaurantSlug: string;
-      menuPath: string;
-    }> = [];
+    const qLower = q.toLowerCase();
+    const out: DishHit[] = [];
+    const seen = new Set<string>();
+
     for (const r of rows) {
-      if (q && r.matchedBy === "kitchen") continue;
       for (const d of r.sampleDishes ?? []) {
         if (vegOnly && !d.isVeg) continue;
+        if (q && !d.name.toLowerCase().includes(qLower) && r.matchedBy === "kitchen") continue;
+        if (q && !d.name.toLowerCase().includes(qLower) && r.matchedBy !== "dish" && r.matchedBy !== "both") {
+          if (!d.name.toLowerCase().includes(qLower)) continue;
+        }
+        const key = `${r.id}:${d.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         out.push({
           ...d,
           restaurantId: r.id,
@@ -67,8 +101,37 @@ function SearchInner() {
         });
       }
     }
+
+    for (const d of bestsellers) {
+      if (q && !d.name.toLowerCase().includes(qLower)) continue;
+      if (vegOnly && !d.isVeg) continue;
+      const key = `${d.restaurantId}:${d.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        id: d.id,
+        name: d.name,
+        pricePaise: d.pricePaise,
+        isVeg: d.isVeg,
+        imageUrl: d.imageUrl,
+        restaurantId: d.restaurantId,
+        restaurantName: d.restaurantName,
+        restaurantSlug: d.restaurantSlug,
+        menuPath: vegOnly
+          ? `${d.menuPath}${d.menuPath.includes("?") ? "&" : "?"}veg=1`
+          : d.menuPath,
+      });
+    }
+
+    if (q) {
+      out.sort((a, b) => {
+        const aExact = a.name.toLowerCase().startsWith(qLower) ? 0 : 1;
+        const bExact = b.name.toLowerCase().startsWith(qLower) ? 0 : 1;
+        return aExact - bExact || a.name.localeCompare(b.name);
+      });
+    }
     return out;
-  }, [rows, q, vegOnly]);
+  }, [rows, bestsellers, q, vegOnly]);
 
   return (
     <main className="min-h-dvh bg-background pb-16">
@@ -86,7 +149,7 @@ function SearchInner() {
               {q ? q.replace(/\b\w/g, (c) => c.toUpperCase()) : "Search"}
             </h1>
             <p className="truncate text-[12px] text-on-surface-variant">
-              {q ? `Kitchens & dishes matching “${q}”` : "Type a kitchen or dish name"}
+              {q ? `Foods & kitchens matching “${q}”` : "Search dishes or kitchen names"}
             </p>
           </div>
         </div>
@@ -101,37 +164,15 @@ function SearchInner() {
           <>
             <section>
               <h2 className="mb-2 text-[13px] font-bold uppercase tracking-wide text-on-surface-variant">
-                Kitchens · {kitchenHits.length}
-              </h2>
-              {kitchenHits.length === 0 ? (
-                <p className="rounded-lg border border-border bg-surface-container-lowest p-4 text-[13px] text-on-surface-variant">
-                  No kitchen names matched. Try a shorter name, or browse dishes below.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {kitchenHits.map((r, i) => (
-                    <OwnlyRestaurantRow
-                      key={r.id}
-                      restaurant={r}
-                      href={r.menuPath}
-                      index={i}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section>
-              <h2 className="mb-2 text-[13px] font-bold uppercase tracking-wide text-on-surface-variant">
                 Dishes · {dishHits.length}
               </h2>
               {dishHits.length === 0 ? (
                 <p className="rounded-lg border border-border bg-surface-container-lowest p-4 text-[13px] text-on-surface-variant">
-                  No dishes matched “{q}”.
+                  {q ? `No dishes matched “${q}”. Try a kitchen name below.` : "Type a dish to search foods across kitchens."}
                 </p>
               ) : (
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {dishHits.slice(0, 24).map((d, idx) => (
+                  {dishHits.slice(0, 36).map((d, idx) => (
                     <li key={`${d.restaurantId}-${d.id}`}>
                       <Link
                         href={d.menuPath}
@@ -144,18 +185,31 @@ function SearchInner() {
                           className="aspect-square w-full object-cover"
                         />
                         <div className="p-2">
-                          <p className="line-clamp-2 text-[13px] font-semibold leading-snug">
-                            {d.name}
-                          </p>
+                          <p className="line-clamp-2 text-[13px] font-semibold leading-snug">{d.name}</p>
                           <p className="mt-0.5 truncate text-[11px] text-on-surface-variant">
                             {d.restaurantName}
                           </p>
-                          <p className="mt-1 text-[13px] font-bold tabular">
-                            {formatInr(d.pricePaise)}
-                          </p>
+                          <p className="mt-1 text-[13px] font-bold tabular">{formatInr(d.pricePaise)}</p>
                         </div>
                       </Link>
                     </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section>
+              <h2 className="mb-2 text-[13px] font-bold uppercase tracking-wide text-on-surface-variant">
+                Kitchens · {kitchenHits.length}
+              </h2>
+              {kitchenHits.length === 0 ? (
+                <p className="rounded-lg border border-border bg-surface-container-lowest p-4 text-[13px] text-on-surface-variant">
+                  No kitchen names matched.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {kitchenHits.map((r, i) => (
+                    <OwnlyRestaurantRow key={r.id} restaurant={r} href={r.menuPath} index={i} />
                   ))}
                 </ul>
               )}

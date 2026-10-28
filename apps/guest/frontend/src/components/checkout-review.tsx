@@ -259,6 +259,15 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   const conveniencePaise = groupPreview?.convenienceFeePaise ?? cart?.convenienceFeePaise ?? 200;
   const otherLegs = groupPreview?.legs.filter((l) => l.restaurantId !== restaurantId) ?? [];
   const isCrossByPreview = Boolean(groupPreview && groupPreview.legs.length > 1);
+  const itemsBeforeOffersPaise = isCrossByPreview
+    ? (groupPreview?.legs.reduce((s, l) => s + l.subtotalPaise, 0) ?? cart?.subtotalPaise ?? 0)
+    : (cart?.subtotalPaise ?? 0);
+  const totalDiscountPaise =
+    discountPaise +
+    loyaltyApplied +
+    (isCrossByPreview
+      ? otherLegs.reduce((s, l) => s + l.discountPaise + (l.loyaltyAppliedPaise ?? 0), 0)
+      : 0);
 
 
 
@@ -517,11 +526,8 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
         <div className="space-y-2.5 bg-surface-container-low p-4">
 
         <div className="flex justify-between">
-
-          <span>Cart total</span>
-
-          <span className="tabular font-medium">{formatInr(cart?.subtotalPaise ?? 0)}</span>
-
+          <span>Items total (before offers)</span>
+          <span className="tabular font-medium">{formatInr(itemsBeforeOffersPaise)}</span>
         </div>
 
         {(discountPaise > 0 || applied) && (
@@ -636,6 +642,13 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
           <span className="line-through">Packaging fees</span>
           <span className="italic">Seriously? Nope</span>
         </div>
+
+        {totalDiscountPaise > 0 ? (
+          <div className="flex justify-between rounded-md bg-success/10 px-2 py-1.5 text-success">
+            <span className="font-semibold">Total discount</span>
+            <span className="tabular font-bold">−{formatInr(totalDiscountPaise)}</span>
+          </div>
+        ) : null}
 
         <div className="flex justify-between border-t border-dashed border-border pt-3 font-bold">
 

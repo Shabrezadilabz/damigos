@@ -442,11 +442,19 @@ export async function fetchDeliveryConfig() {
   return data as { mode: "off" | "mock"; platformMarkupPaise: number };
 }
 
-export async function requestDeliveryQuote(restaurantId: string, pincode: string) {
+export async function requestDeliveryQuote(
+  restaurantId: string,
+  pincode: string,
+  addressText?: string | null,
+) {
   const res = await fetch(`${base}/v1/delivery/quote`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ restaurantId, pincode }),
+    body: JSON.stringify({
+      restaurantId,
+      pincode,
+      ...(addressText?.trim() ? { addressText: addressText.trim().slice(0, 240) } : {}),
+    }),
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Delivery quote failed"));

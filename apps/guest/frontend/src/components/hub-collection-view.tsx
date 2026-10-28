@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { HubOpenCartDock } from "@/components/hub-open-cart-dock";
-import type { HubSort } from "@/components/hub-filters-context";
+import {
+  HubFiltersProvider,
+  useHubFilters,
+  withVegQuery,
+  type HubSort,
+} from "@/components/hub-filters-context";
 import { MaterialIcon } from "@/components/material-icon";
 import { OwnlyFilterChips } from "@/components/ownly-filter-chips";
 import { OwnlyRestaurantRow } from "@/components/ownly-restaurant-row";
@@ -23,20 +28,32 @@ import { getGuestToken } from "@/lib/session";
 
 type Props = { hero: CollectionHero; initialQuery?: string };
 
-export function HubCollectionView({ hero, initialQuery = "" }: Props) {
+export function HubCollectionView(props: Props) {
+  return (
+    <HubFiltersProvider>
+      <HubCollectionViewInner {...props} />
+    </HubFiltersProvider>
+  );
+}
+
+function HubCollectionViewInner({ hero, initialQuery = "" }: Props) {
   const router = useRouter();
+  const { vegOnly, setVegOnly } = useHubFilters();
   const [rows, setRows] = useState<HubRestaurant[]>([]);
   const [dishes, setDishes] = useState<HubBestsellerItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<HubSort>("relevancy");
   const [sortOpen, setSortOpen] = useState(false);
-  const [vegOnly, setVegOnly] = useState(!!hero.vegBias);
   const [rating4Plus, setRating4Plus] = useState(false);
   const [lowestPrice, setLowestPrice] = useState(false);
   const [cat, setCat] = useState("all");
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addNote, setAddNote] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    if (hero.vegBias) setVegOnly(true);
+  }, [hero.vegBias, setVegOnly]);
 
   async function onAddDish(e: React.MouseEvent, d: HubBestsellerItem) {
     e.preventDefault();
@@ -85,7 +102,14 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
       const promised = list.filter(({ meta }) => meta.badge === "delivery_promise");
       if (promised.length >= 1) list = promised;
     }
-    if (vegOnly) list = list.filter(({ r }) => r.pureVeg === true || r.vegFriendly === true);
+    if (vegOnly) {
+      list = list.filter(
+        ({ r }) =>
+          r.pureVeg === true ||
+          r.vegFriendly === true ||
+          (r.pureVeg === undefined && r.vegFriendly === undefined),
+      );
+    }
     if (rating4Plus) list = list.filter(({ meta }) => meta.rating >= 4);
     if (lowestPrice) list = list.filter(({ meta }) => meta.badge === "lowest_price");
     if (sort === "rating") list = [...list].sort((a, b) => b.meta.rating - a.meta.rating);
@@ -227,7 +251,7 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
               <li key={d.id}>
                 <div className="relative flex gap-3 rounded-lg bg-surface-container-lowest p-3 shadow-sm border border-border">
                   <Link
-                    href={vegOnly ? `${d.menuPath}?veg=1` : d.menuPath}
+                    href={withVegQuery(d.menuPath, vegOnly)}
                     className="pressable min-w-0 flex-1"
                   >
                     <span
@@ -246,7 +270,7 @@ export function HubCollectionView({ hero, initialQuery = "" }: Props) {
                     </p>
                   </Link>
                   <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl">
-                    <Link href={vegOnly ? `${d.menuPath}?veg=1` : d.menuPath} className="pressable absolute inset-0">
+                    <Link href={withVegQuery(d.menuPath, vegOnly)} className="pressable absolute inset-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={coverForDish(d.name, d.imageUrl, idx)}

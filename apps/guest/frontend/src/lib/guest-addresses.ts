@@ -5,6 +5,8 @@ export type GuestSavedAddress = {
   label: string;
   pincode: string;
   area?: string;
+  /** House / street / landmark line for kitchen delivery */
+  line?: string;
   updatedAt: string;
 };
 
@@ -67,10 +69,19 @@ export function formatAddressSubline(addr: GuestSavedAddress | null): string {
   return bits.join(" · ");
 }
 
+/** Full line sent to kitchen / CRM at delivery quote */
+export function formatDeliveryAddressText(addr: GuestSavedAddress | null): string | null {
+  if (!addr) return null;
+  const bits = [addr.line?.trim(), addr.area?.trim(), addr.label.trim(), addr.pincode ? `PIN ${addr.pincode}` : null]
+    .filter(Boolean);
+  return bits.length ? bits.join(", ").slice(0, 240) : null;
+}
+
 export function upsertGuestAddress(input: {
   label: string;
   pincode: string;
   area?: string;
+  line?: string;
   makeActive?: boolean;
 }): GuestSavedAddress[] {
   const rows = readGuestAddresses();
@@ -80,6 +91,7 @@ export function upsertGuestAddress(input: {
     label: input.label.trim() || "Home",
     pincode: pin,
     area: input.area?.trim() || undefined,
+    line: input.line?.trim() || undefined,
     updatedAt: new Date().toISOString(),
   };
   const withoutDup = rows.filter((r) => r.pincode !== pin);

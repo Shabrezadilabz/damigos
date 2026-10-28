@@ -23,6 +23,7 @@ export type CheckoutCartSnapshot = {
   totalPaise: number;
   deliveryFeePaise: number;
   deliveryPincode: string | null;
+  deliveryAddressText: string | null;
   appliedClaimId: string | null;
 };
 
@@ -125,6 +126,7 @@ export async function loadOpenCheckoutCart(
     loyaltyAppliedPaise,
     deliveryFeePaise,
     deliveryPincode: cart.deliveryPincode ?? null,
+    deliveryAddressText: cart.deliveryAddressText ?? null,
     totalPaise,
     appliedClaimId: discountPaise > 0 ? appliedClaimId : null,
   };

@@ -6,6 +6,7 @@ import { MaterialIcon } from "@/components/material-icon";
 import { fetchDeliveryConfig, formatInr, requestDeliveryQuote } from "@/lib/api";
 import {
   formatAddressHeadline,
+  formatDeliveryAddressText,
   getActiveAddress,
   GUEST_ADDRESS_CHANGED,
   readGuestAddresses,
@@ -69,7 +70,12 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
     setLoading(true);
     setError(null);
     try {
-      const q = await requestDeliveryQuote(restaurantId, pincode);
+      const q = await requestDeliveryQuote(
+        restaurantId,
+        pincode,
+        formatDeliveryAddressText(active) ??
+          (active ? `${active.label}, PIN ${active.pincode}` : null),
+      );
       setQuote({
         deliveryFeePaise: q.deliveryFeePaise,
         shiprocketRatePaise: q.shiprocketRatePaise,
@@ -92,7 +98,7 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
     } finally {
       setLoading(false);
     }
-  }, [mode, onQuoted, onPayAllowedChange, pincode, restaurantId]);
+  }, [active, mode, onQuoted, onPayAllowedChange, pincode, restaurantId]);
 
   useEffect(() => {
     void fetchDeliveryConfig()

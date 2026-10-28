@@ -21,6 +21,7 @@ type RewardOption = {
   amountPaise: number;
   icon: string;
   badge?: string;
+  mode: "wallet" | "claim";
 };
 
 function matchPhoneLast4(digits: string, row: CrmCustomerRow): boolean {
@@ -82,25 +83,30 @@ export function CounterRedeemTerminal() {
   const rewards: RewardOption[] = useMemo(() => {
     if (!detail) return [];
     const claims = detail.customer.activeRewardClaims;
+    const credits = Math.max(0, detail.customer.creditsPaise ?? 0);
     const opts: RewardOption[] = [];
     if (claims > 0) {
       opts.push({
         id: "spin",
-        title: "₹50 Spin reward",
-        subtitle: "From packaging QR / spin wheel",
+        title: "Spin / packaging reward",
+        subtitle: `${claims} open claim${claims === 1 ? "" : "s"} · burns at counter`,
         amountPaise: 5000,
         icon: "casino",
         badge: "Active claim",
+        mode: "claim",
       });
     }
-    opts.push({
-      id: "wallet",
-      title: "Wallet cashback",
-      subtitle: "Direct deduction from POS total",
-      amountPaise: detail.customer.creditsPaise || 15000,
-      icon: "account_balance_wallet",
-      badge: "Pilot",
-    });
+    if (credits > 0) {
+      opts.push({
+        id: "wallet",
+        title: "Kitchen loyalty credits",
+        subtitle: `${formatInr(credits)} available to burn on this bill`,
+        amountPaise: credits,
+        icon: "account_balance_wallet",
+        badge: "Credits",
+        mode: "wallet",
+      });
+    }
     return opts;
   }, [detail]);
 
@@ -241,6 +247,11 @@ export function CounterRedeemTerminal() {
 
               <div className="flex flex-col gap-3">
                 <label className="text-sm font-semibold text-on-surface">Available rewards</label>
+                {rewards.length === 0 ? (
+                  <p className="rounded-xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+                    No open spin claims or kitchen loyalty credits for this guest. Ask them to scan a packaging QR or earn credits first.
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   {rewards.map((r) => (
                     <button
@@ -312,16 +323,22 @@ export function CounterRedeemTerminal() {
                       restaurantId,
                       customerId: detail.customer.id,
                       amountPaise: discountPaise,
+                      mode: selected?.mode ?? "wallet",
                     })
-                      .then(() => {
+                      .then((res) => {
                         setApplied(true);
+                        const isClaim = selected?.mode === "claim";
                         setDetail({
                           ...detail,
                           customer: {
                             ...detail.customer,
-                            creditsPaise: Math.max(
+                            creditsPaise: isClaim
+                              ? detail.customer.creditsPaise
+                              : (res.guestCreditsRemainingPaise ??
+                                Math.max(0, (detail.customer.creditsPaise || 0) - discountPaise)),
+                            activeRewardClaims: Math.max(
                               0,
-                              (detail.customer.creditsPaise || 0) - discountPaise,
+                              (detail.customer.activeRewardClaims || 0) - (isClaim ? 1 : 0),
                             ),
                           },
                         });

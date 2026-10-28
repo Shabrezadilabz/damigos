@@ -35,6 +35,7 @@ export type LegSnapshot = {
   appliedClaimBillLabel: string | null;
   deliveryFeePaise: number;
   deliveryPincode: string | null;
+  deliveryAddressText: string | null;
   appliedClaimId: string | null;
 };
 
@@ -112,6 +113,7 @@ export async function buildLegSnapshots(customerId: string): Promise<LegSnapshot
       appliedClaimBillLabel: claimInfo.appliedClaim?.billLabel ?? null,
       deliveryFeePaise: cart.deliveryFeePaise ?? 0,
       deliveryPincode: cart.deliveryPincode,
+      deliveryAddressText: cart.deliveryAddressText ?? null,
       appliedClaimId: claimInfo.discountPaise > 0 ? claimId : null,
     });
   }
@@ -226,6 +228,7 @@ export async function createPendingCheckoutGroup(
         convenienceFeePaise: convenience,
         discountPaise: combinedDiscount,
         deliveryPincode: leg.deliveryPincode,
+        deliveryAddressText: leg.deliveryAddressText,
         deliveryFeePaise: deliveryShare,
         totalPaise: legTotal,
         checkoutGroupId: group.id,

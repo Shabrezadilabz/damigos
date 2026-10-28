@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type HubSort = "relevancy" | "rating" | "eta" | "price";
 
@@ -10,7 +17,7 @@ type HubFilters = {
   search: string;
   setSearch: (v: string) => void;
   vegOnly: boolean;
-  setVegOnly: (v: boolean) => void;
+  setVegOnly: (v: boolean | ((prev: boolean) => boolean)) => void;
   sort: HubSort;
   setSort: (v: HubSort) => void;
   rating4Plus: boolean;
@@ -30,6 +37,19 @@ function readStoredVeg(): boolean {
   }
 }
 
+/** Public read of persisted Pure Veg preference (search / deep links). */
+export function readHubVegPreference(): boolean {
+  return readStoredVeg();
+}
+
+function persistVeg(v: boolean) {
+  try {
+    window.localStorage.setItem(VEG_STORAGE_KEY, v ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
 export function HubFiltersProvider({ children }: { children: React.ReactNode }) {
   const [search, setSearch] = useState("");
   const [vegOnly, setVegOnlyState] = useState(false);
@@ -41,14 +61,13 @@ export function HubFiltersProvider({ children }: { children: React.ReactNode }) 
     setVegOnlyState(readStoredVeg());
   }, []);
 
-  const setVegOnly = (v: boolean) => {
-    setVegOnlyState(v);
-    try {
-      window.localStorage.setItem(VEG_STORAGE_KEY, v ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-  };
+  const setVegOnly = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setVegOnlyState((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      persistVeg(next);
+      return next;
+    });
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -63,7 +82,7 @@ export function HubFiltersProvider({ children }: { children: React.ReactNode }) 
       lowestPrice,
       setLowestPrice,
     }),
-    [search, vegOnly, sort, rating4Plus, lowestPrice],
+    [search, vegOnly, setVegOnly, sort, rating4Plus, lowestPrice],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -81,22 +100,21 @@ export function useHubFilters(): HubFilters {
     if (!ctx) setVegOnlyState(readStoredVeg());
   }, [ctx]);
 
-  if (ctx) return ctx;
+  const setVegOnlyFallback = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setVegOnlyState((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      persistVeg(next);
+      return next;
+    });
+  }, []);
 
-  const setVegOnly = (v: boolean) => {
-    setVegOnlyState(v);
-    try {
-      window.localStorage.setItem(VEG_STORAGE_KEY, v ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-  };
+  if (ctx) return ctx;
 
   return {
     search,
     setSearch,
     vegOnly,
-    setVegOnly,
+    setVegOnly: setVegOnlyFallback,
     sort,
     setSort,
     rating4Plus,

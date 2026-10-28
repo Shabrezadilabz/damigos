@@ -54,6 +54,10 @@ const crmKeys = [
   "WALLET_TOPUP_MODE",
   "PARTNERS_NOTIFY_EMAIL",
   "SETTLEMENT_SCHEDULER_ENABLED",
+  "MSG91_AUTH_KEY",
+  "MSG91_SENDER_ID",
+  "MSG91_OTP_TEMPLATE_ID",
+  "MSG91_TEMPLATE_ID",
 ];
 
 function setEnv(cwd, key, value) {

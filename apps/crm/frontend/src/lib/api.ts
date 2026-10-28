@@ -628,6 +628,9 @@ export type CrmOrder = {
   discountPaise: number;
   createdAt: string;
   customerPhoneLast4: string | null;
+  deliveryPincode?: string | null;
+  deliveryAddressText?: string | null;
+  deliveryFeePaise?: number | null;
   items: CrmOrderLine[];
   committedPrepMinutes?: number | null;
   extendedPrepMinutes?: number | null;
@@ -964,7 +967,7 @@ export type PosterTypographyOption = {
 export type PosterImageOption = {
   id: string;
   url: string;
-  source: "hive" | "stock";
+  source: "hive" | "stock" | "upload";
   label: string;
 };
 
@@ -1032,6 +1035,9 @@ export async function restyleGrowPoster(input: {
   posterId: string;
   typographyId?: string;
   imageId?: string;
+  /** Data URL or https URL — adds an editable custom photo option */
+  customImageDataUrl?: string;
+  customImageLabel?: string;
 }) {
   const res = await fetch(`${base}/v1/grow/poster/${input.posterId}/restyle`, {
     method: "POST",
@@ -1040,6 +1046,8 @@ export async function restyleGrowPoster(input: {
       restaurantId: input.restaurantId,
       typographyId: input.typographyId,
       imageId: input.imageId,
+      customImageDataUrl: input.customImageDataUrl,
+      customImageLabel: input.customImageLabel,
     }),
   });
   const data = await readCrmApiJson(res);
@@ -1489,6 +1497,8 @@ export async function applyCrmCounterRedeem(input: {
   restaurantId: string;
   customerId: string;
   amountPaise: number;
+  mode?: "wallet" | "claim";
+  claimId?: string;
 }) {
   const res = await fetch(`${base}/v1/grow/counter-redeem`, {
     method: "POST",
@@ -1499,8 +1509,10 @@ export async function applyCrmCounterRedeem(input: {
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "Redeem failed"));
   return data as {
     ok: boolean;
+    mode?: string;
     burnedPaise: number;
     guestCreditsRemainingPaise: number;
     walletBalancePaise: number;
+    claimRedeemedId?: string | null;
   };
 }

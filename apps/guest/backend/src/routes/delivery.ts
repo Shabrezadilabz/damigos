@@ -151,6 +151,7 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
       .object({
         restaurantId: z.string().uuid(),
         pincode: z.string().length(6),
+        addressText: z.string().max(240).optional(),
       })
       .safeParse(request.body);
 
@@ -189,10 +190,16 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
       });
     }
 
+    const addressText = body.data.addressText?.trim() || null;
+
     if (!rate.serviceable) {
       await db
         .update(carts)
-        .set({ deliveryPincode: body.data.pincode, deliveryFeePaise: 0 })
+        .set({
+          deliveryPincode: body.data.pincode,
+          deliveryAddressText: addressText,
+          deliveryFeePaise: 0,
+        })
         .where(eq(carts.id, cart.id));
 
       return reply.status(422).send({
@@ -214,6 +221,7 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
       .update(carts)
       .set({
         deliveryPincode: body.data.pincode,
+        deliveryAddressText: addressText,
         deliveryFeePaise,
       })
       .where(eq(carts.id, cart.id));

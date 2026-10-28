@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { HubAddressSheet } from "@/components/hub-address-sheet";
-import { HubFiltersProvider, useHubFilters } from "@/components/hub-filters-context";
+import {
+  HubFiltersProvider,
+  useHubFilters,
+  withVegQuery,
+} from "@/components/hub-filters-context";
 import { HubPosterCarousel } from "@/components/hub-poster-carousel";
 import { HubTodaysOffers } from "@/components/hub-todays-offers";
 import { MaterialIcon } from "@/components/material-icon";
@@ -133,7 +137,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
             </button>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end gap-0.5">
-                <label className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide">
+                <div className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide">
                   <span className={vegOnly ? "text-success" : "text-on-surface-variant"}>VEG</span>
                   <button
                     type="button"
@@ -149,7 +153,11 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
                     className={`pressable relative h-6 w-11 shrink-0 overflow-hidden rounded-full border border-[#E4E4E7] transition-colors ${
                       vegOnly ? "bg-[#46B881]" : "bg-[#EFEFEF]"
                     }`}
-                    onClick={() => setVegOnly(!vegOnly)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setVegOnly((v) => !v);
+                    }}
                   >
                     {/* ON = knob on the right (inside track); OFF = left */}
                     <span
@@ -158,7 +166,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
                       }`}
                     />
                   </button>
-                </label>
+                </div>
                 <span className="max-w-[4.5rem] text-right text-[9px] font-semibold leading-none text-on-surface-variant">
                   {vegOnly ? "Veg only" : "Veg + non-veg"}
                 </span>
@@ -190,7 +198,8 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && search.trim()) {
-                  window.location.href = `/hub/search?q=${encodeURIComponent(search.trim())}`;
+                  const path = `/hub/search?q=${encodeURIComponent(search.trim())}`;
+                  window.location.href = withVegQuery(path, vegOnly);
                 }
               }}
             />

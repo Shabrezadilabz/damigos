@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { fetchMe, saveGuestProfile } from "@/lib/api";
+import { readGuestAvatar, writeGuestAvatar } from "@/lib/guest-avatar";
 import { getGuestToken } from "@/lib/session";
 
 /** Soft profile edit — name + extras; phone change keeps previous number. Addresses stay on /me/addresses. */
@@ -18,11 +19,13 @@ export default function MeEditPage() {
   const [phoneLast4, setPhoneLast4] = useState<string | null>(null);
   const [prevLast4, setPrevLast4] = useState<string | null>(null);
   const [newPhone, setNewPhone] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setAvatar(readGuestAvatar());
     const token = getGuestToken();
     if (!token) {
       setLoading(false);
@@ -96,6 +99,58 @@ export default function MeEditPage() {
           <p className="py-8 text-center text-sm text-on-surface-variant">Loading…</p>
         ) : (
           <form onSubmit={(e) => void onSave(e)} className="space-y-4">
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-surface-container-lowest p-4 shadow-sm">
+              <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-surface-container">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-[32px] font-extrabold text-on-surface-variant">
+                    {(name || "G").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <label className="pressable cursor-pointer rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-primary-foreground">
+                {avatar ? "Change photo" : "Add profile photo"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  data-testid="profile-photo-input"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (file.size > 2_500_000) {
+                      setError("Photo must be under 2.5 MB");
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = typeof reader.result === "string" ? reader.result : null;
+                      if (!dataUrl) return;
+                      writeGuestAvatar(dataUrl);
+                      setAvatar(dataUrl);
+                      setError(null);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+              {avatar ? (
+                <button
+                  type="button"
+                  className="text-[12px] font-semibold text-on-surface-variant"
+                  onClick={() => {
+                    writeGuestAvatar(null);
+                    setAvatar(null);
+                  }}
+                >
+                  Remove photo
+                </button>
+              ) : null}
+            </div>
+
             <div className="space-y-3 rounded-lg bg-surface-container-lowest p-4 shadow-sm border border-border">
               <label className="block text-[13px] font-semibold text-on-surface-variant">
                 Display name

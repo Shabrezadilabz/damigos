@@ -31,6 +31,7 @@ export type PosterRenderOptions = {
 
 export async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   try {
+    if (url.startsWith("data:image/")) return url;
     const res = await fetch(url, { signal: AbortSignal.timeout(25_000) });
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());

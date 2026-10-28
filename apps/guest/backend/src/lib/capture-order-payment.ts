@@ -30,6 +30,7 @@ export async function insertPendingOrder(
       convenienceFeePaise: CONVENIENCE_FEE_PAISE,
       discountPaise: snapshot.discountPaise + snapshot.loyaltyAppliedPaise,
       deliveryPincode: snapshot.deliveryPincode,
+      deliveryAddressText: snapshot.deliveryAddressText,
       deliveryFeePaise: snapshot.deliveryFeePaise,
       totalPaise: snapshot.totalPaise,
     })

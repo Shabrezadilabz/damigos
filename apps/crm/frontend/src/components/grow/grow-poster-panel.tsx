@@ -131,7 +131,7 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
         headline,
         offerLine,
         typographyId,
-        imageCount: 3,
+        imageCount: 5,
       });
       if (opts.length) setTypographyOptions(opts);
       setPoster(job);
@@ -285,11 +285,11 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
 
         {poster?.imageOptions && poster.imageOptions.length > 0 ? (
           <div className="rounded-xl bg-surface-container-lowest p-5 shadow-[0_2px_8px_-2px_rgba(28,28,28,0.04)]">
-            <h3 className="mb-1 text-sm font-bold">Photo options</h3>
+            <h3 className="mb-1 text-sm font-bold">Photo options · AI + editable</h3>
             <p className="mb-3 text-[11px] text-on-surface-variant">
-              Tap a photo to relayout the poster. {restyling ? "Updating…" : ""}
+              Five AI options plus your own uploads. Tap to relayout. {restyling ? "Updating…" : ""}
             </p>
-            <div className="grid grid-cols-3 gap-2" data-testid="poster-image-options">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="poster-image-options">
               {poster.imageOptions.map((opt) => {
                 const selected = opt.id === poster.selectedImageId;
                 return (
@@ -309,12 +309,58 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
                     <img src={opt.url} alt={opt.label} className="aspect-square w-full object-cover" />
                     <span className="block truncate bg-surface-container-low px-1.5 py-1 text-[10px] font-semibold">
                       {opt.label}
-                      {opt.source === "hive" ? " · AI" : " · stock"}
+                      {opt.source === "hive" ? " · AI" : opt.source === "upload" ? " · yours" : " · stock"}
                     </span>
                   </button>
                 );
               })}
             </div>
+            <label className="mt-4 flex cursor-pointer flex-col gap-1 rounded-lg border border-dashed border-outline-variant/60 bg-surface-container-low px-3 py-3 text-sm">
+              <span className="font-semibold">Upload your photo</span>
+              <span className="text-[11px] text-on-surface-variant">
+                JPG / PNG — editable poster with your kitchen imagery
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="mt-1 text-xs"
+                disabled={generating || restyling}
+                data-testid="poster-upload-image"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file || !poster) return;
+                  if (file.size > 4_500_000) {
+                    setError("Image must be under ~4.5 MB");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const dataUrl = typeof reader.result === "string" ? reader.result : null;
+                    if (!dataUrl) return;
+                    startRestyle(() => {
+                      void (async () => {
+                        setError(null);
+                        try {
+                          const { poster: job, typographyOptions: opts } = await restyleGrowPoster({
+                            restaurantId,
+                            posterId: poster.id,
+                            typographyId,
+                            customImageDataUrl: dataUrl,
+                            customImageLabel: file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Your photo",
+                          });
+                          if (opts.length) setTypographyOptions(opts);
+                          setPoster(job);
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "Upload failed");
+                        }
+                      })();
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
           </div>
         ) : null}
 

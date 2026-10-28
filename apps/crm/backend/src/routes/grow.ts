@@ -51,6 +51,7 @@ import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 import { creditTopUp, debitForCampaign, WHATSAPP_MSG_COST_PAISE } from "../lib/wallet.js";
 import { ensureGrowSchema } from "../lib/ensure-grow-schema.js";
 import { ensureKitchenSchema } from "../lib/ensure-kitchen-schema.js";
+import { ensureWalletSchema } from "../lib/ensure-wallet-schema.js";
 import {
   configToOffersRows,
   growLoyaltyConfigSchema,
@@ -317,16 +318,6 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       .orderBy(desc(orders.createdAt))
       .limit(8);
 
-    if (recentOrders.length === 0) {
-      return reply.status(404).send({
-        error: {
-          code: "NOT_FOUND",
-          message: "No orders for this guest at your kitchen",
-          correlationId: request.id,
-        },
-      });
-    }
-
     async function latestConsent(kind: "marketing" | "game") {
       const [row] = await db
         .select({ granted: consentRecords.granted })
@@ -387,13 +378,19 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     };
   });
 
-  /** Counter redeem — burn guest kitchen loyalty; credit restaurant wallet ledger */
+  /** Counter redeem — burn guest kitchen loyalty and/or open reward claim; credit restaurant wallet */
   app.post("/grow/counter-redeem", { preHandler: staffGrow }, async (request, reply) => {
+    await ensureGrowSchema();
+    await ensureWalletSchema();
+
     const body = z
       .object({
         restaurantId: z.string().uuid(),
         customerId: z.string().uuid(),
         amountPaise: z.number().int().positive().max(500_000),
+        /** wallet = loyalty credits; claim = consume one open packaging/spin claim */
+        mode: z.enum(["wallet", "claim"]).default("wallet"),
+        claimId: z.string().uuid().optional(),
       })
       .safeParse(request.body);
     if (!body.success) {
@@ -404,52 +401,121 @@ export async function registerGrowRoutes(app: FastifyInstance) {
     await enforceRestaurantScope(request, reply, body.data.restaurantId);
     if (reply.sent) return;
 
-    const [cred] = await db
-      .select()
-      .from(guestLoyaltyCredits)
-      .where(
-        and(
-          eq(guestLoyaltyCredits.customerId, body.data.customerId),
-          eq(guestLoyaltyCredits.restaurantId, body.data.restaurantId),
-        ),
-      )
-      .limit(1);
-    const available = Math.max(0, cred?.balancePaise ?? 0);
-    if (available < body.data.amountPaise) {
-      return reply.status(409).send({
-        error: {
-          code: "INSUFFICIENT_CREDITS",
-          message: `Guest only has ₹${(available / 100).toFixed(0)} kitchen credits`,
-          correlationId: request.id,
+    const { restaurantId, customerId, amountPaise, mode } = body.data;
+    let burnedPaise = amountPaise;
+    let nextBal = 0;
+    let claimRedeemedId: string | null = null;
+
+    try {
+      if (mode === "claim") {
+        const claimWhere = body.data.claimId
+          ? and(
+              eq(rewardClaims.id, body.data.claimId),
+              eq(rewardClaims.customerId, customerId),
+              eq(rewardClaims.restaurantId, restaurantId),
+              sql`${rewardClaims.redeemedOrderId} is null`,
+            )
+          : and(
+              eq(rewardClaims.customerId, customerId),
+              eq(rewardClaims.restaurantId, restaurantId),
+              sql`${rewardClaims.redeemedOrderId} is null`,
+            );
+        const [claim] = await db.select().from(rewardClaims).where(claimWhere).limit(1);
+        if (!claim) {
+          return reply.status(409).send({
+            error: {
+              code: "NO_OPEN_CLAIM",
+              message: "No open packaging/spin reward to redeem for this guest",
+              correlationId: request.id,
+            },
+          });
+        }
+        burnedPaise = Math.min(Math.max(amountPaise, 100), 10_000);
+        const [counterTicket] = await db
+          .insert(orders)
+          .values({
+            customerId,
+            restaurantId,
+            status: "CLOSED",
+            subtotalPaise: burnedPaise,
+            convenienceFeePaise: 0,
+            discountPaise: burnedPaise,
+            deliveryFeePaise: 0,
+            totalPaise: 0,
+          })
+          .returning();
+        await db
+          .update(rewardClaims)
+          .set({ redeemedOrderId: counterTicket.id })
+          .where(eq(rewardClaims.id, claim.id));
+        claimRedeemedId = claim.id;
+      } else {
+        const [cred] = await db
+          .select()
+          .from(guestLoyaltyCredits)
+          .where(
+            and(
+              eq(guestLoyaltyCredits.customerId, customerId),
+              eq(guestLoyaltyCredits.restaurantId, restaurantId),
+            ),
+          )
+          .limit(1);
+        const available = Math.max(0, cred?.balancePaise ?? 0);
+        if (available <= 0) {
+          return reply.status(409).send({
+            error: {
+              code: "INSUFFICIENT_CREDITS",
+              message: "Guest has ₹0 kitchen loyalty credits for this restaurant",
+              correlationId: request.id,
+            },
+          });
+        }
+        if (available < amountPaise) {
+          return reply.status(409).send({
+            error: {
+              code: "INSUFFICIENT_CREDITS",
+              message: `Guest only has ₹${(available / 100).toFixed(0)} kitchen credits`,
+              correlationId: request.id,
+            },
+          });
+        }
+        nextBal = available - amountPaise;
+        if (cred) {
+          await db
+            .update(guestLoyaltyCredits)
+            .set({ balancePaise: nextBal, updatedAt: new Date() })
+            .where(eq(guestLoyaltyCredits.id, cred.id));
+        }
+      }
+
+      const wallet = await creditTopUp({
+        restaurantId,
+        amountPaise: burnedPaise,
+        idempotencyKey: `counter-redeem:${mode}:${customerId}:${restaurantId}:${burnedPaise}:${claimRedeemedId ?? "w"}:${Math.floor(Date.now() / 60_000)}`,
+        meta: {
+          paymentMethod: "external",
+          note:
+            mode === "claim"
+              ? "Counter claim redeem — packaging/spin perk closed, kitchen wallet credited"
+              : "Counter loyalty redeem — guest credit burned, kitchen wallet credited",
+          transactionId: customerId,
         },
       });
+
+      return {
+        ok: true,
+        mode,
+        burnedPaise,
+        guestCreditsRemainingPaise: nextBal,
+        claimRedeemedId,
+        walletBalancePaise: wallet.balancePaise,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Redeem failed";
+      return reply.status(500).send({
+        error: { code: "REDEEM_FAILED", message, correlationId: request.id },
+      });
     }
-
-    const nextBal = available - body.data.amountPaise;
-    if (cred) {
-      await db
-        .update(guestLoyaltyCredits)
-        .set({ balancePaise: nextBal, updatedAt: new Date() })
-        .where(eq(guestLoyaltyCredits.id, cred.id));
-    }
-
-    const wallet = await creditTopUp({
-      restaurantId: body.data.restaurantId,
-      amountPaise: body.data.amountPaise,
-      idempotencyKey: `counter-redeem:${body.data.customerId}:${body.data.restaurantId}:${body.data.amountPaise}:${Math.floor(Date.now() / 60_000)}`,
-      meta: {
-        paymentMethod: "external",
-        note: "Counter loyalty redeem — guest credit burned, kitchen wallet credited",
-        transactionId: body.data.customerId,
-      },
-    });
-
-    return {
-      ok: true,
-      burnedPaise: body.data.amountPaise,
-      guestCreditsRemainingPaise: nextBal,
-      walletBalancePaise: wallet.balancePaise,
-    };
   });
 
   app.get("/campaigns/templates", { preHandler: staffGrow }, async () => {
@@ -593,8 +659,8 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         offerLine: z.string().min(1).max(120),
         /** Optional preferred type stack id */
         typographyId: z.string().max(64).optional(),
-        /** How many Hive / stock image options to generate (1–4) */
-        imageCount: z.number().int().min(1).max(4).optional(),
+        /** How many Hive / stock image options to generate (1–5) */
+        imageCount: z.number().int().min(1).max(5).optional(),
       })
       .parse(request.body);
 
@@ -666,7 +732,7 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       imageMood: spec.imageMood,
     };
 
-    const imageCount = body.imageCount ?? 3;
+    const imageCount = body.imageCount ?? 5;
     const typography = resolvePosterTypography(
       body.typographyId,
       `${body.restaurantId}-${randomUUID()}`,
@@ -826,6 +892,9 @@ export async function registerGrowRoutes(app: FastifyInstance) {
         restaurantId: z.string().uuid(),
         typographyId: z.string().max(64).optional(),
         imageId: z.string().max(64).optional(),
+        /** Kitchen-uploaded photo (data URL or https) for editable poster */
+        customImageDataUrl: z.string().max(6_000_000).optional(),
+        customImageLabel: z.string().max(80).optional(),
       })
       .parse(request.body);
 
@@ -847,9 +916,24 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       body.typographyId ?? existing.selectedTypographyId,
       existing.id,
     );
-    const imageOptions = existing.imageOptions ?? [];
+    let imageOptions = [...(existing.imageOptions ?? [])];
+    let preferredImageId = body.imageId;
+    if (body.customImageDataUrl?.trim()) {
+      const uploadId = `upload-${randomUUID().slice(0, 8)}`;
+      const customUrl = body.customImageDataUrl.trim();
+      imageOptions = [
+        {
+          id: uploadId,
+          url: customUrl,
+          source: "upload" as const,
+          label: body.customImageLabel?.trim() || "Your photo",
+        },
+        ...imageOptions.filter((o) => o.source !== "upload"),
+      ].slice(0, 6);
+      preferredImageId = uploadId;
+    }
     const selectedImage =
-      (body.imageId ? imageOptions.find((o) => o.id === body.imageId) : null) ??
+      (preferredImageId ? imageOptions.find((o) => o.id === preferredImageId) : null) ??
       imageOptions.find((o) => o.id === existing.selectedImageId) ??
       imageOptions[0];
 
@@ -879,6 +963,7 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       campaignTemplateKey: undefined,
       selectedTypographyId: typography.id,
       selectedImageId: selectedImage?.id,
+      imageOptions,
       previewImageDataUrl,
       previewImageUrl,
       theme: {

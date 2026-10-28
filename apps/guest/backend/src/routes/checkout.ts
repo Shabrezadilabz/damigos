@@ -430,6 +430,7 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
       loyaltyAppliedPaise,
       deliveryFeePaise,
       deliveryPincode,
+      deliveryAddressText,
       totalPaise,
       appliedClaimId,
     } = snapshot;
@@ -455,6 +456,8 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
         discountPaise: combinedDiscount,
 
         deliveryPincode,
+
+        deliveryAddressText,
 
         deliveryFeePaise,
 
