@@ -1,6 +1,25 @@
 import type { GrowLoyaltyConfig } from "./grow-loyalty-config.js";
 import { OFFER_PRESETS, type OfferPresetId } from "./grow-loyalty-config.js";
 
+/**
+ * S2.3 — programs the scheduler (grow-program-scheduler.ts) dispatches automatically when enabled.
+ * Others are event-driven in the guest app (spin / scratch / packaging QR) or need data we do not hold yet
+ * (birthdays need DOB). AI posters are never auto-dispatched — they stay manual Approve.
+ */
+export const AUTO_DISPATCH_PROGRAM_SCHEDULES = {
+  winback_15: "Weekly · guests lapsed 15–29 days",
+  winback_30: "Weekly · guests lapsed 30–60 days",
+  weekend: "Every Friday · once per weekend",
+  monthend: "Last 3 days of month · once",
+  festivals: "On festival dates (GROW_FESTIVAL_DATES)",
+} as const;
+
+export type AutoDispatchProgramId = keyof typeof AUTO_DISPATCH_PROGRAM_SCHEDULES;
+
+export function isAutoDispatchProgram(id: string): id is AutoDispatchProgramId {
+  return id in AUTO_DISPATCH_PROGRAM_SCHEDULES;
+}
+
 /** Platform-defined programs restaurants can turn on/off (Kapso dispatch when enabled). */
 export const GROW_CAMPAIGN_PROGRAM_CATALOG = [
   {
@@ -171,5 +190,7 @@ export function listCampaignProgramsForRestaurant(config: GrowLoyaltyConfig) {
     icon: p.icon,
     enabled: getCampaignProgramEnabled(config, p.id),
     offerSummary: getCampaignProgramOfferLabel(config, p.id),
+    autoDispatch: isAutoDispatchProgram(p.id),
+    autoSchedule: isAutoDispatchProgram(p.id) ? AUTO_DISPATCH_PROGRAM_SCHEDULES[p.id] : null,
   }));
 }

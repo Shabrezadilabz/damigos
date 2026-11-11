@@ -312,6 +312,7 @@ export function GrowOffersConfigForm({ restaurantId, initial, onSaved, onConfigC
                 <option value="flat_off_paise:5000">₹50 off</option>
                 <option value="flat_off_paise:10000">₹100 off</option>
                 <option value="free_item:0">Free menu item</option>
+                <option value="no_prize:0">No prize (Better luck next time)</option>
               </select>
               <label className="sm:col-span-2 text-sm">
                 <span className="text-[10px] font-bold uppercase text-on-surface-variant">Weight</span>

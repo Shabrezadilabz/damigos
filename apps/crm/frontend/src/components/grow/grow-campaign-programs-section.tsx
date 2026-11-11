@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import {
   fetchCampaignPrograms,
+  runDueCampaignPrograms,
   setCampaignProgramEnabled,
   type CampaignProgramRow,
 } from "@/lib/api";
@@ -13,6 +14,8 @@ export function GrowCampaignProgramsSection({ restaurantId }: { restaurantId: st
   const [programs, setPrograms] = useState<CampaignProgramRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [runBusy, setRunBusy] = useState(false);
+  const [runNote, setRunNote] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     fetchCampaignPrograms(restaurantId)
@@ -37,6 +40,27 @@ export function GrowCampaignProgramsSection({ restaurantId }: { restaurantId: st
     }
   }
 
+  async function onRunDue() {
+    setRunBusy(true);
+    setError(null);
+    setRunNote(null);
+    try {
+      const s = await runDueCampaignPrograms(restaurantId);
+      setRunNote(
+        s.skipped.includes("kapso_off")
+          ? "WhatsApp (Kapso) is off — nothing sent."
+          : s.campaignsCreated === 0
+            ? "Nothing due right now — programs already ran for this period."
+            : `Dispatched ${s.campaignsCreated} campaign(s) · ${s.messagesSent} message(s)` +
+              (s.walletBlocked > 0 ? ` · ${s.walletBlocked} held (top up wallet)` : ""),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Run failed");
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
   const enabledCount = programs.filter((p) => p.enabled).length;
 
   return (
@@ -50,15 +74,26 @@ export function GrowCampaignProgramsSection({ restaurantId }: { restaurantId: st
             Automated campaign programs
           </h3>
           <p className="text-xs text-on-surface-variant">
-            Turn programs on or off — synced with Offers &amp; game rules. One-off broadcasts below.
+            Enabled programs send automatically on their schedule (opt-in guests only, wallet debited, 7-day cap).
+            AI posters are never auto-sent — approve each one yourself.
           </p>
         </div>
+        <button
+          type="button"
+          disabled={runBusy}
+          onClick={() => void onRunDue()}
+          className="rounded-lg bg-surface-container-high px-3 py-1.5 text-[11px] font-semibold hover:bg-surface-container-highest disabled:opacity-50"
+          data-testid="grow-programs-run-due"
+        >
+          {runBusy ? "Running…" : "Run due now"}
+        </button>
         <span className="rounded-full bg-surface-container-high px-2.5 py-0.5 text-[10px] font-bold text-on-surface-variant">
           {enabledCount} / {programs.length} enabled
         </span>
       </div>
 
       {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
+      {runNote ? <p className="mb-2 text-xs font-medium text-on-surface-variant">{runNote}</p> : null}
 
       <ul className="flex flex-col gap-2">
         {programs.length === 0 ? (
@@ -94,6 +129,11 @@ export function GrowCampaignProgramsSection({ restaurantId }: { restaurantId: st
                         · Template: <code className="rounded bg-surface-container-high px-1">{p.templateKey}</code>
                       </>
                     ) : null}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-on-surface-variant">
+                    {p.autoDispatch
+                      ? `Auto-send: ${p.autoSchedule ?? "scheduled"}`
+                      : "In-app / event-driven — no scheduled broadcast"}
                   </p>
                 </div>
               </div>

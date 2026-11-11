@@ -463,6 +463,11 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
         platformFeePaise: r.platformFeePaise,
         deliveryFeePaise: r.deliveryFeePaise,
         waitingPenaltyPaise: r.waitingPenaltyPaise,
+        // S3.1 — Direct vs ONDC split
+        rails: {
+          direct: { orderCount: r.directOrderCount, restaurantSharePaise: r.directSharePaise },
+          ondc: { orderCount: r.ondcOrderCount, restaurantSharePaise: r.ondcSharePaise },
+        },
         status: r.status,
         invoiceNumber: r.invoiceNumber,
         invoice: r.invoiceJson ? (JSON.parse(r.invoiceJson) as unknown) : null,

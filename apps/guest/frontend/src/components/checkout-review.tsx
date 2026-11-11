@@ -27,6 +27,7 @@ import {
   mockPayCheckoutGroup,
   prepareCheckout,
   prepareCheckoutGroup,
+  refreshCartPrices,
   removeCartItem,
   updateCartItemQuantity,
   verifyRazorpayCheckout,
@@ -56,12 +57,19 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   const [lineBusyId, setLineBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    let priceRefreshed = false;
 
     try {
 
       const [cartData, claimRows, group] = await Promise.all([
 
-        fetchCart(restaurantId),
+        fetchCart(restaurantId).then(async (c) => {
+          // S1.5 — menu price changed since items were added: re-lock to live prices, then reload
+          if (!c.priceStale) return c;
+          await refreshCartPrices(restaurantId);
+          priceRefreshed = true;
+          return fetchCart(restaurantId);
+        }),
 
         fetchRewardClaims(restaurantId).catch(() => [] as RewardClaimOption[]),
         fetchCheckoutGroupPreview().catch(() => null),
@@ -73,7 +81,9 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
       setClaims(claimRows);
       setGroupPreview(group && group.legs.length > 1 ? group : null);
 
-      setError(null);
+      setError(
+        priceRefreshed ? "Menu prices changed — your cart was updated to the latest prices." : null,
+      );
 
     } catch (e) {
 
@@ -256,7 +266,6 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
   const loyaltyApplied = cart?.loyaltyAppliedPaise ?? 0;
   const loyaltyRemaining = Math.max(0, loyaltyAvailable - loyaltyApplied);
   const totalPaise = groupPreview?.totalPaise ?? cart?.totalPaise ?? 0;
-  const conveniencePaise = groupPreview?.convenienceFeePaise ?? cart?.convenienceFeePaise ?? 200;
   const otherLegs = groupPreview?.legs.filter((l) => l.restaurantId !== restaurantId) ?? [];
   const isCrossByPreview = Boolean(groupPreview && groupPreview.legs.length > 1);
   const itemsBeforeOffersPaise = isCrossByPreview
@@ -591,7 +600,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
           if (fee > 0) {
             return (
               <div className="flex justify-between text-foreground/70">
-                <span>Delivery (Shiprocket + ₹5)</span>
+                <span>Delivery</span>
                 <span className="tabular">{formatInr(fee)}</span>
               </div>
             );
@@ -625,18 +634,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
           );
         })()}
 
-        <div className="flex justify-between text-foreground/70">
-
-          <span>Convenience fee</span>
-
-          <span className="tabular">{formatInr(conveniencePaise)}</span>
-
-        </div>
-
-        <div className="flex justify-between text-on-surface-variant">
-          <span className="line-through">Platform markup</span>
-          <span className="italic">We&apos;re not those guys</span>
-        </div>
+        {/* S1.9 — micro-fees (₹2/item, ₹2 WA, ₹3 delivery rail) are folded into Total Payable; no line items. */}
 
         <div className="flex justify-between text-on-surface-variant">
           <span className="line-through">Packaging fees</span>

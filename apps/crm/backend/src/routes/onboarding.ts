@@ -4,8 +4,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, restaurants } from "@damigos/db";
 import { FssaiVerifyError, verifyFssaiLicense } from "../lib/fssai-verify.js";
+import { validateBankDetails } from "../lib/bank-validation.js";
 import {
   autoProvisionOnboardingTenant,
+  BankGateError,
   onboardingAutoApproveEnabled,
 } from "../lib/onboarding-auto-provision.js";
 import { enforceRestaurantScope, requireStaff } from "../lib/require-staff.js";
@@ -21,6 +23,11 @@ const applicationBody = z.object({
   fssai: z.string().optional(),
   dpdpAccepted: z.literal(true),
   whatsappGatewayAccepted: z.literal(true),
+  /** S1.2 — settlement bank (validated before activation) */
+  bankAccountName: z.string().max(128).optional(),
+  bankAccountNumber: z.string().max(32).optional(),
+  bankIfsc: z.string().max(16).optional(),
+  bankName: z.string().max(128).optional(),
 });
 
 /** C-01.01 — public onboarding + FSSAI verify */
@@ -32,6 +39,19 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
         error: {
           code: "INVALID_REQUEST",
           message: parsed.error.flatten().formErrors.join("; ") || "Invalid onboarding payload",
+          correlationId: request.id,
+        },
+      });
+    }
+
+    // S1.2 — bank gate: no activation (or pending application) without valid bank fields
+    const bank = validateBankDetails(parsed.data);
+    if (!bank.ok) {
+      return reply.status(422).send({
+        error: {
+          code: "BANK_DETAILS_REQUIRED",
+          message: "Valid bank details are required before activation",
+          fields: bank.errors,
           correlationId: request.id,
         },
       });
@@ -63,12 +83,26 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
           dietType: parsed.data.dietType,
           fssai: parsed.data.fssai,
           fssaiVerification: fssaiVerification,
+          bankAccountName: parsed.data.bankAccountName,
+          bankAccountNumber: parsed.data.bankAccountNumber,
+          bankIfsc: parsed.data.bankIfsc,
+          bankName: parsed.data.bankName,
         });
         return {
           ...activated,
           fssaiVerification,
         };
       } catch (err) {
+        if (err instanceof BankGateError) {
+          return reply.status(422).send({
+            error: {
+              code: "BANK_DETAILS_REQUIRED",
+              message: err.message,
+              fields: err.fields,
+              correlationId: request.id,
+            },
+          });
+        }
         const message = err instanceof Error ? err.message : "Activation failed";
         return reply.status(500).send({
           error: { code: "ACTIVATION_FAILED", message, correlationId: request.id },
@@ -129,10 +163,18 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     };
 
     const onboardingComplete = Boolean(r.onboardingCompletedAt ?? row.slug);
+    const bankCheck = validateBankDetails(row);
 
     return {
       restaurantId,
       onboardingComplete,
+      /** S1.2 — bank fields valid for settlement/activation */
+      bankReady: bankCheck.ok,
+      bankErrors: bankCheck.ok ? null : bankCheck.errors,
+      activationBlockers: bankCheck.ok ? [] : ["BANK_DETAILS_REQUIRED"],
+      welcomeCreditGranted: Boolean(
+        (row as typeof row & { welcomeCreditGrantedAt?: Date | null }).welcomeCreditGrantedAt,
+      ),
       onboardingCompletedAt: r.onboardingCompletedAt?.toISOString() ?? null,
       fssaiNumber: r.fssaiNumber ?? null,
       fssaiVerifiedAt: r.fssaiVerifiedAt?.toISOString() ?? null,

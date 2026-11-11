@@ -15,6 +15,7 @@ import {
   fetchRewardClaims,
   fetchOpenCartSession,
   formatInr,
+  type GuestMenuCategory,
   type GuestMenuItem,
   type CartResponse,
   type CrossBySession,
@@ -37,6 +38,8 @@ type Props = {
   restaurantId: string;
   restaurantName: string;
   items: GuestMenuItem[];
+  /** S2.2 — visible categories in owner order; items group under these in the full menu */
+  categories?: GuestMenuCategory[];
   /** From hub VEG toggle → `/menu?veg=1` */
   initialFilter?: Filter;
 };
@@ -73,6 +76,7 @@ export function MenuShop({
   restaurantId,
   restaurantName,
   items,
+  categories = [],
   initialFilter = "all",
 }: Props) {
   const router = useRouter();
@@ -132,7 +136,7 @@ export function MenuShop({
 
   useEffect(() => {
     void fetchActiveOffers(restaurantId)
-      .then((rows) => setKitchenOffers(rows.slice(0, 8)))
+      .then((rows) => setKitchenOffers(rows.filter((o) => o.prizeType !== "no_prize").slice(0, 8)))
       .catch(() => setKitchenOffers([]));
   }, [restaurantId]);
 
@@ -215,6 +219,25 @@ export function MenuShop({
     const ids = new Set(topPicks.map((i) => i.id));
     return filtered.filter((i) => !ids.has(i.id));
   }, [filtered, topPicks]);
+
+  // S2.2 — full menu grouped by owner-defined category (uncategorised last)
+  const restGroups = useMemo(() => {
+    const groups: { id: string; name: string; items: GuestMenuItem[] }[] = [];
+    const known = new Set(categories.map((c) => c.id));
+    for (const cat of categories) {
+      const catItems = rest.filter((i) => i.categoryId === cat.id);
+      if (catItems.length) groups.push({ id: cat.id, name: cat.name, items: catItems });
+    }
+    const uncategorised = rest.filter((i) => !i.categoryId || !known.has(i.categoryId));
+    if (uncategorised.length) {
+      groups.push({
+        id: "uncategorised",
+        name: groups.length ? "More dishes" : "Full menu",
+        items: uncategorised,
+      });
+    }
+    return groups;
+  }, [rest, categories]);
 
   async function onAdd(item: GuestMenuItem, quantity: number) {
     if (!getGuestToken()) {
@@ -570,10 +593,12 @@ export function MenuShop({
         ) : null}
 
         {rest.length > 0 ? (
-          <section id="menu-full">
-            <h2 className="font-display mb-3 text-[18px] font-bold tracking-tight">Full menu</h2>
+          <section id="menu-full" className="space-y-6">
+            {restGroups.map((group) => (
+            <div key={group.id} id={`menu-cat-${group.id}`} data-testid="menu-category-group">
+            <h2 className="font-display mb-3 text-[18px] font-bold tracking-tight">{group.name}</h2>
             <ul className="space-y-4">
-              {rest.map((item, idx) => {
+              {group.items.map((item, idx) => {
                 const other = otherAppsLabel(item.pricePaise, item.referencePricePaise);
                 return (
                   <li key={item.id} className="flex gap-3">
@@ -623,6 +648,8 @@ export function MenuShop({
                 );
               })}
             </ul>
+            </div>
+            ))}
           </section>
         ) : null}
 
@@ -662,17 +689,22 @@ export function MenuShop({
               Top Picks
               <span className="tabular text-on-surface-variant">{topPicks.length}</span>
             </button>
-            <button
-              type="button"
-              className="pressable flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-[15px] font-semibold hover:bg-surface-container-low"
-              onClick={() => {
-                setMenuOpen(false);
-                document.getElementById("menu-full")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Full menu
-              <span className="tabular text-on-surface-variant">{rest.length}</span>
-            </button>
+            {restGroups.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                className="pressable flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-[15px] font-semibold hover:bg-surface-container-low"
+                onClick={() => {
+                  setMenuOpen(false);
+                  document
+                    .getElementById(`menu-cat-${group.id}`)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                {group.name}
+                <span className="tabular text-on-surface-variant">{group.items.length}</span>
+              </button>
+            ))}
             <Button className="pressable mt-2 w-full" onClick={() => setMenuOpen(false)}>
               Close
             </Button>

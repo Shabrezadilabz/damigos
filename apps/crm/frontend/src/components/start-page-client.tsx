@@ -26,7 +26,7 @@ const CUISINE_TAGS = [
 
 const ONBOARDING_STEPS = [
   { label: "Entity Baseline", hint: "Legal entity, zone, and how you fulfill orders." },
-  { label: "Compliance", hint: "FSSAI and regulatory checks before go-live." },
+  { label: "Compliance", hint: "FSSAI and settlement bank details — required before go-live." },
   { label: "Review", hint: "Confirm details — we will activate your tenant before owner login unlocks. Upload menus later in Menu." },
 ] as const;
 
@@ -76,6 +76,27 @@ const FEATURES = [
   },
 ] as const;
 
+type BankFields = {
+  bankAccountName: string;
+  bankAccountNumber: string;
+  bankIfsc: string;
+  bankName: string;
+};
+
+/** Mirrors backend `validateBankDetails` (S1.2). */
+function validateBankFields(f: BankFields): Partial<Record<keyof BankFields, string>> {
+  const errors: Partial<Record<keyof BankFields, string>> = {};
+  if (f.bankAccountName.trim().length < 2) errors.bankAccountName = "Account holder name is required";
+  if (!/^\d{9,18}$/.test(f.bankAccountNumber.replace(/\s/g, ""))) {
+    errors.bankAccountNumber = "Account number must be 9–18 digits";
+  }
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bankIfsc.trim().toUpperCase())) {
+    errors.bankIfsc = "IFSC must look like HDFC0001234";
+  }
+  if (f.bankName.trim().length < 2) errors.bankName = "Bank name is required";
+  return errors;
+}
+
 function fieldClass() {
   return "h-11 w-full rounded-lg bg-surface-container-low px-3 text-sm text-foreground transition focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20";
 }
@@ -110,14 +131,21 @@ export function StartPageClient() {
   const [fulfillmentRadiusKm, setFulfillmentRadiusKm] = useState<string>("6.5");
   const [dpdpAccepted, setDpdpAccepted] = useState(true);
   const [waAccepted, setWaAccepted] = useState(true);
+  /** S1.2 — settlement bank (required before activation) */
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankIfsc, setBankIfsc] = useState("");
+  const [bankName, setBankName] = useState("");
+  const bankErrors = validateBankFields({ bankAccountName, bankAccountNumber, bankIfsc, bankName });
+  const bankReady = Object.keys(bankErrors).length === 0;
   const fulfillmentMeta = FULFILLMENT_MODES.find((m) => m.value === fulfillmentMode)!;
   const step1Ready = dpdpAccepted && waAccepted && selectedCuisines.size > 0;
   const canContinue =
     onboardingStep === 1
       ? step1Ready
       : onboardingStep === 2
-        ? fssaiChoice !== "verify" || Boolean(fssaiOk)
-        : true;
+        ? (fssaiChoice !== "verify" || Boolean(fssaiOk)) && bankReady
+        : bankReady;
 
   useEffect(() => {
     try {
@@ -174,6 +202,10 @@ export function StartPageClient() {
         fssai: fssaiChoice === "verify" && fssaiOk ? fssaiOk.fssaiNumber : fssai.trim() || undefined,
         dpdpAccepted: true,
         whatsappGatewayAccepted: true,
+        bankAccountName: bankAccountName.trim(),
+        bankAccountNumber: bankAccountNumber.replace(/\s/g, ""),
+        bankIfsc: bankIfsc.trim().toUpperCase(),
+        bankName: bankName.trim(),
       });
       const submittedAt = new Date().toLocaleString();
       if (res.status === "ACTIVE") {
@@ -646,6 +678,75 @@ export function StartPageClient() {
                       </p>
                     )}
                   </div>
+                  <div
+                    className="flex flex-col gap-3 rounded-xl border border-outline-variant/40 bg-surface-container-low/50 p-3"
+                    data-testid="onboarding-bank-gate"
+                  >
+                    <span className="text-xs font-semibold text-on-surface-variant">
+                      Settlement bank account <span className="text-red-600">*</span>
+                    </span>
+                    <p className="text-[10px] text-on-surface-variant">
+                      Required before activation — daily payouts settle to this account.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-on-surface-variant">
+                        Account holder name
+                        <input
+                          className={fieldClass()}
+                          value={bankAccountName}
+                          onChange={(e) => setBankAccountName(e.target.value)}
+                          autoComplete="off"
+                        />
+                        {bankAccountName && bankErrors.bankAccountName ? (
+                          <span className="text-[10px] font-normal text-red-700">{bankErrors.bankAccountName}</span>
+                        ) : null}
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-on-surface-variant">
+                        Bank name
+                        <input
+                          className={fieldClass()}
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
+                          autoComplete="off"
+                        />
+                        {bankName && bankErrors.bankName ? (
+                          <span className="text-[10px] font-normal text-red-700">{bankErrors.bankName}</span>
+                        ) : null}
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-on-surface-variant">
+                        Account number
+                        <input
+                          className={cn(fieldClass(), "font-mono")}
+                          inputMode="numeric"
+                          value={bankAccountNumber}
+                          onChange={(e) => setBankAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 18))}
+                          autoComplete="off"
+                        />
+                        {bankAccountNumber && bankErrors.bankAccountNumber ? (
+                          <span className="text-[10px] font-normal text-red-700">{bankErrors.bankAccountNumber}</span>
+                        ) : null}
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-on-surface-variant">
+                        IFSC
+                        <input
+                          className={cn(fieldClass(), "font-mono uppercase")}
+                          value={bankIfsc}
+                          maxLength={11}
+                          onChange={(e) => setBankIfsc(e.target.value.toUpperCase())}
+                          placeholder="HDFC0001234"
+                          autoComplete="off"
+                        />
+                        {bankIfsc && bankErrors.bankIfsc ? (
+                          <span className="text-[10px] font-normal text-red-700">{bankErrors.bankIfsc}</span>
+                        ) : null}
+                      </label>
+                    </div>
+                    {!bankReady ? (
+                      <p className="text-[10px] text-amber-900">
+                        Enter valid bank details to continue — activation is blocked until they pass validation.
+                      </p>
+                    ) : null}
+                  </div>
                   <OnboardingPromoCarousel variant="compact" />
                   </>
                 ) : null}
@@ -692,6 +793,14 @@ export function StartPageClient() {
                               : "—",
                         tone: "bg-emerald-50",
                       },
+                      {
+                        icon: "account_balance",
+                        title: "Settlement bank",
+                        value: bankReady
+                          ? `${bankName.trim()} · ••••${bankAccountNumber.slice(-4)} · ${bankIfsc.trim().toUpperCase()}`
+                          : "Missing — go back to Compliance",
+                        tone: "bg-violet-50",
+                      },
                     ].map((row) => (
                       <div
                         key={row.title}
@@ -729,7 +838,13 @@ export function StartPageClient() {
                 <button
                   type="button"
                   disabled={!canContinue || submitBusy}
-                  title={!step1Ready && onboardingStep === 1 ? "Accept consents and pick at least one cuisine" : undefined}
+                  title={
+                    !step1Ready && onboardingStep === 1
+                      ? "Accept consents and pick at least one cuisine"
+                      : !bankReady && onboardingStep >= 2
+                        ? "Valid bank details are required before activation"
+                        : undefined
+                  }
                   className={cn(
                     "flex h-[52px] items-center justify-center gap-2 rounded-xl text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25",
                     onboardingStep > 1 ? "flex-[2]" : "w-full",

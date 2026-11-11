@@ -7,6 +7,7 @@ export async function ensureKitchenSchema() {
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS lat double precision`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS lng double precision`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS geo_updated_at timestamptz`,
+    sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS welcome_credit_granted_at timestamptz`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS committed_prep_minutes integer`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS extended_prep_minutes integer NOT NULL DEFAULT 0`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS prep_deadline_at timestamptz`,
@@ -49,6 +50,8 @@ export async function ensureKitchenSchema() {
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_verified_at timestamptz`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_verify_source varchar(32)`,
     sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS scope varchar(32) NOT NULL DEFAULT 'RESTAURANT_SCOPED'`,
+    // S3.1 — settlement rail tag (DIRECT | ONDC)
+    sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rail varchar(16) NOT NULL DEFAULT 'DIRECT'`,
   ];
   for (const statement of statements) {
     try {

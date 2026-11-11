@@ -2,8 +2,18 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { hashPhone, phoneLast4 } from "@damigos/auth";
 import { db, restaurants, userRestaurantRoles, users } from "@damigos/db";
+import { validateBankDetails, type BankFieldErrors } from "./bank-validation.js";
 import type { FssaiVerifyResult } from "./fssai-verify.js";
 import { ensureOnboardingSchema } from "./ensure-onboarding-schema.js";
+import { ensureSettlementSchema } from "./ensure-settlement-schema.js";
+import { grantWelcomeCreditIfEligible } from "./wallet.js";
+
+/** S1.2 — thrown when activation is attempted without valid settlement bank fields. */
+export class BankGateError extends Error {
+  constructor(public fields: BankFieldErrors) {
+    super("Valid bank details are required before activation");
+  }
+}
 
 export type AutoProvisionInput = {
   legalName: string;
@@ -16,6 +26,11 @@ export type AutoProvisionInput = {
   dietType?: "veg" | "non_veg" | "both";
   fssai?: string;
   fssaiVerification?: FssaiVerifyResult | null;
+  /** S1.2 — required to activate */
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankIfsc?: string;
+  bankName?: string;
 };
 
 function normalizePhone(phone: string): string {
@@ -40,7 +55,12 @@ export function onboardingAutoApproveEnabled(): boolean {
 }
 
 export async function autoProvisionOnboardingTenant(input: AutoProvisionInput) {
+  // S1.2 — bank gate runs before anything is written
+  const bank = validateBankDetails(input);
+  if (!bank.ok) throw new BankGateError(bank.errors);
+
   await ensureOnboardingSchema();
+  await ensureSettlementSchema();
 
   const phone = normalizePhone(input.phone);
   if (phone.length < 10) {
@@ -99,6 +119,11 @@ export async function autoProvisionOnboardingTenant(input: AutoProvisionInput) {
       fssaiNumber,
       fssaiVerifiedAt: input.fssaiVerification ? now : null,
       dietType,
+      bankAccountName: bank.normalized.bankAccountName,
+      bankAccountNumber: bank.normalized.bankAccountNumber,
+      bankIfsc: bank.normalized.bankIfsc,
+      bankName: bank.normalized.bankName,
+      bankDetailsUpdatedAt: now,
     })
     .returning({ id: restaurants.id, slug: restaurants.slug });
 
@@ -108,11 +133,18 @@ export async function autoProvisionOnboardingTenant(input: AutoProvisionInput) {
     role: "RESTAURANT_OWNER",
   });
 
+  // S1.1 — first ACTIVE → ₹1000 Grow welcome credit (idempotent)
+  const welcome = await grantWelcomeCreditIfEligible(restaurant.id).catch((err) => {
+    console.warn("[onboarding] welcome credit failed", err);
+    return null;
+  });
+
   return {
     applicationId: randomUUID(),
     status: "ACTIVE" as const,
     restaurantId: restaurant.id,
     restaurantSlug: restaurant.slug,
+    welcomeCreditPaise: welcome?.granted ? welcome.amountPaise : 0,
     phone,
     message: "Tenant activated for testing — sign in with your director mobile and OTP.",
   };

@@ -214,9 +214,11 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
               <div className="mt-1 text-[12px] text-on-surface-variant">
                 {quote.firstOrderFree ? (
                   <p>
-                    <span className="tabular line-through opacity-60">
-                      {formatInr(quote.grossDeliveryFeePaise)}
-                    </span>{" "}
+                    {quote.grossDeliveryFeePaise > 0 ? (
+                      <span className="tabular line-through opacity-60">
+                        {formatInr(quote.grossDeliveryFeePaise)}
+                      </span>
+                    ) : null}{" "}
                     <span className="font-bold text-success">FREE</span>
                     <span className="mt-0.5 block text-[11px] font-semibold text-primary">
                       {quote.subsidyLabel ?? "First-Order FREE Delivery"}
@@ -224,7 +226,7 @@ export function CheckoutDelivery({ restaurantId, onQuoted, onPayAllowedChange }:
                   </p>
                 ) : (
                   <p>
-                    Shiprocket + {formatInr(quote.platformMarkupPaise)}:{" "}
+                    Delivery:{" "}
                     <span className="font-semibold tabular text-foreground">
                       {formatInr(quote.deliveryFeePaise)}
                     </span>

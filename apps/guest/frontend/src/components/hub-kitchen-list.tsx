@@ -64,25 +64,25 @@ function KitchenCard({
     <Link
       href={href ?? r.menuPath}
       onClick={onClick}
-      className="pressable block w-[12rem] shrink-0 overflow-hidden rounded-[22px] border border-[#E2E5EE] bg-white shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
+      className="pressable block w-[12rem] shrink-0 overflow-hidden rounded-[22px] border border-border bg-card shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={r.cover} alt="" className="h-full w-full object-cover" />
         {r.badge === "delivery_promise" ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115] shadow-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-card/95 px-2.5 py-0.5 text-[10px] font-extrabold text-foreground shadow-sm">
             <MaterialIcon name="timer" className="text-[12px]" />
             Delivery Promise
           </span>
         ) : (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115] shadow-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground shadow-sm">
             <MaterialIcon name="sell" className="text-[12px]" />
             Lowest Price
           </span>
         )}
       </div>
       <div className="px-3 py-3">
-        <p className="truncate font-display text-[15px] font-extrabold leading-snug tracking-tight text-[#0F1115]">
+        <p className="truncate font-display text-[15px] font-extrabold leading-snug tracking-tight text-foreground">
           {r.name}
         </p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1 text-[11px] font-semibold text-on-surface-variant">

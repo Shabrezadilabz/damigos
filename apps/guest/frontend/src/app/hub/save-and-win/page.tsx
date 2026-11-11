@@ -14,7 +14,7 @@ const SAMPLE_OFFERS = [
   "Scratch: up to ₹100",
   "Buy 1 get dessert bite",
   "₹75 kitchen credit",
-  "Win up to ₹600 pool",
+  "Win up to ₹200 pool",
 ];
 
 function ensureReferralCode(): string {
@@ -139,7 +139,7 @@ export default function SaveAndWinPage() {
           <span className="w-11" aria-hidden />
         </div>
         <h1 className="font-display text-[32px] font-medium leading-tight tracking-tight">
-          Win up to <span className="qa-highlight">₹600</span>
+          Win up to <span className="qa-highlight">₹200</span>
         </h1>
         <p className="mt-2 max-w-sm text-[14px] font-light text-[#525252]">
           Share your invite link to a friend&apos;s WhatsApp. When they open it and opt in, you unlock

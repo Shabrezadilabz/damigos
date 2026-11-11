@@ -14,7 +14,8 @@ type Piece = {
   kind: "rect" | "dot";
 };
 
-const COLORS = ["#e23744", "#f3bf51", "#16a34a", "#ffffff", "#ffdea3", "#60a5fa"];
+/** YUMM plum / milk / soft rose confetti */
+const COLORS = ["#381932", "#b98aae", "#fff3e6", "#5a3352", "#ebd5bf", "#7a4f70", "#f6e4cf", "#c2412d"];
 
 /** Lightweight paper-blast / sparkle confetti for Sparkle Win sheet. */
 export function WinConfetti({ active, burstKey = 0 }: { active: boolean; burstKey?: number }) {
@@ -22,11 +23,11 @@ export function WinConfetti({ active, burstKey = 0 }: { active: boolean; burstKe
 
   const pieces = useMemo(() => {
     if (!active) return [] as Piece[];
-    return Array.from({ length: 48 }, (_, i) => ({
+    return Array.from({ length: 56 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      delay: Math.random() * 0.35,
-      duration: 1.4 + Math.random() * 1.2,
+      delay: Math.random() * 0.4,
+      duration: 1.5 + Math.random() * 1.3,
       rotate: Math.random() * 720 - 360,
       color: COLORS[i % COLORS.length]!,
       w: 4 + Math.random() * 8,
@@ -42,17 +43,14 @@ export function WinConfetti({ active, burstKey = 0 }: { active: boolean; burstKe
       return;
     }
     setShow(true);
-    const t = window.setTimeout(() => setShow(false), 2800);
+    const t = window.setTimeout(() => setShow(false), 3000);
     return () => window.clearTimeout(t);
   }, [active, burstKey]);
 
   if (!show || pieces.length === 0) return null;
 
   return (
-    <div
-      className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
-      aria-hidden
-    >
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden" aria-hidden>
       {pieces.map((p) => (
         <span
           key={`${burstKey}-${p.id}`}

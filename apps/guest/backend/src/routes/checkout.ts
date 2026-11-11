@@ -21,7 +21,6 @@ import {
 } from "../lib/order-status-buckets.js";
 import { captureOrderPayment, insertPendingOrder } from "../lib/capture-order-payment.js";
 import { loadOpenCheckoutCart } from "../lib/checkout-from-cart.js";
-import { CONVENIENCE_FEE_PAISE } from "../lib/cart-totals.js";
 import { creditLoyaltyPayback, debitLoyaltyCredits } from "../lib/guest-loyalty.js";
 
 import { paymentMode, razorpayKeyId } from "../lib/payment-mode.js";
@@ -451,7 +450,8 @@ export async function registerCheckoutRoutes(app: FastifyInstance) {
 
         subtotalPaise,
 
-        convenienceFeePaise: CONVENIENCE_FEE_PAISE,
+        // S1.9 — silent micro-fees folded into total
+        convenienceFeePaise: snapshot.microFeesPaise,
 
         discountPaise: combinedDiscount,
 

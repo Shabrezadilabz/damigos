@@ -10,6 +10,7 @@ export async function ensureSettlementSchema() {
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payout_frozen_until timestamptz`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payout_freeze_reason varchar(128)`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS bank_details_updated_at timestamptz`,
+    sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rail varchar(16) NOT NULL DEFAULT 'DIRECT'`,
     sql`CREATE TABLE IF NOT EXISTS restaurant_daily_settlements (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       restaurant_id uuid NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -29,6 +30,11 @@ export async function ensureSettlementSchema() {
       created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE (restaurant_id, business_date)
     )`,
+    // S3.1 — per-rail EOD split (Direct vs ONDC)
+    sql`ALTER TABLE restaurant_daily_settlements ADD COLUMN IF NOT EXISTS direct_order_count integer NOT NULL DEFAULT 0`,
+    sql`ALTER TABLE restaurant_daily_settlements ADD COLUMN IF NOT EXISTS ondc_order_count integer NOT NULL DEFAULT 0`,
+    sql`ALTER TABLE restaurant_daily_settlements ADD COLUMN IF NOT EXISTS direct_share_paise integer NOT NULL DEFAULT 0`,
+    sql`ALTER TABLE restaurant_daily_settlements ADD COLUMN IF NOT EXISTS ondc_share_paise integer NOT NULL DEFAULT 0`,
   ];
   for (const statement of statements) {
     try {

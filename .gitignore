@@ -8,5 +8,12 @@ dist/
 drizzle/meta/
 .vercel
 .env*
+*.tsbuildinfo
+.tmp-*
+.vercel-*.txt
+.vercel-*.json
+test-results/
+playwright-report/
+Untitled
 apps/*/backend/api/bundle.mjs
 apps/crm/backend/api/otp-verify-bundle.mjs

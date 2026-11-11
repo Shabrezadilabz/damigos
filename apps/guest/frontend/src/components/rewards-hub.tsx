@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/material-icon";
+import { ScratchCard } from "@/components/scratch-card";
 import { WaChrome } from "@/components/wa-chrome";
 import { WinConfetti } from "@/components/win-confetti";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/lib/api";
 import { ProfileConsentSheet } from "@/components/profile-consent-sheet";
 import { getGuestToken } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 type Props = {
   restaurantId: string;
@@ -36,9 +38,13 @@ type OfferChip = {
   prizeValue?: number;
 };
 
-const WHEEL_COLORS = ["#E23744", "#16A34A", "#F59E0B", "#2563EB", "#A855F7", "#0EA5E9", "#EC4899", "#84CC16"];
+/** YUMM plum / milk wheel wedges */
+const WHEEL_COLORS = ["#381932", "#5a3352", "#7a4f70", "#b98aae", "#a37798", "#2a1226", "#86717f", "#6b5466"];
+
+const SPIN_MS = 3200;
 
 function prizeBadge(o: OfferChip) {
+  if (o.prizeType === "no_prize") return "Better luck";
   if (o.prizeType === "percent" && o.prizeValue != null) return `${o.prizeValue}% off`;
   if (o.prizeType === "flat_off_paise" && o.prizeValue != null)
     return `₹${Math.round(o.prizeValue / 100)} off`;
@@ -47,6 +53,15 @@ function prizeBadge(o: OfferChip) {
       ? `Free · upto ₹${Math.round(o.prizeValue / 100)}`
       : "Free item";
   return "Perk";
+}
+
+function findSegmentIndex(segments: OfferChip[], outcome: RewardOutcome | null | undefined): number {
+  if (!outcome || segments.length === 0) return 0;
+  const byTitle = segments.findIndex((s) => s.title === outcome.title);
+  if (byTitle >= 0) return byTitle;
+  const byType = segments.findIndex((s) => s.prizeType && s.prizeType === outcome.prizeType);
+  if (byType >= 0) return byType;
+  return 0;
 }
 
 export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitchen" }: Props) {
@@ -63,7 +78,13 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
   const [burstKey, setBurstKey] = useState(0);
   const [claiming, setClaiming] = useState(false);
   const [wheelDeg, setWheelDeg] = useState(0);
-  const [scratchReveal, setScratchReveal] = useState(0);
+  const [scratchForced, setScratchForced] = useState(0);
+  const [pendingScratch, setPendingScratch] = useState<{
+    playId: string;
+    outcome: RewardOutcome;
+  } | null>(null);
+  /** S1.7 — "Better luck next time" segment: no claim, no redeem CTA */
+  const noPrize = outcome?.prizeType === "no_prize";
 
   const loadPlay = useCallback(async () => {
     if (!scanId) return;
@@ -72,7 +93,9 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
       setPlayId(res.play.playId);
       setOutcome(res.play.outcome);
       setClaimed(res.play.claimed);
-      if (res.play.outcome && !res.play.claimed) setWinOpen(true);
+      if (res.play.outcome && !res.play.claimed && res.play.outcome.prizeType !== "no_prize") {
+        setWinOpen(true);
+      }
     }
   }, [scanId]);
 
@@ -88,7 +111,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
     return [
       { id: "p1", title: "15% off", description: null },
       { id: "p2", title: "₹50 off", description: null },
-      { id: "p3", title: "Free drink", description: null },
+      { id: "p3", title: "Better luck next time", description: null, prizeType: "no_prize" },
       { id: "p4", title: "₹20 off", description: null },
     ];
   }, [offers]);
@@ -103,6 +126,16 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
     return `conic-gradient(from -90deg, ${parts.join(", ")})`;
   }, [segments]);
 
+  function openWin(next: RewardOutcome, nextPlayId: string) {
+    setPlayId(nextPlayId);
+    setOutcome(next);
+    setBurstKey((k) => k + 1);
+    setWinOpen(true);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(next.prizeType === "no_prize" ? [12, 40, 12] : [20, 40, 20, 40, 60]);
+    }
+  }
+
   async function onSpin() {
     if (!scanId) {
       setError("Rescan packaging QR to unlock rewards.");
@@ -110,37 +143,44 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
     }
     setSpinning(true);
     setError(null);
-    setScratchReveal(0);
+    setScratchForced(0);
+    setPendingScratch(null);
     try {
       const res = await spinReward({ restaurantId, scanId, mode });
-      const idx = Math.max(
-        0,
-        segments.findIndex((s) => s.title === res.outcome?.title),
-      );
-      const n = segments.length || 1;
-      const segmentAngle = 360 / n;
-      const target =
-        360 * 5 + (360 - (idx * segmentAngle + segmentAngle / 2)) + Math.floor(Math.random() * 8);
-      setWheelDeg((d) => d + target);
-      await new Promise((r) => window.setTimeout(r, mode === "spin" ? 2200 : 900));
-      if (mode === "scratch") {
-        for (let p = 0; p <= 100; p += 20) {
-          setScratchReveal(p);
-          await new Promise((r) => window.setTimeout(r, 80));
-        }
-      }
-      setPlayId(res.playId);
-      setOutcome(res.outcome);
-      setBurstKey((k) => k + 1);
-      setWinOpen(true);
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate([20, 40, 20, 40, 60]);
+      if (!res.outcome) throw new Error("No prize returned");
+
+      if (mode === "spin") {
+        const idx = findSegmentIndex(segments, res.outcome);
+        const n = segments.length || 1;
+        const segmentAngle = 360 / n;
+        // Pointer at top (−90° in conic); land mid-wedge under pointer
+        const midFromStart = idx * segmentAngle + segmentAngle / 2;
+        const land = (360 - midFromStart) % 360;
+        const turns = 5 + Math.floor(Math.random() * 2);
+        setWheelDeg((d) => {
+          const current = ((d % 360) + 360) % 360;
+          const delta = (land - current + 360) % 360;
+          return d + turns * 360 + delta;
+        });
+        await new Promise((r) => window.setTimeout(r, SPIN_MS));
+        openWin(res.outcome, res.playId);
+      } else {
+        setPendingScratch({ playId: res.playId, outcome: res.outcome });
+        setOutcome(res.outcome);
+        setPlayId(res.playId);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Spin failed");
     } finally {
       setSpinning(false);
     }
+  }
+
+  function onScratchComplete() {
+    if (!pendingScratch) return;
+    openWin(pendingScratch.outcome, pendingScratch.playId);
+    setPendingScratch(null);
+    setScratchForced(100);
   }
 
   async function onClaim() {
@@ -167,6 +207,8 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
       setClaiming(false);
     }
   }
+
+  const idleWheel = !spinning && !outcome;
 
   return (
     <>
@@ -216,27 +258,30 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
         </div>
 
         <div className="relative overflow-hidden rounded-xl border border-border bg-surface-container p-6 text-foreground shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-success">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
             Dashing Sparkle Zone
           </p>
 
           <div className="relative z-10 mt-4 flex flex-col items-center">
             {mode === "spin" ? (
-              <div className="relative mb-5">
+              <div className={cn("relative mb-5", idleWheel && "wheel-idle-wobble")}>
                 <div
-                  className="absolute left-1/2 top-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1 border-x-[10px] border-t-[16px] border-x-transparent border-t-primary"
+                  className="absolute left-1/2 top-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1 border-x-[10px] border-t-[16px] border-x-transparent border-t-primary drop-shadow"
                   aria-hidden
                 />
                 <div
-                  className="relative flex h-52 w-52 items-center justify-center rounded-full border-4 border-white/20 shadow-inner transition-transform duration-[2200ms] ease-out"
+                  className="relative flex h-52 w-52 items-center justify-center rounded-full border-4 border-card shadow-inner"
                   style={{
                     background: wheelGradient,
                     transform: `rotate(${wheelDeg}deg)`,
                     borderColor: brand?.accentColor || undefined,
+                    transition: spinning
+                      ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.75, 0.12, 1)`
+                      : "transform 400ms ease",
                   }}
                 >
-                  <div className="absolute inset-[18%] flex items-center justify-center rounded-full bg-background text-center text-[11px] font-bold uppercase tracking-wide text-foreground">
-                    {outcome ? "You won!" : spinning ? "…" : "Spin"}
+                  <div className="absolute inset-[18%] flex items-center justify-center rounded-full bg-background text-center text-[11px] font-bold uppercase tracking-wide text-foreground shadow-sm">
+                    {outcome ? (noPrize ? "…" : "Won!") : spinning ? "…" : "Spin"}
                   </div>
                   {segments.map((seg, i) => {
                     const n = segments.length;
@@ -247,7 +292,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                     return (
                       <span
                         key={seg.id}
-                        className="pointer-events-none absolute max-w-[4.2rem] truncate text-center text-[9px] font-bold leading-tight text-white drop-shadow"
+                        className="pointer-events-none absolute max-w-[4.2rem] truncate text-center text-[9px] font-bold leading-tight text-primary-foreground drop-shadow"
                         style={{
                           left: `${x}%`,
                           top: `${y}%`,
@@ -261,38 +306,36 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                 </div>
               </div>
             ) : (
-              <div className="relative mb-5 h-40 w-full max-w-xs overflow-hidden rounded-lg border border-white/15 bg-surface-container-high">
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#EAFF81] p-4 text-center">
-                  <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#525252]">
-                    Hidden perk
-                  </p>
-                  <p className="font-display text-[20px] font-bold text-[#171717]">
-                    {outcome?.title ?? "Scratch to reveal"}
-                  </p>
-                </div>
-                <div
-                  className="absolute inset-0 bg-[repeating-linear-gradient(135deg,#e4e4e7_0_12px,#d4d4d8_12px_24px)] transition-opacity duration-300"
-                  style={{ opacity: Math.max(0, 1 - scratchReveal / 100) }}
-                />
-              </div>
+              <ScratchCard
+                className="mb-5"
+                title={outcome?.title ?? pendingScratch?.outcome.title ?? "Scratch to reveal"}
+                subtitle={pendingScratch || outcome ? "Your perk" : "Hidden perk"}
+                forcedReveal={scratchForced}
+                disabled={!pendingScratch && !outcome}
+                onRevealComplete={onScratchComplete}
+              />
             )}
 
-            {!outcome ? (
+            {!outcome && !pendingScratch ? (
               <Button
-                className="pressable w-full max-w-xs bg-success text-white hover:bg-success/90"
+                className="pressable w-full max-w-xs"
                 disabled={spinning || !scanId}
                 onClick={() => void onSpin()}
               >
                 {spinning
                   ? mode === "spin"
                     ? "Spinning…"
-                    : "Revealing…"
+                    : "Preparing…"
                   : mode === "spin"
                     ? "Spin the wheel"
-                    : "Scratch & reveal"}
+                    : "Get scratch card"}
               </Button>
+            ) : pendingScratch ? (
+              <p className="text-center text-xs font-semibold text-on-surface-variant">
+                Scratch the foil to reveal your perk
+              </p>
             ) : (
-              <Button className="pressable w-full max-w-xs" onClick={() => setWinOpen(true)}>
+              <Button className="pressable w-full max-w-xs" variant="accent" onClick={() => setWinOpen(true)}>
                 View pouch perk
               </Button>
             )}
@@ -313,7 +356,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
 
       {winOpen && outcome ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-primary/55 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sparkle-win-title"
@@ -322,13 +365,20 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
           }}
         >
           <div className="sparkle-win-sheet sheet-spring relative w-full max-w-lg overflow-hidden rounded-t-[28px] border border-border bg-surface-container-lowest p-6 pb-safe text-foreground shadow-2xl">
-            <WinConfetti active={winOpen && !claimed} burstKey={burstKey} />
+            <WinConfetti active={winOpen && !claimed && !noPrize} burstKey={burstKey} />
             <div className="relative z-10">
               <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-success">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
+                    noPrize
+                      ? "bg-secondary text-on-surface-variant"
+                      : "bg-accent/30 text-primary",
+                  )}
+                >
                   <MaterialIcon name="auto_awesome" className="sparkle-icon text-[14px]" />
-                  Pouch Perk Unlocked
+                  {noPrize ? "No win this time" : "Pouch Perk Unlocked"}
                 </span>
                 <span className="rounded-full border border-border bg-surface-container px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                   {outcome.billLabel ??
@@ -339,7 +389,10 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
               </div>
               <h2
                 id="sparkle-win-title"
-                className="font-display text-[28px] font-extrabold tracking-tight text-success"
+                className={cn(
+                  "font-display text-[28px] font-extrabold tracking-tight win-title-pop",
+                  noPrize ? "no-prize-shimmer" : "text-primary",
+                )}
               >
                 {outcome.title}
               </h2>
@@ -347,16 +400,18 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                 <p className="mt-2 text-[14px] text-on-surface-variant">{outcome.description}</p>
               ) : null}
               <p className="mt-2 text-[13px] font-semibold text-foreground">
-                {outcome.prizeType === "percent"
-                  ? `${outcome.prizeValue}% off your bill (max ₹75)`
-                  : outcome.prizeType === "flat_off_paise"
-                    ? `${formatInr(outcome.prizeValue)} off at checkout`
-                    : outcome.prizeType === "free_item"
-                      ? `Free item credit up to ${formatInr(outcome.prizeValue > 0 ? outcome.prizeValue : 9900)}`
-                      : "Redeem on this kitchen’s menu"}
+                {noPrize
+                  ? "No reward to claim — you can still order from the menu."
+                  : outcome.prizeType === "percent"
+                    ? `${outcome.prizeValue}% off your bill (max ₹75)`
+                    : outcome.prizeType === "flat_off_paise"
+                      ? `${formatInr(outcome.prizeValue)} off at checkout`
+                      : outcome.prizeType === "free_item"
+                        ? `Free item credit up to ${formatInr(outcome.prizeValue > 0 ? outcome.prizeValue : 9900)}`
+                        : "Redeem on this kitchen’s menu"}
               </p>
 
-              <div className="mt-5 grid grid-cols-3 gap-2">
+              <div className={cn("mt-5 grid grid-cols-3 gap-2", noPrize && "hidden")}>
                 {[
                   {
                     label: "Min order",
@@ -384,9 +439,14 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                 <p className="mt-3 text-[10px] leading-snug text-on-surface-variant">{outcome.terms}</p>
               ) : null}
 
-              {!claimed ? (
+              {noPrize ? (
+                <Button asChild className="pressable mt-5 w-full">
+                  <Link href={`/r/${restaurantId}/menu`}>Continue to menu</Link>
+                </Button>
+              ) : !claimed ? (
                 <Button
-                  className="pressable mt-5 w-full bg-success text-white hover:bg-success/90"
+                  className="pressable mt-5 w-full"
+                  variant="accent"
                   disabled={claiming}
                   onClick={() => void onClaim()}
                 >
@@ -402,7 +462,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                 className="pressable mt-1 w-full text-on-surface-variant hover:bg-surface-container hover:text-foreground"
                 onClick={() => setWinOpen(false)}
               >
-                Maybe later — we&apos;ll remind you on Spark
+                {noPrize ? "Close" : "Maybe later — we'll remind you on Spark"}
               </Button>
             </div>
           </div>

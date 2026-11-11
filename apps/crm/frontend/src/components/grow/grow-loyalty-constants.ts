@@ -104,6 +104,15 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
         weight: 20,
         scope: "PLATFORM_WIDE",
       },
+      {
+        // S1.7 — no_prize segment (mirrors backend defaultGrowLoyaltyConfig)
+        localId: "s5",
+        title: "Better luck next time",
+        prizeType: "no_prize",
+        prizeValue: 0,
+        weight: 15,
+        scope: "RESTAURANT_SCOPED",
+      },
     ],
     scratch: { minOrderPaise: 59900, offerPresetId: "flat_100" },
     dineIn: rule("pct_10"),

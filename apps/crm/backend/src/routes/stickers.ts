@@ -11,6 +11,12 @@ import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 import { formatInrPaise, quoteStickerPrint } from "../lib/sticker-print-pricing.js";
 import { debitForStickerPrint, recordStickerPrintPayment } from "../lib/wallet.js";
 import {
+  rebaseValidityOnActivation,
+  STICKER_VALID_DAYS_MAX,
+  STICKER_VALID_DAYS_MIN,
+  stickerAutoActivateAllowed,
+} from "../lib/sticker-activation.js";
+import {
   createRazorpayOrder,
   razorpayConfigured,
   razorpayKeyId,
@@ -233,13 +239,16 @@ export async function registerStickerRoutes(app: FastifyInstance) {
     };
   });
 
-  /** Owner generates QR batch on their kitchen account (auto-activates for testing). */
+  /**
+   * Owner generates QR batch on their kitchen account.
+   * Auto-activates ONLY in non-production / when STICKER_AUTO_ACTIVATE=true; production needs explicit activate.
+   */
   app.post("/stickers/generate", { preHandler: ownerMint }, async (request, reply) => {
     const body = z
       .object({
         restaurantId: z.string().uuid(),
         quantity: z.number().int().min(1).max(2000),
-        validDays: z.number().int().min(10).max(15).default(12),
+        validDays: z.number().int().min(STICKER_VALID_DAYS_MIN).max(STICKER_VALID_DAYS_MAX).default(12),
         designId: z.number().int().min(1).optional(),
         designName: z.string().max(120).optional(),
         notes: z.string().max(500).optional(),
@@ -259,6 +268,7 @@ export async function registerStickerRoutes(app: FastifyInstance) {
     const validFrom = new Date();
     const validTo = new Date(validFrom);
     validTo.setDate(validTo.getDate() + validDays);
+    const autoActivate = stickerAutoActivateAllowed();
     const batchCode = `B-${randomBytes(4).toString("hex").toUpperCase()}`;
     const metaNote = [
       notes?.trim(),
@@ -277,7 +287,7 @@ export async function registerStickerRoutes(app: FastifyInstance) {
         quantity,
         validFrom,
         validTo,
-        activatedAt: validFrom,
+        activatedAt: autoActivate ? validFrom : null,
         designId: designId ?? null,
         designName: designName ?? null,
       })
@@ -309,7 +319,8 @@ export async function registerStickerRoutes(app: FastifyInstance) {
       quantity,
       validFrom: batch.validFrom,
       validTo: batch.validTo,
-      activated: true,
+      activated: autoActivate,
+      requiresActivation: !autoActivate,
       designId: designId ?? null,
       designName: designName ?? null,
       notes: metaNote || null,
@@ -788,11 +799,13 @@ export async function registerStickerRoutes(app: FastifyInstance) {
 
     const activatedAt = new Date();
 
+    const rebased = rebaseValidityOnActivation(batch.validFrom, batch.validTo, activatedAt);
+
     const [updated] = await db
 
       .update(stickerBatches)
 
-      .set({ activatedAt, validFrom: activatedAt })
+      .set({ activatedAt, validFrom: rebased.validFrom, validTo: rebased.validTo })
 
       .where(eq(stickerBatches.id, batch.id))
 

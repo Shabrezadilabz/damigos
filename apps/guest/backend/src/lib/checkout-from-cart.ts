@@ -5,7 +5,8 @@ import { deliveryQuoteRequired } from "./delivery-mode.js";
 import { mockServiceable } from "./shiprocket-mock.js";
 import { deliveryMode } from "@damigos/domain";
 import { ensureBestClaimApplied } from "./auto-apply-claim.js";
-import { cartTotalPaise, CONVENIENCE_FEE_PAISE, resolveAppliedClaimDiscount } from "./cart-totals.js";
+import { cartTotalPaise, microFeesPaise, resolveAppliedClaimDiscount } from "./cart-totals.js";
+import { findStaleCartLines, staleCartMessage } from "./cart-price-lock.js";
 import { clampLoyaltyApplyPaise } from "./guest-loyalty.js";
 
 export type CheckoutCartSnapshot = {
@@ -21,6 +22,8 @@ export type CheckoutCartSnapshot = {
   discountPaise: number;
   loyaltyAppliedPaise: number;
   totalPaise: number;
+  /** S1.9 — silent micro-fees folded into totalPaise (stored as orders.convenience_fee_paise) */
+  microFeesPaise: number;
   deliveryFeePaise: number;
   deliveryPincode: string | null;
   deliveryAddressText: string | null;
@@ -55,6 +58,9 @@ export async function loadOpenCheckoutCart(
       quantity: cartItems.quantity,
       unitPricePaise: cartItems.unitPricePaise,
       name: menuItems.name,
+      livePricePaise: menuItems.pricePaise,
+      available: menuItems.available,
+      draft: menuItems.draft,
     })
     .from(cartItems)
     .innerJoin(menuItems, eq(cartItems.menuItemId, menuItems.id))
@@ -62,6 +68,14 @@ export async function loadOpenCheckoutCart(
 
   if (lines.length === 0) {
     return { error: { code: "CART_EMPTY", message: "Cart has no items", status: 400 } };
+  }
+
+  // S1.5 — cart lock: reject if any line's stored price drifted from the live menu price
+  const stale = findStaleCartLines(lines);
+  if (stale.length > 0) {
+    return {
+      error: { code: "CART_PRICE_STALE", message: staleCartMessage(stale), status: 409 },
+    };
   }
 
   const subtotalPaise = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0);
@@ -111,16 +125,25 @@ export async function loadOpenCheckoutCart(
     }
   }
 
+  const itemCount = lines.reduce((s, l) => s + l.quantity, 0);
   const totalPaise = cartTotalPaise(
     subtotalPaise,
     discountPaise,
     deliveryFeePaise,
     loyaltyAppliedPaise,
+    itemCount,
   );
 
   return {
     cart,
-    lines,
+    lines: lines.map((l) => ({
+      lineId: l.lineId,
+      menuItemId: l.menuItemId,
+      quantity: l.quantity,
+      unitPricePaise: l.unitPricePaise,
+      name: l.name,
+    })),
+    microFeesPaise: microFeesPaise(itemCount),
     subtotalPaise,
     discountPaise,
     loyaltyAppliedPaise,
@@ -132,4 +155,4 @@ export async function loadOpenCheckoutCart(
   };
 }
 
-export { CONVENIENCE_FEE_PAISE };
+export { microFeesPaise };

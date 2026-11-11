@@ -2,7 +2,16 @@ import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 import { db, sparkPlaySessions } from "@damigos/db";
 import { normalizeWaPhone } from "./kapso.js";
 
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+/** S1.4 — standard Spark play session lifetime (6h). */
+export const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
+/** S1.4 — ultra-short lifetime (1h) for time-boxed campaigns / programs. */
+export const SESSION_TTL_ULTRA_SHORT_MS = 60 * 60 * 1000;
+
+export type SparkSessionTtl = "6h" | "1h";
+
+export function sparkSessionTtlMs(ttl?: SparkSessionTtl | null): number {
+  return ttl === "1h" ? SESSION_TTL_ULTRA_SHORT_MS : SESSION_TTL_MS;
+}
 
 export function playPathFor(restaurantId: string, scanId?: string | null) {
   return `/r/${restaurantId}${scanId ? `?scan=${scanId}` : ""}`;
@@ -13,10 +22,12 @@ export async function upsertSparkPlaySession(input: {
   scanEventId?: string | null;
   phoneE164?: string | null;
   playPath?: string;
+  /** "1h" = ultra-short session; default "6h" */
+  ttl?: SparkSessionTtl | null;
 }) {
   const playPath = input.playPath ?? playPathFor(input.restaurantId, input.scanEventId);
   const phone = input.phoneE164 ? normalizeWaPhone(input.phoneE164) : null;
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const expiresAt = new Date(Date.now() + sparkSessionTtlMs(input.ttl));
 
   if (phone) {
     const [existing] = await db

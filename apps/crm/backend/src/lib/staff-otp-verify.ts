@@ -3,6 +3,7 @@ import { hashPhone, phoneLast4, signStaffToken } from "@damigos/auth";
 import { db, userRestaurantRoles, users } from "@damigos/db";
 import { isOtpBypassCode } from "./otp-bypass.js";
 import { verifyMsg91Otp } from "./sms-otp.js";
+import { grantWelcomeCreditIfEligible } from "./wallet.js";
 
 export type StaffOtpVerifyResult = {
   verified: true;
@@ -10,6 +11,8 @@ export type StaffOtpVerifyResult = {
   roles: string[];
   restaurantId: string | null;
   expiresIn: string;
+  /** Non-zero only on the login that granted the S1.1 welcome credit */
+  welcomeCreditPaise?: number;
 };
 
 export class StaffOtpError extends Error {
@@ -65,5 +68,16 @@ export async function verifyStaffOtp(phone: string, code: string): Promise<Staff
     restaurantId,
   });
 
-  return { verified: true, token, roles, restaurantId, expiresIn: "12h" };
+  // S1.1 — first post-activate owner login → ₹1000 Grow welcome credit (idempotent, best-effort)
+  let welcomeCreditPaise = 0;
+  if (ownerRow?.restaurantId) {
+    try {
+      const welcome = await grantWelcomeCreditIfEligible(ownerRow.restaurantId);
+      if (welcome.granted) welcomeCreditPaise = welcome.amountPaise;
+    } catch (err) {
+      console.warn("[staff-otp] welcome credit failed", err);
+    }
+  }
+
+  return { verified: true, token, roles, restaurantId, expiresIn: "12h", welcomeCreditPaise };
 }

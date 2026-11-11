@@ -66,6 +66,7 @@ import {
   setCampaignProgramEnabled,
   type CampaignProgramId,
 } from "../lib/grow-campaign-programs.js";
+import { processEnabledCampaignPrograms } from "../lib/grow-program-scheduler.js";
 
 /** CRM keys → Meta names via GROW_KEY_TO_TEMPLATE (@damigos/domain). */
 const APPROVED_TEMPLATES = [
@@ -239,6 +240,31 @@ export async function registerGrowRoutes(app: FastifyInstance) {
       enabled: body.enabled,
       programs: listCampaignProgramsForRestaurant(next),
     };
+  });
+
+  /** S2.3 — owner "run due now" (same logic as the interval scheduler; ignores the IST send window). */
+  app.post("/grow/campaign-programs/run-due", { preHandler: staffOwner }, async (request, reply) => {
+    const body = z.object({ restaurantId: z.string().uuid() }).parse(request.body);
+    await enforceRestaurantScope(request, reply, body.restaurantId);
+    if (reply.sent) return;
+    const summary = await processEnabledCampaignPrograms({
+      restaurantId: body.restaurantId,
+      ignoreSendWindow: true,
+    });
+    return { summary };
+  });
+
+  /** S2.3 — serverless cron hook (Vercel cron / external). Requires CRON_SECRET to be set and matched. */
+  app.post("/internal/cron/grow-programs", async (request, reply) => {
+    const secret = process.env.CRON_SECRET?.trim();
+    const provided = request.headers["x-cron-secret"];
+    if (!secret || provided !== secret) {
+      return reply.status(401).send({
+        error: { code: "UNAUTHORIZED", message: "Invalid cron secret", correlationId: request.id },
+      });
+    }
+    const summary = await processEnabledCampaignPrograms();
+    return { summary };
   });
 
   app.get("/customers", { preHandler: staffGrow }, async (request, reply) => {

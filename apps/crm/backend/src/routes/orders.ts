@@ -114,6 +114,7 @@ export async function registerOrderRoutes(app: FastifyInstance) {
               }
             : null,
           shortOrderId: shortOrderId(order.id),
+          rail: order.rail ?? "DIRECT",
           pickupCode: order.pickupCode ?? null,
           pickupVerifiedAt: order.pickupVerifiedAt?.toISOString() ?? null,
           deliveryOtpSentAt: order.deliveryOtpSentAt?.toISOString() ?? null,

@@ -632,6 +632,16 @@ export function HomePageClient() {
 
                     </p>
 
+                    {overview.settlement7d.rails ? (
+
+                      <p className="mt-1 text-[10px] text-on-surface-variant" data-testid="dashboard-settlement-rails">
+
+                        Direct {overview.settlement7d.rails.direct.orders} · ONDC {overview.settlement7d.rails.ondc.orders}
+
+                      </p>
+
+                    ) : null}
+
                   </div>
 
                 </div>

@@ -49,6 +49,23 @@ export async function createRazorpayOrder(input: {
   return data.id;
 }
 
+/** Fetch the amount (paise) Razorpay actually holds for an order — never trust the client-sent amount. */
+export async function fetchRazorpayOrderAmountPaise(orderId: string): Promise<number | null> {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const secret = keySecret();
+  if (!keyId || !secret) return null;
+  try {
+    const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: basicAuthHeader(keyId, secret) },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { amount?: number };
+    return typeof data.amount === "number" ? data.amount : null;
+  } catch {
+    return null;
+  }
+}
+
 export function verifyPaymentSignature(input: {
   orderId: string;
   paymentId: string;

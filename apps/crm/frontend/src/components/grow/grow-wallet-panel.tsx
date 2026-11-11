@@ -21,6 +21,19 @@ type LedgerTab = "all" | "topup" | "debit";
 const DEFAULT_PACKS = [49900, 99900, 249900];
 const DEFAULT_MIN = 100_000;
 
+const LEDGER_KIND_LABELS: Record<string, string> = {
+  WELCOME_CREDIT: "Welcome credit",
+  topup: "Top-up",
+  campaign_debit: "Campaign debit",
+  campaign_refund: "Campaign refund",
+  sticker_print: "Sticker print",
+  sticker_print_paid: "Sticker print (paid)",
+};
+
+function ledgerKindLabel(kind: string) {
+  return LEDGER_KIND_LABELS[kind] ?? kind.replace(/_/g, " ").toLowerCase();
+}
+
 export function GrowWalletPanel({ restaurantId }: { restaurantId: string }) {
   const [wallet, setWallet] = useState<CrmWallet | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +103,9 @@ export function GrowWalletPanel({ restaurantId }: { restaurantId: string }) {
   const filteredLedger =
     wallet?.ledger.filter((row) => {
       if (ledgerTab === "all") return true;
-      if (ledgerTab === "topup") return row.kind.includes("topup");
+      if (ledgerTab === "topup") {
+        return row.kind.includes("topup") || row.kind === "WELCOME_CREDIT" || row.kind === "campaign_refund";
+      }
       return row.amountPaise < 0 || row.kind.includes("debit") || row.kind.includes("sticker");
     }) ?? [];
 
@@ -122,6 +137,12 @@ export function GrowWalletPanel({ restaurantId }: { restaurantId: string }) {
                 Math.floor(wallet.balancePaise / (wallet.msgCostPaise ?? 250))}{" "}
               message credits · stickers &amp; campaigns
             </p>
+            {!wallet.lowBalance && spendable === 0 ? (
+              <p className="mt-3 flex items-center gap-2 text-sm font-medium" data-testid="wallet-reserve-hint">
+                <MaterialIcon name="info" className="text-[18px]" />
+                {formatInr(minBal)} reserve is held — top up to spend on campaigns &amp; stickers.
+              </p>
+            ) : null}
             {wallet.lowBalance ? (
               <p className="mt-3 flex items-center gap-2 text-sm font-medium">
                 <MaterialIcon name="warning" className="text-[18px]" />
@@ -199,7 +220,7 @@ export function GrowWalletPanel({ restaurantId }: { restaurantId: string }) {
                         />
                         <span className="min-w-0">
                           <span className="block truncate font-semibold text-on-surface">
-                            {row.kind.replace(/_/g, " ")}
+                            {ledgerKindLabel(row.kind)}
                           </span>
                           <span className="block truncate text-[10px] text-on-surface-variant">
                             {new Date(row.createdAt).toLocaleString("en-IN")}

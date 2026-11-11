@@ -7,7 +7,7 @@ import { fetchCrmBrandKit, patchCrmBrandKit } from "@/lib/api";
 import { applyCrmTheme, storeCrmTheme } from "@/lib/crm-theme";
 
 const PRESETS = [
-  { name: "QA Ink", primary: "#171717", background: "#FAFAFA", accent: "#EAFF81" },
+  { name: "YUMM Plum", primary: "#381932", background: "#fff3e6", accent: "#b98aae" },
   { name: "Crimson", primary: "#B7122A", background: "#FCF9F8", accent: "#775600" },
   { name: "Forest", primary: "#1B4332", background: "#F4F7F5", accent: "#95D5B2" },
   { name: "Indigo", primary: "#312E81", background: "#F8F7FC", accent: "#A5B4FC" },
@@ -26,9 +26,9 @@ export function BrandThemeDialog({
   restaurantId: string;
   onSaved?: (primary: string) => void;
 }) {
-  const [primary, setPrimary] = useState("#171717");
-  const [background, setBackground] = useState("#FAFAFA");
-  const [accent, setAccent] = useState("#EAFF81");
+  const [primary, setPrimary] = useState("#381932");
+  const [background, setBackground] = useState("#fff3e6");
+  const [accent, setAccent] = useState("#b98aae");
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

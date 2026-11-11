@@ -68,6 +68,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
         restaurantId: z.string().uuid(),
         scanId: z.string().uuid().optional(),
         consentVersion: z.string().default("spark-v1"),
+        ttl: z.enum(["6h", "1h"]).optional(),
       })
       .safeParse(request.body);
 
@@ -130,6 +131,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
       scanEventId: body.data.scanId,
       phoneE164: e164,
       playPath: path,
+      ttl: body.data.ttl,
     });
 
     try {
@@ -164,6 +166,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
         phone: z.string().min(10),
         restaurantId: z.string().uuid(),
         scanId: z.string().uuid().optional(),
+        ttl: z.enum(["6h", "1h"]).optional(),
       })
       .safeParse(request.body);
 
@@ -192,6 +195,7 @@ export async function registerWaRoutes(app: FastifyInstance) {
       scanEventId: body.data.scanId,
       phoneE164: e164,
       playPath: path,
+      ttl: body.data.ttl,
     });
 
     const result = await sendSparkOptInInvite(
@@ -219,7 +223,12 @@ export async function registerWaRoutes(app: FastifyInstance) {
     const mode = q["hub.mode"];
     const token = q["hub.verify_token"];
     const challenge = q["hub.challenge"];
-    const expected = process.env.KAPSO_WEBHOOK_VERIFY_TOKEN ?? "damigos-kapso-verify";
+    // S3.3 — no guessable default verify token when talking to the live Kapso/Meta proxy.
+    const envToken = process.env.KAPSO_WEBHOOK_VERIFY_TOKEN?.trim();
+    if (!envToken && kapsoMode() === "live") {
+      return reply.status(503).send({ error: "KAPSO_WEBHOOK_VERIFY_TOKEN not configured" });
+    }
+    const expected = envToken || "damigos-kapso-verify";
     if (mode === "subscribe" && token === expected && challenge) {
       return reply.status(200).send(challenge);
     }

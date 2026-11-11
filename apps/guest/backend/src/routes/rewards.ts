@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { bearerToken, verifyGuestToken } from "@damigos/auth";
@@ -11,8 +11,13 @@ import {
   rewardPlays,
   scanEvents,
 } from "@damigos/db";
-import { pickWeightedOffer } from "../lib/pick-weighted-offer.js";
-import { countDailyRewardPlays, dailySpinLimitForRestaurant } from "../lib/rewards-limits.js";
+import { isNoPrizeOffer, pickWeightedOffer } from "../lib/pick-weighted-offer.js";
+import {
+  countDailyRewardPlays,
+  countUnredeemedWins,
+  dailySpinLimitForRestaurant,
+  MAX_UNREDEEMED_WINS,
+} from "../lib/rewards-limits.js";
 import { requireGuest } from "../lib/require-guest.js";
 
 /** Unredeemed claimed offers for checkout (G-04) */
@@ -37,8 +42,20 @@ function formatPrize(offer: {
     expiresDays: offer.expiresDays,
     minOrderPaise: offer.minOrderPaise,
     scope,
+    /** S1.7 — "Better luck next time": landed on wheel, nothing to claim */
+    noPrize: isNoPrizeOffer(offer),
     billLabel:
       scope === "PLATFORM_WIDE" ? "D'aMigo Platform Offer" : "Restaurant scoped reward",
+  };
+}
+
+function unredeemedCapError(correlationId: string) {
+  return {
+    error: {
+      code: "UNREDEEMED_WINS_CAP",
+      message: `You already have ${MAX_UNREDEEMED_WINS} unredeemed wins. Use one on an order before winning more.`,
+      correlationId,
+    },
   };
 }
 
@@ -197,6 +214,11 @@ export async function registerRewardsRoutes(app: FastifyInstance) {
       }
     }
 
+    // S1.8 — guests holding 5 unredeemed wins can't spin for more
+    if (linkedCustomerId && (await countUnredeemedWins(linkedCustomerId)) >= MAX_UNREDEEMED_WINS) {
+      return reply.status(409).send(unredeemedCapError(request.id));
+    }
+
     const pool = await db
       .select()
       .from(offers)
@@ -278,15 +300,42 @@ export async function registerRewardsRoutes(app: FastifyInstance) {
       return { claimed: true, claimId: existingClaim.id, idempotent: true };
     }
 
-    const [claim] = await db
-      .insert(rewardClaims)
-      .values({
-        playId: play.id,
-        customerId,
-        restaurantId: play.restaurantId,
-        offerId: play.offerId,
-      })
-      .returning();
+    // S1.7 — "Better luck next time" never produces a claim
+    const [playOffer] = await db.select().from(offers).where(eq(offers.id, play.offerId)).limit(1);
+    if (playOffer && isNoPrizeOffer(playOffer)) {
+      await db.update(rewardPlays).set({ customerId }).where(eq(rewardPlays.id, play.id));
+      return { claimed: false, noClaim: true, reason: "NO_PRIZE", title: playOffer.title };
+    }
+
+    // S1.8 — cap of unredeemed wins per guest across kitchens; advisory lock serialises
+    // concurrent claims for the same guest so the cap cannot be raced past.
+    const claim = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`reward-claim:${customerId}`}))`);
+      const [dupClaim] = await tx
+        .select()
+        .from(rewardClaims)
+        .where(eq(rewardClaims.playId, play.id))
+        .limit(1);
+      if (dupClaim) return { row: dupClaim, idempotent: true as const };
+      if ((await countUnredeemedWins(customerId)) >= MAX_UNREDEEMED_WINS) return null;
+      const [inserted] = await tx
+        .insert(rewardClaims)
+        .values({
+          playId: play.id,
+          customerId,
+          restaurantId: play.restaurantId,
+          offerId: play.offerId,
+        })
+        .returning();
+      return { row: inserted, idempotent: false as const };
+    });
+
+    if (!claim) {
+      return reply.status(409).send(unredeemedCapError(request.id));
+    }
+    if (claim.idempotent) {
+      return { claimed: true, claimId: claim.row.id, idempotent: true };
+    }
 
     await db.update(rewardPlays).set({ customerId }).where(eq(rewardPlays.id, play.id));
 
@@ -298,7 +347,7 @@ export async function registerRewardsRoutes(app: FastifyInstance) {
 
     return {
       claimed: true,
-      claimId: claim.id,
+      claimId: claim.row.id,
       restaurantName: restaurant?.name,
     };
   });

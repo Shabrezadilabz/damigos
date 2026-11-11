@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MaterialIcon } from "@/components/material-icon";
@@ -9,7 +10,8 @@ import { CrmGuestStorefrontToggle } from "@/components/crm-guest-storefront-togg
 import { CrmLogoutButton } from "@/components/crm-logout-button";
 import { CrmNotificationsPanel } from "@/components/crm-notifications-panel";
 import { useCrmRestaurant } from "@/components/use-crm-restaurant";
-import { emitCrmRefresh } from "@/lib/crm-refresh-bus";
+import { emitCrmRefresh, subscribeCrmRefresh } from "@/lib/crm-refresh-bus";
+import { fetchCrmWallet, formatInr } from "@/lib/api";
 
 /** Stitch crm_2 — top bar (search, actions) */
 export function CrmTopHeader() {
@@ -19,18 +21,45 @@ export function CrmTopHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [walletBalancePaise, setWalletBalancePaise] = useState<number | null>(null);
+  const [walletSpendablePaise, setWalletSpendablePaise] = useState<number | null>(null);
 
   const openSearch = useCallback(() => {
     setNotifOpen(false);
     setSearchOpen(true);
   }, []);
 
+  const loadWallet = useCallback(() => {
+    if (!restaurantId) {
+      setWalletBalancePaise(null);
+      setWalletSpendablePaise(null);
+      return;
+    }
+    void fetchCrmWallet(restaurantId)
+      .then((w) => {
+        setWalletBalancePaise(w.balancePaise);
+        setWalletSpendablePaise(
+          w.spendablePaise ?? Math.max(0, w.balancePaise - (w.minBalancePaise ?? 0)),
+        );
+      })
+      .catch(() => {
+        setWalletBalancePaise(null);
+        setWalletSpendablePaise(null);
+      });
+  }, [restaurantId]);
+
   const sync = useCallback(() => {
     setSyncing(true);
     emitCrmRefresh();
+    loadWallet();
     router.refresh();
     window.setTimeout(() => setSyncing(false), 600);
-  }, [router]);
+  }, [router, loadWallet]);
+
+  useEffect(() => {
+    loadWallet();
+    return subscribeCrmRefresh(() => loadWallet());
+  }, [loadWallet]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -46,7 +75,7 @@ export function CrmTopHeader() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-zinc-200/70 bg-[#FAFAFA]/80 px-3 backdrop-blur sm:h-16 sm:px-5 md:px-6 lg:left-64 lg:px-8">
+      <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-border/70 bg-background/80 px-3 backdrop-blur sm:h-16 sm:px-5 md:px-6 lg:left-64 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
@@ -70,6 +99,20 @@ export function CrmTopHeader() {
           </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4">
+          {restaurantId && walletBalancePaise != null ? (
+            <Link
+              href="/grow?tab=wallet"
+              data-testid="crm-header-wallet"
+              className="pressable flex max-w-[11rem] items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-foreground shadow-sm hover:bg-secondary sm:max-w-none"
+              title={`Spendable ${formatInr(walletSpendablePaise ?? 0)} · Balance ${formatInr(walletBalancePaise)}`}
+            >
+              <MaterialIcon name="account_balance_wallet" className="text-[18px] text-primary" />
+              <span className="tabular-nums">{formatInr(walletBalancePaise)}</span>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant sm:inline">
+                Wallet
+              </span>
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={openSearch}

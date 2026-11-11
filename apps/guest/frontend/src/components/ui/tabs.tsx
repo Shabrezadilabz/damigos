@@ -36,7 +36,7 @@ export function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   return (
     <div
       className={cn(
-        "inline-flex h-11 items-center gap-1 rounded-full border border-[#E2E5EE] bg-[#EEF0F5] p-1 shadow-inner",
+        "inline-flex h-11 items-center gap-1 rounded-full border border-border bg-secondary p-1 shadow-inner",
         className,
       )}
       {...props}
@@ -57,8 +57,8 @@ export function TabsTrigger({
       className={cn(
         "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-[13px] font-bold tracking-tight transition-all",
         active
-          ? "bg-white text-[#0F1115] shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
-          : "text-[#475569] hover:text-[#0F1115]",
+          ? "bg-card text-foreground shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
+          : "text-on-surface-variant hover:text-foreground",
         className,
       )}
       onClick={() => ctx?.setValue(value)}

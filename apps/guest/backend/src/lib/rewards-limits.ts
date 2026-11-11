@@ -1,5 +1,5 @@
-import { and, eq, sql } from "drizzle-orm";
-import { db, restaurants, rewardPlays } from "@damigos/db";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { db, offers, restaurants, rewardClaims, rewardPlays } from "@damigos/db";
 
 function envDailySpinLimit(): number {
   const n = Number(process.env.REWARDS_DAILY_SPIN_LIMIT ?? 1);
@@ -52,4 +52,28 @@ export async function countDailyRewardPlays(customerId: string, restaurantId: st
       ),
     );
   return count ?? 0;
+}
+
+/** S1.8 � max unredeemed (claimed, not yet used on an order) wins per guest across all kitchens. */
+export const MAX_UNREDEEMED_WINS = 5;
+
+/** Unredeemed, unexpired claims for a guest across every kitchen + platform offers. */
+export async function countUnredeemedWins(customerId: string): Promise<number> {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rewardClaims)
+    .innerJoin(offers, eq(rewardClaims.offerId, offers.id))
+    .where(
+      and(
+        eq(rewardClaims.customerId, customerId),
+        isNull(rewardClaims.redeemedOrderId),
+        sql`${offers.prizeType} <> 'no_prize'`,
+        sql`${rewardClaims.claimedAt} + make_interval(days => ${offers.expiresDays}) > now()`,
+      ),
+    );
+  return count ?? 0;
+}
+
+export async function isAtUnredeemedWinsCap(customerId: string): Promise<boolean> {
+  return (await countUnredeemedWins(customerId)) >= MAX_UNREDEEMED_WINS;
 }

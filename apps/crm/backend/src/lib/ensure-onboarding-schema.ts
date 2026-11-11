@@ -10,6 +10,7 @@ export async function ensureOnboardingSchema() {
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS fssai_number text`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS fssai_verified_at timestamptz`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS diet_type varchar(16)`,
+    sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS welcome_credit_granted_at timestamptz`,
   ];
   for (const statement of statements) {
     try {

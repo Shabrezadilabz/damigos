@@ -10,7 +10,6 @@ import {
   rewardClaims,
 } from "@damigos/db";
 import type { CheckoutCartSnapshot } from "./checkout-from-cart.js";
-import { CONVENIENCE_FEE_PAISE } from "./checkout-from-cart.js";
 import { creditLoyaltyPayback, debitLoyaltyCredits } from "./guest-loyalty.js";
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
 import { guestWebOrigin, sendFoodOrderConfirmed } from "./kapso.js";
@@ -27,7 +26,8 @@ export async function insertPendingOrder(
       restaurantId,
       status: "PAYMENT_PENDING",
       subtotalPaise: snapshot.subtotalPaise,
-      convenienceFeePaise: CONVENIENCE_FEE_PAISE,
+      // S1.9 — silent micro-fees folded into total
+      convenienceFeePaise: snapshot.microFeesPaise,
       discountPaise: snapshot.discountPaise + snapshot.loyaltyAppliedPaise,
       deliveryPincode: snapshot.deliveryPincode,
       deliveryAddressText: snapshot.deliveryAddressText,

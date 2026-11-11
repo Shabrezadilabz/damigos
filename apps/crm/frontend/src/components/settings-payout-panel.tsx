@@ -182,6 +182,23 @@ export function SettingsPayoutPanel({ embedded = false }: { embedded?: boolean }
             value={formatInr(today.waitingPenaltyPaise)}
             icon="timer"
           />
+          {today.rails ? (
+            <div
+              className="sm:col-span-2 grid gap-2 sm:grid-cols-2"
+              data-testid="payout-today-rails"
+            >
+              <Stat
+                label={`Direct · ${today.rails.direct.orderCount} orders`}
+                value={formatInr(today.rails.direct.restaurantSharePaise)}
+                icon="qr_code_2"
+              />
+              <Stat
+                label={`ONDC · ${today.rails.ondc.orderCount} orders`}
+                value={formatInr(today.rails.ondc.restaurantSharePaise)}
+                icon="hub"
+              />
+            </div>
+          ) : null}
           <p className="sm:col-span-2 text-[11px] text-on-surface-variant">
             Business date {today.businessDate} (IST). Settlement job runs after midnight and posts an
             invoice below.
@@ -279,6 +296,13 @@ export function SettingsPayoutPanel({ embedded = false }: { embedded?: boolean }
                     <p className="text-[11px] text-on-surface-variant">
                       {row.invoiceNumber ?? "—"} · {row.orderCount} orders · {row.status}
                     </p>
+                    {row.rails ? (
+                      <p className="text-[11px] text-on-surface-variant" data-testid="settlement-rails">
+                        Direct {row.rails.direct.orderCount} · {formatInr(row.rails.direct.restaurantSharePaise)}
+                        {" · "}
+                        ONDC {row.rails.ondc.orderCount} · {formatInr(row.rails.ondc.restaurantSharePaise)}
+                      </p>
+                    ) : null}
                     {row.freezeNote ? (
                       <p className="text-[11px] text-amber-800">{row.freezeNote}</p>
                     ) : null}

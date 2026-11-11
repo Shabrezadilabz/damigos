@@ -27,6 +27,7 @@ export default async function MenuPage({
         restaurantId={restaurantId}
         restaurantName={menu.restaurant.name}
         items={menu.items}
+        categories={menu.categories ?? []}
         initialFilter={initialFilter}
       />
     );

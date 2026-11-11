@@ -13,4 +13,5 @@ export function deliveryMode(): DeliveryMode {
 
 export { deliveryQuoteRequired };
 
-export const PLATFORM_DELIVERY_MARKUP_PAISE = 500;
+/** S1.9 — delivery rail ₹3 lives in silent micro-fees; Shiprocket quote has no extra markup line. */
+export const PLATFORM_DELIVERY_MARKUP_PAISE = 0;

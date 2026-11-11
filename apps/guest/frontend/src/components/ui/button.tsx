@@ -9,15 +9,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[#0F1115] text-white shadow-[0_6px_16px_-4px_rgba(15,17,21,0.32),inset_0_1px_0_rgba(255,255,255,0.22)] hover:bg-[#1E222B]",
+          "bg-primary text-primary-foreground shadow-[0_6px_16px_-4px_rgba(56,25,50,0.32),inset_0_1px_0_rgba(255,243,230,0.22)] hover:brightness-110",
         outline:
-          "border border-[#E2E5EE] bg-white text-[#0F1115] shadow-[0_2px_6px_rgba(15,23,42,0.04)] hover:bg-[#F8F9FB]",
-        ghost: "text-[#0F1115] hover:bg-[#0F1115]/6",
-        secondary: "bg-[#EEF0F5] text-[#0F1115] hover:bg-[#E2E5EE]",
+          "border border-border bg-card text-foreground shadow-[0_2px_6px_rgba(56,25,50,0.04)] hover:bg-secondary",
+        ghost: "text-foreground hover:bg-primary/6",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-surface-container-high",
         accent:
-          "bg-[#EAFF81] text-[#0F1115] shadow-[0_6px_16px_-4px_rgba(180,210,30,0.35),inset_0_1px_0_rgba(255,255,255,0.65)] hover:bg-[#d8f259]",
+          "bg-accent text-accent-foreground shadow-[0_6px_16px_-4px_rgba(185,138,174,0.4),inset_0_1px_0_rgba(255,255,255,0.45)] hover:bg-[#a37798]",
         success:
-          "bg-[#10B981] text-white shadow-[0_6px_16px_-4px_rgba(16,185,129,0.38),inset_0_1px_0_rgba(255,255,255,0.25)] hover:bg-[#059669]",
+          "bg-success text-white shadow-[0_6px_16px_-4px_rgba(61,139,110,0.38),inset_0_1px_0_rgba(255,255,255,0.25)] hover:brightness-95",
       },
       size: {
         default: "h-11 px-5 py-2.5",

@@ -41,7 +41,7 @@ export function WalletTxnDetailDialog({
         <div className="flex items-start justify-between gap-3 border-b border-outline-variant/40 px-5 py-4">
           <div>
             <h2 className="text-base font-semibold capitalize text-on-surface">
-              {row.kind.replace(/_/g, " ")}
+              {row.kind === "WELCOME_CREDIT" ? "Welcome credit" : row.kind.replace(/_/g, " ")}
             </h2>
             <p className="mt-0.5 text-xs text-on-surface-variant">
               {new Date(row.createdAt).toLocaleString("en-IN")}

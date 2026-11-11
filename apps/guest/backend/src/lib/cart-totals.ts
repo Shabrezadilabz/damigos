@@ -1,8 +1,9 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db, offers, rewardClaims } from "@damigos/db";
 import { computeOfferDiscountPaise } from "./offer-discount.js";
+import { microFeesPaise } from "./micro-fees.js";
 
-export const CONVENIENCE_FEE_PAISE = 200;
+export { microFeesPaise };
 
 export type OfferScope = "RESTAURANT_SCOPED" | "PLATFORM_WIDE";
 
@@ -61,15 +62,20 @@ export async function resolveAppliedClaimDiscount(
   };
 }
 
+/**
+ * Cart total = merchandise after offers + delivery + silent micro-fees (S1.9).
+ * `itemCount` = total quantity of items in the cart (drives the ₹2/item fee).
+ */
 export function cartTotalPaise(
   subtotalPaise: number,
   discountPaise: number,
-  deliveryFeePaise = 0,
-  loyaltyAppliedPaise = 0,
+  deliveryFeePaise: number,
+  loyaltyAppliedPaise: number,
+  itemCount: number,
 ) {
   return (
     Math.max(0, subtotalPaise - discountPaise - loyaltyAppliedPaise) +
-    CONVENIENCE_FEE_PAISE +
+    microFeesPaise(itemCount) +
     deliveryFeePaise
   );
 }

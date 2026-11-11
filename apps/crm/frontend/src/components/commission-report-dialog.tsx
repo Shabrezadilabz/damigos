@@ -12,6 +12,10 @@ export type CommissionReportOverview = {
   periodLabel: string;
   directGmvPaise: number;
   avoidedCommissionPaise: number;
+  /** S3.1 — rail split; ONDC orders settle through the ONDC network, not the 0% direct rail */
+  directOrders?: number;
+  ondcOrders?: number;
+  ondcGmvPaise?: number;
 };
 
 type Props = {
@@ -22,6 +26,9 @@ type Props = {
 
 export function CommissionReportDialog({ open, onClose, report }: Props) {
   const [exporting, setExporting] = useState(false);
+  const ondcOrders = report.ondcOrders ?? 0;
+  const ondcGmv = report.ondcGmvPaise ?? 0;
+  const hasOndc = ondcOrders > 0 || ondcGmv > 0;
 
   if (!open) return null;
 
@@ -34,11 +41,15 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
         `Period: ${report.periodLabel}`,
         "",
         `Net savings vs ${report.aggregatorRatePct}% aggregator: ${formatInr(report.savingsPaise)}`,
-        `Estimated direct GMV: ${formatInr(report.directGmvPaise)}`,
-        `Avoided commission (at ${report.aggregatorRatePct}%): ${formatInr(report.avoidedCommissionPaise)}`,
+        `Direct rail GMV: ${formatInr(report.directGmvPaise)}${report.directOrders != null ? ` (${report.directOrders} orders)` : ""}`,
+        `Avoided commission (at ${report.aggregatorRatePct}%, Direct only): ${formatInr(report.avoidedCommissionPaise)}`,
+        `ONDC rail GMV: ${formatInr(ondcGmv)} (${ondcOrders} orders)`,
         "",
-        "Engine: 0% commission direct WhatsApp ordering",
-        "Note: Pure bottom-line margin expansion vs 3rd-party food apps.",
+        "Direct rail: 0% D'aMigo's commission (WhatsApp / sticker / guest app)",
+        hasOndc
+          ? "ONDC rail: settled via the ONDC network — network / buyer-app fees apply, not 0%"
+          : "ONDC rail: no ONDC orders in this period",
+        "Note: Savings vs aggregators are calculated on the Direct rail only.",
         "",
         `Generated: ${new Date().toLocaleString("en-IN")}`,
       ]);
@@ -61,7 +72,7 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
         <header className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#b8860b]">
-              0% Commission Direct Engine
+              {hasOndc ? "Direct (0%) + ONDC rails" : "0% Commission Direct Engine"}
             </p>
             <h2 id="commission-report-title" className="font-[family-name:var(--font-display)] text-lg font-bold">
               Overview
@@ -91,22 +102,40 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
 
           <dl className="grid gap-2 text-sm">
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-              <dt className="text-on-surface-variant">Direct GMV (est.)</dt>
+              <dt className="text-on-surface-variant">
+                Direct GMV
+                {report.directOrders != null ? ` · ${report.directOrders} orders` : " (est.)"}
+              </dt>
               <dd className="font-semibold tabular-nums">{formatInr(report.directGmvPaise)}</dd>
+            </div>
+            <div
+              className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2"
+              data-testid="commission-ondc-row"
+            >
+              <dt className="text-on-surface-variant">ONDC GMV · {ondcOrders} orders</dt>
+              <dd className="font-semibold tabular-nums">{formatInr(ondcGmv)}</dd>
             </div>
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
               <dt className="text-on-surface-variant">Avoided commission</dt>
               <dd className="font-semibold tabular-nums">{formatInr(report.avoidedCommissionPaise)}</dd>
             </div>
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-              <dt className="text-on-surface-variant">D'aMigo's take rate</dt>
+              <dt className="text-on-surface-variant">D'aMigo's take rate · Direct rail</dt>
               <dd className="font-semibold text-[#24963F]">0%</dd>
+            </div>
+            <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
+              <dt className="text-on-surface-variant">ONDC rail</dt>
+              <dd className="text-right text-xs font-semibold text-on-surface-variant">
+                {hasOndc ? "Network fees apply" : "No ONDC orders yet"}
+              </dd>
             </div>
           </dl>
 
           <p className="flex items-center gap-2 text-xs text-on-surface-variant">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Pure bottom-line margin expansion
+            {hasOndc
+              ? "Savings count Direct orders only — ONDC orders settle via the ONDC network"
+              : "Pure bottom-line margin expansion"}
           </p>
         </div>
 

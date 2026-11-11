@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import { checkoutGroups, db, orders, paymentIntents } from "@damigos/db";
 import { publishKitchenRefresh } from "@damigos/kitchen-bus";
@@ -8,9 +8,9 @@ import {
   captureCheckoutGroup,
   createPendingCheckoutGroup,
   groupDeliveryFeePaise,
+  groupMicroFeesPaise,
   groupTotalPaise,
 } from "../lib/create-checkout-group.js";
-import { CONVENIENCE_FEE_PAISE } from "../lib/cart-totals.js";
 import { crossByMeta, listOpenKitchenCarts } from "../lib/cross-by-cart.js";
 import { isFirstOrderFreeEligible } from "../lib/first-order-delivery.js";
 import { paymentMode, razorpayKeyId } from "../lib/payment-mode.js";
@@ -20,6 +20,25 @@ import { requireGuest } from "../lib/require-guest.js";
 function idempotencyKey(request: { headers: Record<string, string | string[] | undefined> }) {
   const raw = request.headers["idempotency-key"];
   return typeof raw === "string" && raw.length >= 8 ? raw.slice(0, 64) : null;
+}
+
+function sendPendingError(
+  reply: FastifyReply,
+  correlationId: string,
+  code: string,
+) {
+  if (code === "CART_PRICE_STALE") {
+    return reply.status(409).send({
+      error: {
+        code,
+        message: "Menu prices changed since you added items. Refresh your cart and try again.",
+        correlationId,
+      },
+    });
+  }
+  return reply.status(400).send({
+    error: { code, message: "No open carts", correlationId },
+  });
 }
 
 /** P1.5 — Cross-By checkout_groups (single pay → N child orders) */
@@ -49,7 +68,10 @@ export async function registerCheckoutGroupRoutes(app: FastifyInstance) {
         lines: l.lines,
       })),
       crossBy: meta,
-      convenienceFeePaise: CONVENIENCE_FEE_PAISE,
+      /** S1.9 — silent micro-fees already folded into totalPaise; FE must not render a line item */
+      convenienceFeePaise: groupMicroFeesPaise(legs),
+      priceStale: legs.some((l) => l.staleLines.length > 0),
+      staleLines: legs.flatMap((l) => l.staleLines),
       deliveryFeePaise,
       grossDeliveryFeePaise: grossDelivery,
       firstOrderFree,
@@ -78,9 +100,7 @@ export async function registerCheckoutGroupRoutes(app: FastifyInstance) {
     const key = idempotencyKey(request);
     const pending = await createPendingCheckoutGroup(customerId, key);
     if ("error" in pending) {
-      return reply.status(400).send({
-        error: { code: pending.error, message: "No open carts", correlationId: request.id },
-      });
+      return sendPendingError(reply, request.id, pending.error);
     }
 
     if (pending.group.status === "PAID") {
@@ -323,9 +343,7 @@ export async function registerCheckoutGroupRoutes(app: FastifyInstance) {
     const key = body.success ? body.data.idempotencyKey ?? null : null;
     const pending = await createPendingCheckoutGroup(customerId, key);
     if ("error" in pending) {
-      return reply.status(400).send({
-        error: { code: pending.error, message: "No open carts", correlationId: request.id },
-      });
+      return sendPendingError(reply, request.id, pending.error);
     }
 
     if (pending.group.status === "PAID") {

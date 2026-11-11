@@ -17,6 +17,14 @@ const paidStatuses = [
   "CLOSED",
 ] as const;
 
+/** S3.1 — settlement rails. Orders default to DIRECT; ONDC orders are tagged by the Beckn order ingest. */
+export const ORDER_RAILS = ["DIRECT", "ONDC"] as const;
+export type OrderRail = (typeof ORDER_RAILS)[number];
+
+export function normalizeOrderRail(raw: string | null | undefined): OrderRail {
+  return raw?.toUpperCase() === "ONDC" ? "ONDC" : "DIRECT";
+}
+
 /** IST calendar date YYYY-MM-DD */
 export function istBusinessDate(d = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -57,6 +65,15 @@ export async function computeDayEarnings(restaurantId: string, businessDate: str
       platformFeePaise: sql<number>`coalesce(sum(${orders.convenienceFeePaise}), 0)::int`,
       deliveryFeePaise: sql<number>`coalesce(sum(${orders.deliveryFeePaise}), 0)::int`,
       waitingPenaltyPaise: sql<number>`coalesce(sum(${orders.waitingPenaltyPaise}), 0)::int`,
+      // S3.1 — per-rail split
+      directOrderCount: sql<number>`count(*) filter (where ${orders.rail} <> 'ONDC')::int`,
+      ondcOrderCount: sql<number>`count(*) filter (where ${orders.rail} = 'ONDC')::int`,
+      directGrossPaise: sql<number>`coalesce(sum(${orders.totalPaise}) filter (where ${orders.rail} <> 'ONDC'), 0)::int`,
+      ondcGrossPaise: sql<number>`coalesce(sum(${orders.totalPaise}) filter (where ${orders.rail} = 'ONDC'), 0)::int`,
+      directSubtotalNetPaise: sql<number>`coalesce(sum(${orders.subtotalPaise} - ${orders.discountPaise}) filter (where ${orders.rail} <> 'ONDC'), 0)::int`,
+      ondcSubtotalNetPaise: sql<number>`coalesce(sum(${orders.subtotalPaise} - ${orders.discountPaise}) filter (where ${orders.rail} = 'ONDC'), 0)::int`,
+      directPenaltyPaise: sql<number>`coalesce(sum(${orders.waitingPenaltyPaise}) filter (where ${orders.rail} <> 'ONDC'), 0)::int`,
+      ondcPenaltyPaise: sql<number>`coalesce(sum(${orders.waitingPenaltyPaise}) filter (where ${orders.rail} = 'ONDC'), 0)::int`,
     })
     .from(orders)
     .where(
@@ -82,6 +99,24 @@ export async function computeDayEarnings(restaurantId: string, businessDate: str
     platformFeePaise: Number(agg?.platformFeePaise ?? 0),
     deliveryFeePaise: Number(agg?.deliveryFeePaise ?? 0),
     waitingPenaltyPaise: Number(agg?.waitingPenaltyPaise ?? 0),
+    rails: {
+      direct: {
+        orderCount: Number(agg?.directOrderCount ?? 0),
+        grossSalesPaise: Number(agg?.directGrossPaise ?? 0),
+        restaurantSharePaise: Math.max(
+          0,
+          Number(agg?.directSubtotalNetPaise ?? 0) - Number(agg?.directPenaltyPaise ?? 0),
+        ),
+      },
+      ondc: {
+        orderCount: Number(agg?.ondcOrderCount ?? 0),
+        grossSalesPaise: Number(agg?.ondcGrossPaise ?? 0),
+        restaurantSharePaise: Math.max(
+          0,
+          Number(agg?.ondcSubtotalNetPaise ?? 0) - Number(agg?.ondcPenaltyPaise ?? 0),
+        ),
+      },
+    },
   };
 }
 
@@ -107,6 +142,11 @@ function buildInvoice(input: {
       { label: "Delivery fees collected (paise)", value: input.earnings.deliveryFeePaise },
       { label: "Waiting penalties (paise)", value: input.earnings.waitingPenaltyPaise },
     ],
+    // S3.1 — Direct vs ONDC rails
+    rails: {
+      direct: input.earnings.rails.direct,
+      ondc: input.earnings.rails.ondc,
+    },
     payoutBankLast4: input.bankLast4,
     generatedAt: new Date().toISOString(),
   };
@@ -175,6 +215,10 @@ export async function settleRestaurantDay(restaurantId: string, businessDate: st
     platformFeePaise: earnings.platformFeePaise,
     deliveryFeePaise: earnings.deliveryFeePaise,
     waitingPenaltyPaise: earnings.waitingPenaltyPaise,
+    directOrderCount: earnings.rails.direct.orderCount,
+    ondcOrderCount: earnings.rails.ondc.orderCount,
+    directSharePaise: earnings.rails.direct.restaurantSharePaise,
+    ondcSharePaise: earnings.rails.ondc.restaurantSharePaise,
     status,
     invoiceNumber,
     invoiceJson: JSON.stringify(invoice),

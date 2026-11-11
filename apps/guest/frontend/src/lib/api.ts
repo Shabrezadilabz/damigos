@@ -120,8 +120,13 @@ export type GuestMenuItem = {
   referencePricePaise: number | null;
   isVeg: boolean;
   available: boolean;
+  /** Already resolved server-side: guestImageUrl → imageUrl → catalog match */
   imageUrl?: string | null;
+  /** S2.2 — owner-defined category (null/undefined = uncategorised) */
+  categoryId?: string | null;
 };
+
+export type GuestMenuCategory = { id: string; name: string; sortOrder: number };
 
 export async function fetchGuestMenu(restaurantId: string) {
   const res = await fetch(`${base}/v1/restaurants/${restaurantId}/menu`, { cache: "no-store" });
@@ -146,6 +151,7 @@ export async function fetchGuestMenu(restaurantId: string) {
         logoDataUrl: string | null;
       } | null;
     };
+    categories?: GuestMenuCategory[];
     items: GuestMenuItem[];
   };
 }
@@ -316,13 +322,18 @@ export type CartResponse = {
     unitPricePaise: number;
     name: string;
     isVeg: boolean;
+    /** S1.5 — cart price drifted from live menu price */
+    priceStale?: boolean;
   }[];
+  /** S1.5 — true when any line is stale; call refreshCartPrices() before checkout */
+  priceStale?: boolean;
   subtotalPaise: number;
   discountPaise: number;
   loyaltyAvailablePaise?: number;
   loyaltyAppliedPaise?: number;
   deliveryFeePaise?: number;
   deliveryPincode?: string | null;
+  /** S1.9 — silent micro-fees folded into totalPaise; do not render as a line item */
   convenienceFeePaise: number;
   totalPaise: number;
   appliedClaim: CartAppliedClaim | null;
@@ -384,6 +395,18 @@ export async function fetchCart(restaurantId: string) {
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Cart failed"));
   return data as CartResponse;
+}
+
+/** S1.5 — re-lock open cart to live menu prices (after CART_PRICE_STALE). */
+export async function refreshCartPrices(restaurantId: string) {
+  const res = await fetch(`${base}/v1/cart/refresh-prices`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ restaurantId }),
+  });
+  const data = await readGuestApiJson(res);
+  if (!res.ok) throw new Error(guestApiErrorMessage(data, "Could not refresh prices"));
+  return data as { repriced: number; removed: number };
 }
 
 export type CrossByNearby = {
@@ -707,7 +730,8 @@ export async function fetchHubRestaurants(city = "bangalore", q?: string, vegOnl
   });
   const data = await readGuestApiJson(res);
   if (!res.ok) throw new Error(guestApiErrorMessage(data, "Hub failed"));
-  return data.restaurants as HubRestaurant[];
+  // S1.6 — master menu OFF: never render a kitchen card as orderable (defence in depth; API already filters)
+  return (data.restaurants as HubRestaurant[]).filter((r) => r.orderingEnabled !== false);
 }
 
 export async function fetchHubBestsellers(vegOnly = false) {

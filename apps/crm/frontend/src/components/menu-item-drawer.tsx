@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
-import { type MenuImportJobRow, type MenuItemRow, updateMenuItem } from "@/lib/api";
+import {
+  type MenuCategoryRow,
+  type MenuImportJobRow,
+  type MenuItemRow,
+  updateMenuItem,
+} from "@/lib/api";
 import { compressImageFileToDataUrl } from "@/lib/compress-image-file";
 import { menuItemThumb } from "@/lib/menu-item-thumb";
 import { cn } from "@/lib/utils";
@@ -13,6 +18,8 @@ type Props = {
   onClose: () => void;
   onSaved: (item: MenuItemRow) => void;
   layout?: "overlay" | "embedded";
+  /** S2.2 — kitchen categories for the assign dropdown */
+  categories?: MenuCategoryRow[];
 };
 
 function aggregatorEstimate(pricePaise: number, reference: number | null) {
@@ -20,7 +27,14 @@ function aggregatorEstimate(pricePaise: number, reference: number | null) {
   return Math.round(pricePaise * 1.22);
 }
 
-export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = "overlay" }: Props) {
+export function MenuItemDrawer({
+  item,
+  restaurantId,
+  onClose,
+  onSaved,
+  layout = "overlay",
+  categories = [],
+}: Props) {
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
   const [price, setPrice] = useState(String(item.pricePaise / 100));
@@ -35,10 +49,15 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [guestPreviewUrl, setGuestPreviewUrl] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string>(item.categoryId ?? "");
   const [error, setError] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const guestImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setGuestPreviewUrl(null);
+    setCategoryId(item.categoryId ?? "");
     setName(item.name);
     setDescription(item.description ?? "");
     setPrice(String(item.pricePaise / 100));
@@ -58,13 +77,17 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     setIsVeg(item.isVeg);
     setAvailable(item.available);
     setPrepCategory(item.prepCategory === "READY_10M" ? "READY_10M" : "COOKED_15M");
+    setCategoryId(item.categoryId ?? "");
     setError(null);
   }
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     const rupees = parseFloat(price);
-    if (!name.trim() || Number.isNaN(rupees) || rupees <= 0) return;
+    if (!name.trim() || Number.isNaN(rupees) || (rupees !== 49 && rupees !== 99)) {
+      setError("Guest price must be ₹49 or ₹99");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -82,6 +105,7 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
         available,
         prepCategory,
         prepMinutes: prepCategory === "READY_10M" ? 10 : 15,
+        categoryId: categoryId || null,
       });
       onSaved(updated);
       if (layout === "overlay") onClose();
@@ -126,7 +150,8 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     }
   }
 
-  async function onHighResSelected(file: File | undefined) {
+  /** target "owner" → imageUrl (primary); "guest" → guestImageUrl (S2.1) */
+  async function onImageSelected(file: File | undefined, target: "owner" | "guest") {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("Choose a JPG, PNG, or WebP image");
@@ -136,17 +161,35 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
     setError(null);
     try {
       const dataUrl = await compressImageFileToDataUrl(file);
-      setPreviewUrl(dataUrl);
-      const updated = await updateMenuItem(item.id, {
-        restaurantId,
-        imageUrl: dataUrl,
-      });
+      if (target === "guest") setGuestPreviewUrl(dataUrl);
+      else setPreviewUrl(dataUrl);
+      const updated = await updateMenuItem(
+        item.id,
+        target === "guest"
+          ? { restaurantId, guestImageUrl: dataUrl }
+          : { restaurantId, imageUrl: dataUrl },
+      );
       onSaved(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Image upload failed");
     } finally {
       setUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = "";
+      if (guestImageInputRef.current) guestImageInputRef.current.value = "";
+    }
+  }
+
+  async function onClearGuestImage() {
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const updated = await updateMenuItem(item.id, { restaurantId, guestImageUrl: null });
+      setGuestPreviewUrl(null);
+      onSaved(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear guest image");
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -200,7 +243,26 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Menu Price</label>
+          <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
+            Guest price (₹49 / ₹99)
+          </label>
+          <div className="mb-2 flex gap-2">
+            {(["49", "99"] as const).map((band) => (
+              <button
+                key={band}
+                type="button"
+                className={`flex-1 rounded-lg py-2 text-sm font-bold tabular-nums pressable ${
+                  price === band
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface-container-low text-foreground"
+                }`}
+                onClick={() => setPrice(band)}
+                data-testid={`menu-item-price-band-${band}`}
+              >
+                ₹{band}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <span className="absolute left-3 top-2 text-sm text-on-surface-variant">₹</span>
             <input
@@ -209,8 +271,12 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               data-testid="menu-item-price"
+              aria-describedby="guest-price-band-hint"
             />
           </div>
+          <p id="guest-price-band-hint" className="mt-1 text-[10px] text-on-surface-variant">
+            Guest sell price must be ₹49 or ₹99
+          </p>
         </div>
         <div>
           <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
@@ -256,7 +322,9 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
       </div>
 
       <div>
-        <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Item Media</label>
+        <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
+          Owner image (CRM)
+        </label>
         <div className="flex items-center gap-3">
           {(() => {
             const thumbSrc =
@@ -288,7 +356,8 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
               type="file"
               accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               className="sr-only"
-              onChange={(e) => void onHighResSelected(e.target.files?.[0])}
+              onChange={(e) => void onImageSelected(e.target.files?.[0], "owner")}
+              data-testid="menu-item-owner-image-input"
             />
             <button
               type="button"
@@ -304,6 +373,81 @@ export function MenuItemDrawer({ item, restaurantId, onClose, onSaved, layout = 
             </span>
           </div>
         </div>
+      </div>
+
+      <div data-testid="menu-item-guest-image">
+        <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
+          Guest image (menu &amp; hub)
+        </label>
+        <div className="flex items-center gap-3">
+          {(() => {
+            const guestSrc = guestPreviewUrl ?? item.guestImageUrl ?? null;
+            return (
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
+                {guestSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={guestSrc} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-on-surface-variant">
+                    <MaterialIcon name="image" className="text-[24px]" />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <div className="flex-1">
+            <input
+              ref={guestImageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              className="sr-only"
+              onChange={(e) => void onImageSelected(e.target.files?.[0], "guest")}
+              data-testid="menu-item-guest-image-input"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={uploadingImage || saving}
+                onClick={() => guestImageInputRef.current?.click()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-xs font-semibold hover:bg-surface-container-highest disabled:opacity-60"
+              >
+                <MaterialIcon name="add_photo_alternate" className="text-[18px]" />
+                {uploadingImage ? "Uploading…" : item.guestImageUrl ? "Replace guest image" : "Upload guest image"}
+              </button>
+              {item.guestImageUrl || guestPreviewUrl ? (
+                <button
+                  type="button"
+                  disabled={uploadingImage || saving}
+                  onClick={() => void onClearGuestImage()}
+                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-60"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <span className="mt-1 block text-center text-[10px] text-on-surface-variant">
+              Guests see this first; falls back to the owner image when empty
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Category</label>
+        <select
+          className="w-full rounded-lg bg-surface-container-low px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          data-testid="menu-item-category"
+        >
+          <option value="">Uncategorised</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+              {c.hidden ? " (hidden)" : ""}
+            </option>
+          ))}
+        </select>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

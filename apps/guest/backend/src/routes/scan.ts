@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, scanEvents, stickerBatches, stickerTokens } from "@damigos/db";
@@ -6,6 +6,8 @@ import { playPathFor, upsertSparkPlaySession } from "../lib/spark-play-session.j
 
 const resolveQuery = z.object({
   token: z.string().min(8),
+  /** S1.4 — optional ultra-short Spark session (campaign/program flag); default 6h */
+  ttl: z.enum(["6h", "1h"]).optional(),
 });
 
 /** G-01.01 — P0 stub with DB when available */
@@ -91,19 +93,42 @@ export async function registerScanRoutes(app: FastifyInstance) {
       });
     }
 
-    const [scanEvent] = await db
-      .insert(scanEvents)
-      .values({
-        tokenId: row.tokenId,
-        restaurantId: row.restaurantId,
-      })
-      .returning();
+    // S1.3 — one-scan burn: atomically flip ACTIVE → CONSUMED together with the scan log.
+    // Compare-and-set on status so two concurrent scans cannot both succeed.
+    const burned = await db.transaction(async (tx) => {
+      const [consumed] = await tx
+        .update(stickerTokens)
+        .set({ status: "CONSUMED", consumedAt: now })
+        .where(and(eq(stickerTokens.id, row.tokenId), eq(stickerTokens.status, "ACTIVE")))
+        .returning({ id: stickerTokens.id });
+      if (!consumed) return null;
+      const [event] = await tx
+        .insert(scanEvents)
+        .values({
+          tokenId: row.tokenId,
+          restaurantId: row.restaurantId,
+        })
+        .returning();
+      return event;
+    });
+
+    if (!burned) {
+      return reply.status(410).send({
+        error: {
+          code: "STICKER_CONSUMED",
+          message: "This sticker was already used",
+          correlationId: request.id,
+        },
+      });
+    }
+    const scanEvent = burned;
 
     const playPath = playPathFor(row.restaurantId, scanEvent.id);
     await upsertSparkPlaySession({
       restaurantId: row.restaurantId,
       scanEventId: scanEvent.id,
       playPath,
+      ttl: parsed.data.ttl,
     });
 
     /** DEC-010 — Spark marketing opt-in bridge before play webview */

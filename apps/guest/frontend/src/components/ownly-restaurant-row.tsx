@@ -35,7 +35,7 @@ export function OwnlyRestaurantRow({
     <Link
       href={href ?? r.menuPath}
       onClick={onClick}
-      className="pressable flex gap-3.5 overflow-hidden rounded-[22px] border border-[#E2E5EE] bg-white p-3 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
+      className="pressable flex gap-3.5 overflow-hidden rounded-[22px] border border-border bg-card p-3 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.07)]"
       data-testid="ownly-restaurant-row"
     >
       <div className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-[16px] bg-surface-container">
@@ -44,17 +44,17 @@ export function OwnlyRestaurantRow({
       </div>
       <div className="min-w-0 flex-1 py-0.5">
         {badge === "delivery_promise" ? (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#EEF0F5] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115]">
+          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-extrabold text-foreground">
             <MaterialIcon name="timer" className="text-[12px]" />
             Delivery Promise
           </span>
         ) : (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0F1115]">
+          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
             <MaterialIcon name="sell" className="text-[12px]" />
             Lowest Price
           </span>
         )}
-        <p className="truncate font-display text-[16px] font-extrabold leading-snug tracking-tight text-[#0F1115]">
+        <p className="truncate font-display text-[16px] font-extrabold leading-snug tracking-tight text-foreground">
           {r.name}
         </p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1 text-[11px] font-semibold text-on-surface-variant">

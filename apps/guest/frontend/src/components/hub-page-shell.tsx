@@ -11,6 +11,7 @@ import {
 import { HubPosterCarousel } from "@/components/hub-poster-carousel";
 import { HubTodaysOffers } from "@/components/hub-todays-offers";
 import { MaterialIcon } from "@/components/material-icon";
+import { RewardPostersOverlay } from "@/components/reward-posters-overlay";
 import { fetchHubPerks, fetchMyOrders, type HubPerkRailItem } from "@/lib/api";
 import {
   formatAddressHeadline,
@@ -75,6 +76,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
   const [perks, setPerks] = useState<HubPerkRailItem[]>(FALLBACK_PERKS);
   const [addr, setAddr] = useState<GuestSavedAddress | null>(null);
   const [addressOpen, setAddressOpen] = useState(false);
+  const [postersOpen, setPostersOpen] = useState(false);
 
   useEffect(() => {
     const syncAddr = () => setAddr(getActiveAddress());
@@ -85,6 +87,21 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener(GUEST_ADDRESS_CHANGED, syncAddr);
       window.removeEventListener("storage", syncAddr);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    // Deep links: /hub?ref=… · ?posters=1 · ?rewards=1 · ?offer=… open poster carousel
+    if (
+      q.get("posters") === "1" ||
+      q.get("rewards") === "1" ||
+      q.has("ref") ||
+      q.has("offer") ||
+      q.has("claim")
+    ) {
+      setPostersOpen(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -101,21 +118,9 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background pb-32">
-      <header className="fixed top-0 z-50 w-full border-b border-[#E2E5EE]/80 bg-[#F4F5F8]/85 pt-safe text-foreground backdrop-blur-xl">
+      <header className="fixed top-0 z-50 w-full border-b border-border/80 bg-background/85 pt-safe text-foreground backdrop-blur-xl">
         <div className="mx-auto w-full max-w-lg md:max-w-3xl lg:max-w-5xl">
-          <div className="flex h-9 items-center justify-between px-4 text-[11px] font-bold text-[#64748B]">
-            <div className="flex items-center gap-1.5">
-              <MaterialIcon name="lock" className="text-[14px] text-[#0F1115]" />
-              <span className="font-extrabold tracking-tight text-[#0F1115]">d-amigos.in</span>
-              <span className="mx-1 h-1 w-1 rounded-full bg-[#10B981]" />
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#EAFF81] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#0F1115] shadow-2xs">
-                <MaterialIcon name="verified" className="text-[12px] text-[#0F1115]" />
-                WhatsApp
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 px-4 pb-3">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
             <button
               type="button"
               className="pressable flex min-w-0 items-center gap-1.5 text-left"
@@ -135,7 +140,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
             </button>
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2">
               <div className="flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide">
                   <span className={vegOnly ? "text-success" : "text-on-surface-variant"}>VEG</span>
@@ -171,6 +176,25 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
                   {vegOnly ? "Veg only" : "Veg + non-veg"}
                 </span>
               </div>
+              <button
+                type="button"
+                data-testid="hub-rewards-btn"
+                aria-label="Open rewards"
+                title="Rewards"
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-primary/10 text-primary"
+                onClick={() => setPostersOpen(true)}
+              >
+                <MaterialIcon name="card_giftcard" className="text-[20px]" />
+              </button>
+              <Link
+                href="/me/loyalty"
+                data-testid="hub-credits-btn"
+                aria-label="Credits wallet"
+                title="Credits"
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface-container-lowest text-foreground"
+              >
+                <MaterialIcon name="account_balance_wallet" className="text-[20px] text-primary" />
+              </Link>
               <Link
                 href="/me"
                 className="pressable flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-container"
@@ -182,7 +206,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg px-4 pt-[6.75rem] md:max-w-3xl lg:max-w-5xl">
+      <main className="mx-auto w-full max-w-lg px-4 pt-[5.25rem] md:max-w-3xl lg:max-w-5xl">
         {/* Search + mini promo — Ownly row */}
         <div className="mb-4 flex gap-2">
           <div className="relative flex-1">
@@ -206,14 +230,14 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             href="/hub/save-and-win"
-            className="pressable relative flex w-[6.25rem] shrink-0 flex-col justify-center overflow-hidden rounded-[18px] bg-[#0F1115] px-2.5 py-1.5 text-center shadow-[0_6px_16px_-4px_rgba(15,17,21,0.3)]"
+            className="pressable relative flex w-[6.25rem] shrink-0 flex-col justify-center overflow-hidden rounded-[18px] bg-primary px-2.5 py-1.5 text-center shadow-[0_6px_16px_-4px_rgba(15,17,21,0.3)]"
             data-testid="hub-save-and-win"
           >
             <span className="text-[8px] font-extrabold uppercase leading-tight tracking-wider text-white/75">
               Refer &amp; Win
             </span>
-            <span className="mt-0.5 text-[11px] font-extrabold leading-tight text-[#EAFF81]">
-              WIN ₹600
+            <span className="mt-0.5 text-[11px] font-extrabold leading-tight text-accent">
+              WIN ₹200
             </span>
           </Link>
         </div>
@@ -247,6 +271,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <HubAddressSheet open={addressOpen} onClose={() => setAddressOpen(false)} />
+      <RewardPostersOverlay open={postersOpen} onClose={() => setPostersOpen(false)} />
     </div>
   );
 }

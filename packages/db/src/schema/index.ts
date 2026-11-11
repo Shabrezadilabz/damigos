@@ -61,6 +61,8 @@ export const restaurants = pgTable("restaurants", {
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
   fssaiNumber: varchar("fssai_number", { length: 32 }),
   fssaiVerifiedAt: timestamp("fssai_verified_at", { withTimezone: true }),
+  /** S1.1 — set once when the ₹1000 Grow welcome credit is granted (idempotency flag) */
+  welcomeCreditGrantedAt: timestamp("welcome_credit_granted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -139,6 +141,8 @@ export const menuCategories = pgTable("menu_categories", {
     .references(() => restaurants.id),
   name: varchar("name", { length: 128 }).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
+  /** S2.2 — hidden categories (and their items) are not shown to guests */
+  hidden: boolean("hidden").default(false).notNull(),
 });
 
 export const foodCatalog = pgTable("food_catalog", {
@@ -170,7 +174,10 @@ export const menuItems = pgTable("menu_items", {
   draft: boolean("draft").default(true).notNull(),
   importConfidence: integer("import_confidence"),
   importJobId: uuid("import_job_id"),
+  /** Owner/primary image (CRM). Guest surfaces prefer guestImageUrl and fall back to this. */
   imageUrl: text("image_url"),
+  /** S2.1 — guest-facing image (menu + hub); null falls back to imageUrl */
+  guestImageUrl: text("guest_image_url"),
   foodCatalogId: uuid("food_catalog_id").references(() => foodCatalog.id),
   /** READY_10M | COOKED_15M — kitchen Accept SLA */
   prepCategory: varchar("prep_category", { length: 16 }).default("COOKED_15M").notNull(),
@@ -300,6 +307,8 @@ export const orders = pgTable("orders", {
   deliveryOtpVerifiedAt: timestamp("delivery_otp_verified_at", { withTimezone: true }),
   /** damigos | shiprocket_webhook | courier_pod */
   deliveryVerifySource: varchar("delivery_verify_source", { length: 32 }),
+  /** S3.1 — settlement rail: DIRECT (D'aMigo guest app / WA / sticker) | ONDC (Beckn network) */
+  rail: varchar("rail", { length: 16 }).default("DIRECT").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -332,6 +341,11 @@ export const restaurantDailySettlements = pgTable(
     platformFeePaise: integer("platform_fee_paise").default(0).notNull(),
     deliveryFeePaise: integer("delivery_fee_paise").default(0).notNull(),
     waitingPenaltyPaise: integer("waiting_penalty_paise").default(0).notNull(),
+    /** S3.1 — per-rail split (Direct vs ONDC) */
+    directOrderCount: integer("direct_order_count").default(0).notNull(),
+    ondcOrderCount: integer("ondc_order_count").default(0).notNull(),
+    directSharePaise: integer("direct_share_paise").default(0).notNull(),
+    ondcSharePaise: integer("ondc_share_paise").default(0).notNull(),
     status: varchar("status", { length: 32 }).default("pending").notNull(),
     /** SETTLED | FROZEN | SKIPPED_NO_BANK | FAILED */
     invoiceNumber: varchar("invoice_number", { length: 64 }),

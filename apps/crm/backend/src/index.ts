@@ -1,4 +1,5 @@
 import { startCampaignScheduler } from "./lib/campaign-scheduler.js";
+import { startGrowProgramScheduler } from "./lib/grow-program-scheduler.js";
 import { startSettlementScheduler } from "./lib/settlement-scheduler.js";
 import { buildCrmApp } from "./build-app.js";
 
@@ -9,6 +10,7 @@ try {
   const app = await buildCrmApp({ serverless: false });
   await app.listen({ port, host });
   startCampaignScheduler(app);
+  startGrowProgramScheduler(app);
   startSettlementScheduler(app);
 } catch (err) {
   console.error(err);

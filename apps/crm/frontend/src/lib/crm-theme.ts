@@ -4,44 +4,45 @@ export type CrmThemeColors = {
   accentColor: string;
 };
 
+/** YUMM plum / milk defaults */
 export const DEFAULT_CRM_THEME: CrmThemeColors = {
-  primaryColor: "#171717",
-  backgroundColor: "#FAFAFA",
-  accentColor: "#EAFF81",
+  primaryColor: "#381932",
+  backgroundColor: "#fff3e6",
+  accentColor: "#b98aae",
 };
 
-const STORAGE_KEY = "damigos.crm.theme.qa";
+const STORAGE_KEY = "damigos.crm.theme.yumm";
 
-function mix(hex: string, toward: string, t: number): string {
-  const parse = (h: string) => {
-    const n = h.replace("#", "");
-    return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)] as const;
-  };
-  const a = parse(hex);
-  const b = parse(toward);
-  const c = (i: number) => Math.round(a[i]! + (b[i]! - a[i]!) * t);
-  return `#${[c(0), c(1), c(2)].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
-}
-
-/** Apply CRM brand colors — keeps iOS + CRED tactile luxury palette */
-export function applyCrmTheme(_theme: CrmThemeColors): void {
+/** Apply YUMM brand colors onto CSS variables (palette only). */
+export function applyCrmTheme(theme: CrmThemeColors = DEFAULT_CRM_THEME): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  root.style.setProperty("--color-primary", "#0F1115");
-  root.style.setProperty("--color-secondary", "#EEF0F5");
-  root.style.setProperty("--color-ring", "#0F1115");
-  root.style.setProperty("--color-primary-container", "#EAFF81");
-  root.style.setProperty("--color-primary-fixed", "#EEF0F5");
-  root.style.setProperty("--color-secondary-container", "#EAFF81");
-  root.style.setProperty("--color-background", "#F4F5F8");
+  const primary = theme.primaryColor || DEFAULT_CRM_THEME.primaryColor;
+  const background = theme.backgroundColor || DEFAULT_CRM_THEME.backgroundColor;
+  const accent = theme.accentColor || DEFAULT_CRM_THEME.accentColor;
+
+  root.style.setProperty("--color-primary", primary);
+  root.style.setProperty("--color-primary-foreground", "#fff3e6");
+  root.style.setProperty("--color-secondary", "#f6e4cf");
+  root.style.setProperty("--color-ring", primary);
+  root.style.setProperty("--color-primary-container", accent);
+  root.style.setProperty("--color-on-primary-container", primary);
+  root.style.setProperty("--color-primary-fixed", "#f6e4cf");
+  root.style.setProperty("--color-secondary-container", accent);
+  root.style.setProperty("--color-accent", accent);
+  root.style.setProperty("--color-accent-foreground", primary);
+  root.style.setProperty("--color-qa-accent", accent);
+  root.style.setProperty("--color-background", background);
+  root.style.setProperty("--color-foreground", "#2a1226");
   root.style.setProperty("--color-surface-container-lowest", "#FFFFFF");
-  root.style.setProperty("--color-surface-container-low", "#F8F9FB");
-  root.style.setProperty("--color-surface-container", "#EEF0F5");
-  root.style.setProperty("--color-surface-container-high", "#E5E8F0");
-  root.style.setProperty("--color-tertiary", "#10B981");
-  root.style.setProperty("--color-tertiary-container", "#D1FAE5");
-  root.style.setProperty("--color-outline-variant", "#E2E5EE");
-  root.style.setProperty("--color-border", "#E2E5EE");
+  root.style.setProperty("--color-surface-container-low", "#fff8f0");
+  root.style.setProperty("--color-surface-container", "#f6e4cf");
+  root.style.setProperty("--color-surface-container-high", "#ebd5bf");
+  root.style.setProperty("--color-tertiary", "#7a4f70");
+  root.style.setProperty("--color-tertiary-container", "#e8d5e2");
+  root.style.setProperty("--color-success", "#3d8b6e");
+  root.style.setProperty("--color-outline-variant", "#ebd5bf");
+  root.style.setProperty("--color-border", "#ebd5bf");
 }
 
 export function readStoredCrmTheme(): CrmThemeColors | null {

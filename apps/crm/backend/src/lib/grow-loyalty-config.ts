@@ -23,6 +23,10 @@ export const OFFER_PRESETS = {
 
 export type OfferPresetId = keyof typeof OFFER_PRESETS;
 
+/** S1.7 — default "no win" wheel segment (guest backend: prizeType no_prize → no reward claim) */
+export const NO_PRIZE_TYPE = "no_prize";
+export const NO_PRIZE_TITLE = "Better luck next time";
+
 export const MIN_ORDER_OPTIONS = [
   { paise: 19900, label: "₹199" },
   { paise: 24900, label: "₹249" },
@@ -128,6 +132,15 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
         prizeValue: 2000,
         weight: 20,
         scope: "PLATFORM_WIDE",
+      },
+      {
+        // S1.7 — wheel can land on "Better luck next time"; guest backend creates no claim for no_prize
+        localId: "s5",
+        title: NO_PRIZE_TITLE,
+        prizeType: NO_PRIZE_TYPE,
+        prizeValue: 0,
+        weight: 15,
+        scope: "RESTAURANT_SCOPED",
       },
     ],
     scratch: { minOrderPaise: 59900, offerPresetId: "flat_100" },

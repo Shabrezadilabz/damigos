@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YUMM Foods — MVP Pitch Deck</title>
+  <style>
+    :root {
+      --ink: #1a120c;
+      --paper: #fff8f1;
+      --cream: #f3e6d8;
+      --ember: #c45c26;
+      --ember-deep: #8f3a12;
+      --sage: #2f5d4a;
+      --muted: #6b5a4e;
+      --line: rgba(26, 18, 12, 0.12);
+      --slide-w: min(1120px, 96vw);
+      --slide-h: min(630px, 72vh);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0f0c0a;
+      color: var(--ink);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: rgba(15, 12, 10, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      color: #f6eee6;
+    }
+    .toolbar h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+    .toolbar .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar button, .toolbar a.btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: #2a211c;
+      color: #fff8f1;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toolbar button.primary, .toolbar a.btn.primary {
+      background: linear-gradient(135deg, var(--ember), var(--ember-deep));
+      border-color: transparent;
+      font-weight: 600;
+    }
+    .toolbar button:hover, .toolbar a.btn:hover { filter: brightness(1.08); }
+    .toolbar .count {
+      font-size: 13px;
+      opacity: 0.75;
+      min-width: 64px;
+      text-align: center;
+    }
+
+    .deck {
+      padding: 28px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .slide {
+      width: var(--slide-w);
+      min-height: var(--slide-h);
+      background: var(--paper);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .slide.full { grid-template-columns: 1fr; }
+    .slide .copy {
+      padding: 42px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      position: relative;
+      z-index: 2;
+    }
+    .slide .visual {
+      position: relative;
+      min-height: 280px;
+      background: #2a211c center/cover no-repeat;
+    }
+    .slide .visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255,248,241,0.92) 0%, rgba(255,248,241,0.15) 28%, transparent 55%);
+      pointer-events: none;
+    }
+    .slide.full .visual { display: none; }
+    .slide.hero {
+      background:
+        linear-gradient(105deg, rgba(15,12,10,0.88) 0%, rgba(15,12,10,0.55) 48%, rgba(15,12,10,0.25) 100%),
+        url("assets/yumm-slide-hero.jpg") center/cover no-repeat;
+      color: #fff8f1;
+      grid-template-columns: 1fr;
+    }
+    .slide.hero .copy { max-width: 620px; padding: 56px 48px; }
+    .slide.hero .eyebrow { color: #f0c9a8; }
+    .slide.hero .muted { color: rgba(255,248,241,0.78); }
+    .slide.hero h2 { color: #fff; font-size: clamp(36px, 5vw, 54px); line-height: 1.05; }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ember);
+      font-weight: 700;
+      margin: 0;
+    }
+    h2 {
+      margin: 0;
+      font-size: clamp(28px, 3.4vw, 40px);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+    .muted {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+      max-width: 36em;
+    }
+    ul.points {
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+    ul.points li {
+      position: relative;
+      padding-left: 18px;
+      font-size: 15.5px;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+    ul.points li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ember);
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.55);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .metric {
+      background: var(--cream);
+      border-radius: 14px;
+      padding: 14px 12px;
+      border: 1px solid var(--line);
+    }
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      color: var(--ember-deep);
+    }
+    .metric span {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .footer-note {
+      margin-top: auto;
+      padding-top: 18px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+    .brand-mark {
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      color: var(--sage);
+      text-transform: uppercase;
+    }
+    .slide.cta {
+      background:
+        linear-gradient(120deg, rgba(26,18,12,0.9), rgba(143,58,18,0.72)),
+        url("assets/yumm-slide-control.jpg") center/cover no-repeat;
+      color: #fff8f1;
+      grid-template-columns: 1fr;
+    }
+    .slide.cta .copy { max-width: 720px; padding: 56px 48px; }
+    .slide.cta .eyebrow { color: #f0c9a8; }
+    .slide.cta .muted { color: rgba(255,248,241,0.8); }
+    .slide.cta h2 { color: #fff; }
+    .slide.cta ul.points li { color: #fff8f1; }
+    .slide.cta ul.points li::before { background: #f0c9a8; }
+    .slide.cta .footer-note { color: rgba(255,248,241,0.65); border-top-color: rgba(255,255,255,0.18); }
+
+    .hint {
+      color: rgba(255,248,241,0.55);
+      font-size: 12px;
+      text-align: center;
+      padding: 0 16px 40px;
+    }
+
+    @media (max-width: 860px) {
+      .slide { grid-template-columns: 1fr; min-height: auto; }
+      .slide .visual { min-height: 220px; }
+      .slide .visual::after {
+        background: linear-gradient(180deg, rgba(255,248,241,0.95) 0%, rgba(255,248,241,0.2) 40%, transparent 70%);
+      }
+      .slide .copy { padding: 28px 22px 32px; }
+      .metrics { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      @page { size: landscape; margin: 0; }
+      body { background: #fff; }
+      .toolbar, .hint { display: none !important; }
+      .deck { padding: 0; gap: 0; }
+      .slide {
+        width: 100vw;
+        height: 100vh;
+        min-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .slide:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>YUMM Foods · MVP Pitch · D’aMigo’s Technologies Pvt Ltd</h1>
+    <div class="actions">
+      <span class="count" id="slideCount">1 / 8</span>
+      <button type="button" id="prevBtn" aria-label="Previous slide">← Prev</button>
+      <button type="button" id="nextBtn" aria-label="Next slide">Next →</button>
+      <button type="button" class="primary" id="printBtn">Download PDF (Print)</button>
+      <a class="btn" href="https://app.presentations.ai/view/qLcQr0xch4jS3wb7" target="_blank" rel="noopener">Open presentations.ai</a>
+    </div>
+  </div>
+
+  <div class="deck" id="deck">
+    <!-- 1. Title -->
+    <section class="slide hero" data-title="Title">
+      <div class="copy">
+        <p class="brand-mark" style="color:#f0c9a8">YUMM Foods</p>
+        <p class="eyebrow">MVP Pitch Deck</p>
+        <h2>Hyperlocal food, owned end-to-end — WhatsApp to kitchen to door.</h2>
+        <p class="muted">A Bangalore-first operating system for 50 partner kitchens. Built by D’aMigo’s Technologies Pvt Ltd.</p>
+        <div class="chips">
+          <span class="chip" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff">Bootstrapped</span>
+          <span class="chip" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff">Pre-revenue</span>
+          <span class="chip" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff">HSR / 560034 pilot</span>
+        </div>
+        <p class="footer-note" style="border:0;padding-top:8px;color:rgba(255,248,241,0.65)">Source deck: presentations.ai · Offline downloadable edition with live photography</p>
+      </div>
+    </section>
+
+    <!-- 2. Problem -->
+    <section class="slide" data-title="Problem">
+      <div class="copy">
+        <p class="eyebrow">01 · The problem</p>
+        <h2>Local kitchens lose the customer — and the margin — to aggregators.</h2>
+        <ul class="points">
+          <li>30–35% commission + ads squeeze neighbourhood restaurants.</li>
+          <li>No owned channel: guests live on WhatsApp, not another app install.</li>
+          <li>Ops are fragmented — menu, kitchen, delivery, and loyalty don’t talk.</li>
+          <li>Discovery without control means brand and data stay with the platform.</li>
+        </ul>
+        <p class="footer-note">YUMM keeps the relationship with the guest and the kitchen under one roof.</p>
+      </div>
+      <div class="visual" style="background-image:url('assets/indian-kitchen.jpg')"></div>
+    </section>
+
+    <!-- 3. Solution -->
+    <section class="slide" data-title="Solution">
+      <div class="copy">
+        <p class="eyebrow">02 · Solution</p>
+        <h2>YUMM = WhatsApp commerce + kitchen CRM + hyperlocal delivery.</h2>
+        <ul class="points">
+          <li><strong>Guest:</strong> order in WhatsApp / progressive web — no forced app download.</li>
+          <li><strong>Kitchen:</strong> menu, KOT, stock, settlements, Grow campaigns in one CRM.</li>
+          <li><strong>Delivery:</strong> Shiprocket Quick / Instant for last-mile in the pilot pin.</li>
+          <li><strong>Loyalty:</strong> wallet, claims, and offers that bring guests back.</li>
+        </ul>
+        <div class="chips">
+          <span class="chip">Direct orders</span>
+          <span class="chip">ONDC-ready later</span>
+          <span class="chip">Razorpay payouts</span>
+        </div>
+      </div>
+      <div class="visual" style="background-image:url('assets/whatsapp-phone.jpg')"></div>
+    </section>
+
+    <!-- 4. How it works -->
+    <section class="slide" data-title="Flow">
+      <div class="copy">
+        <p class="eyebrow">03 · How it works</p>
+        <h2>One loop from chat to doorstep.</h2>
+        <ul class="points">
+          <li>Guest opens kitchen link / WhatsApp CTA → browses menu → pays.</li>
+          <li>Order hits kitchen CRM → accept → KOT → prep SLA.</li>
+          <li>Hyperlocal partner picks up from static kitchen address.</li>
+          <li>Dynamic guest drop from live location / saved address.</li>
+          <li>Settlement: Direct orders settle to kitchen; ONDC settles BAP→BPP when live.</li>
+        </ul>
+      </div>
+      <div class="visual" style="background-image:url('assets/food-delivery.jpg')"></div>
+    </section>
+
+    <!-- 5. Traction thesis -->
+    <section class="slide" data-title="Market">
+      <div class="copy">
+        <p class="eyebrow">04 · Beachhead</p>
+        <h2>Start dense: 50 kitchens, ~200 orders/week, one city grid.</h2>
+        <div class="metrics">
+          <div class="metric"><strong>50</strong><span>Pilot kitchens (Bangalore micro-markets)</span></div>
+          <div class="metric"><strong>~200</strong><span>Target weekly orders in MVP window</span></div>
+          <div class="metric"><strong>1 pin</strong><span>HSR / 560034 hyperlocal proof</span></div>
+        </div>
+        <ul class="points">
+          <li>Prove unit economics on Direct before scaling discovery (ONDC).</li>
+          <li>Density beats city-wide thin coverage for Instant delivery.</li>
+        </ul>
+      </div>
+      <div class="visual" style="background-image:url('assets/bangalore-street.jpg')"></div>
+    </section>
+
+    <!-- 6. Product proof -->
+    <section class="slide" data-title="Product">
+      <div class="copy">
+        <p class="eyebrow">05 · Product today</p>
+        <h2>Not a slideware stack — CRM + guest hub already shipping.</h2>
+        <ul class="points">
+          <li>Owner CRM: menu import, kitchen board, Grow, stickers, payouts.</li>
+          <li>Guest hub: search, VEG filter, cart, offers, profile, feedback.</li>
+          <li>AI assist: menu parse + poster generation for kitchen marketing.</li>
+          <li>Delivery webhooks + Shiprocket Instant path validated on pilot pin.</li>
+        </ul>
+        <p class="footer-note">Company: D’aMigo’s Technologies Pvt Ltd · Brand: YUMM Foods</p>
+      </div>
+      <div class="visual" style="background-image:url('assets/yumm-slide-control.jpg')"></div>
+    </section>
+
+    <!-- 7. Go-to-market -->
+    <section class="slide" data-title="GTM">
+      <div class="copy">
+        <p class="eyebrow">06 · Go-to-market</p>
+        <h2>Founder-led kitchen onboarding + WhatsApp reactivation.</h2>
+        <ul class="points">
+          <li>Door-to-door / network intros in HSR &amp; nearby clusters.</li>
+          <li>Zero / low commission pilot vs aggregator rates.</li>
+          <li>QR stickers + Kapso WhatsApp deep links on tables and packs.</li>
+          <li>Festival / weekend reminder blasts from Grow once wallet is live.</li>
+        </ul>
+      </div>
+      <div class="visual" style="background-image:url('assets/team-ops.jpg')"></div>
+    </section>
+
+    <!-- 8. Ask / close -->
+    <section class="slide cta" data-title="Ask">
+      <div class="copy">
+        <p class="eyebrow">07 · The ask</p>
+        <h2>Partners, pilots, and patient capital for the next 90 days.</h2>
+        <ul class="points">
+          <li>Onboard 50 Bangalore kitchens on Direct YUMM rails.</li>
+          <li>Complete Shiprocket Quick + wallet + MSME/Razorpay KYC.</li>
+          <li>Hit consistent weekly order volume before ONDC scale-out.</li>
+        </ul>
+        <p class="muted" style="margin-top:8px">Let’s make neighbourhood food profitable again — for kitchens and for guests.</p>
+        <p class="footer-note">YUMM Foods · D’aMigo’s Technologies Pvt Ltd · Download this file + Print → Save as PDF</p>
+      </div>
+    </section>
+  </div>
+
+  <p class="hint">Tip: use ← → keys to jump slides. Click <strong>Download PDF (Print)</strong>, choose “Save as PDF”, landscape.</p>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const countEl = document.getElementById("slideCount");
+      let idx = 0;
+
+      function go(n) {
+        idx = Math.max(0, Math.min(slides.length - 1, n));
+        slides[idx].scrollIntoView({ behavior: "smooth", block: "center" });
+        countEl.textContent = (idx + 1) + " / " + slides.length;
+      }
+
+      document.getElementById("prevBtn").addEventListener("click", () => go(idx - 1));
+      document.getElementById("nextBtn").addEventListener("click", () => go(idx + 1));
+      document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+          e.preventDefault();
+          go(idx + 1);
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          go(idx - 1);
+        } else if (e.key === "Home") {
+          go(0);
+        } else if (e.key === "End") {
+          go(slides.length - 1);
+        }
+      });
+
+      const io = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((e) => e.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (!visible) return;
+          const i = slides.indexOf(visible.target);
+          if (i >= 0) {
+            idx = i;
+            countEl.textContent = (idx + 1) + " / " + slides.length;
+          }
+        },
+        { threshold: [0.45, 0.6, 0.75] }
+      );
+      slides.forEach((s) => io.observe(s));
+    })();
+  </script>
+</body>
+</html>

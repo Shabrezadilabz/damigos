@@ -95,6 +95,9 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
           grossPaise: sql<number>`coalesce(sum(${orders.totalPaise}), 0)::int`,
           penaltyPaise: sql<number>`coalesce(sum(${orders.waitingPenaltyPaise}), 0)::int`,
           orderCount: count(),
+          // S3.1 — per-rail split
+          ondcOrders: sql<number>`count(*) filter (where ${orders.rail} = 'ONDC')::int`,
+          ondcGrossPaise: sql<number>`coalesce(sum(${orders.totalPaise}) filter (where ${orders.rail} = 'ONDC'), 0)::int`,
         })
         .from(orders)
         .where(
@@ -150,6 +153,16 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
       settlement7d: {
         paidOrders: Number(settlement[0]?.orderCount ?? 0),
         grossSalesPaise: gross7d,
+        rails: {
+          direct: {
+            orders: Number(settlement[0]?.orderCount ?? 0) - Number(settlement[0]?.ondcOrders ?? 0),
+            grossSalesPaise: gross7d - Number(settlement[0]?.ondcGrossPaise ?? 0),
+          },
+          ondc: {
+            orders: Number(settlement[0]?.ondcOrders ?? 0),
+            grossSalesPaise: Number(settlement[0]?.ondcGrossPaise ?? 0),
+          },
+        },
         waitingPenaltyPaise: penalties7d,
         ledgerPenaltyDebitsPaise: Number(ledgerDebits?.n ?? 0),
         netEstimatePaise: Math.max(0, gross7d - penalties7d),
@@ -231,12 +244,39 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
       count: Number(hourRows.find((r) => Number(r.hour) === hour)?.n ?? 0),
     }));
 
+    // S3.1 — Direct vs ONDC rail split for the range (drives the commission report)
+    const [railRow] = await db
+      .select({
+        directOrders: sql<number>`count(*) filter (where ${orders.rail} <> 'ONDC')::int`,
+        ondcOrders: sql<number>`count(*) filter (where ${orders.rail} = 'ONDC')::int`,
+        directGrossPaise: sql<number>`coalesce(sum(${orders.totalPaise}) filter (where ${orders.rail} <> 'ONDC'), 0)::int`,
+        ondcGrossPaise: sql<number>`coalesce(sum(${orders.totalPaise}) filter (where ${orders.rail} = 'ONDC'), 0)::int`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.restaurantId, restaurantId),
+          gte(orders.createdAt, since),
+          inArray(orders.status, [...paidOrderStatuses]),
+        ),
+      );
+
     const payload = {
       restaurantId,
       range: label,
       since: since.toISOString(),
       funnel,
       ordersByHour,
+      rails: {
+        direct: {
+          orders: Number(railRow?.directOrders ?? 0),
+          grossSalesPaise: Number(railRow?.directGrossPaise ?? 0),
+        },
+        ondc: {
+          orders: Number(railRow?.ondcOrders ?? 0),
+          grossSalesPaise: Number(railRow?.ondcGrossPaise ?? 0),
+        },
+      },
     };
 
     if (query.format === "csv") {
@@ -244,6 +284,8 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
         "section,step,hour,count",
         ...funnel.map((f) => `funnel,${f.step},,${f.count}`),
         ...ordersByHour.map((h) => `orders_by_hour,,${h.hour},${h.count}`),
+        `rail,direct,,${payload.rails.direct.orders}`,
+        `rail,ondc,,${payload.rails.ondc.orders}`,
       ];
       return reply
         .header("Content-Type", "text/csv; charset=utf-8")

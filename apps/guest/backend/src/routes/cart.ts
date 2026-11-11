@@ -5,10 +5,11 @@ import { cartItems, carts, db, menuItems, restaurants, rewardClaims } from "@dam
 import { ensureBestClaimApplied } from "../lib/auto-apply-claim.js";
 import {
   cartTotalPaise,
-  CONVENIENCE_FEE_PAISE,
   loadClaimWithOffer,
+  microFeesPaise,
   resolveAppliedClaimDiscount,
 } from "../lib/cart-totals.js";
+import { findStaleCartLines } from "../lib/cart-price-lock.js";
 import { assertCanShopRestaurant, crossByMeta, listOpenKitchenCarts } from "../lib/cross-by-cart.js";
 import {
   clampLoyaltyApplyPaise,
@@ -77,12 +78,18 @@ export async function registerCartRoutes(app: FastifyInstance) {
         unitPricePaise: cartItems.unitPricePaise,
         name: menuItems.name,
         isVeg: menuItems.isVeg,
+        livePricePaise: menuItems.pricePaise,
+        available: menuItems.available,
+        draft: menuItems.draft,
       })
       .from(cartItems)
       .innerJoin(menuItems, eq(cartItems.menuItemId, menuItems.id))
       .where(eq(cartItems.cartId, cart.id));
 
     const subtotalPaise = rows.reduce((s, r) => s + r.quantity * r.unitPricePaise, 0);
+    const itemCount = rows.reduce((s, r) => s + r.quantity, 0);
+    // S1.5 — flag drifted prices so the client refreshes before checkout (checkout also rejects)
+    const staleLines = findStaleCartLines(rows);
 
     // Cross-By: don't auto-apply a platform claim already on another open cart
     const otherOpen = await listOpenKitchenCarts(customerId);
@@ -150,22 +157,29 @@ export async function registerCartRoutes(app: FastifyInstance) {
       discountPaise,
       deliveryFeePaise,
       loyaltyAppliedPaise,
+      itemCount,
     );
 
     return {
       cartId: cart.id,
       restaurantId: query.data.restaurantId,
-      items: rows,
+      items: rows.map(({ livePricePaise, available, draft, ...line }) => ({
+        ...line,
+        priceStale: livePricePaise !== line.unitPricePaise || !available || draft,
+      })),
+      priceStale: staleLines.length > 0,
+      staleLines,
       subtotalPaise,
       discountPaise,
       loyaltyAvailablePaise,
       loyaltyAppliedPaise,
       deliveryFeePaise,
       deliveryPincode: cart.deliveryPincode,
-      convenienceFeePaise: CONVENIENCE_FEE_PAISE,
+      /** S1.9 — silent micro-fees already folded into totalPaise; FE must not render a line item */
+      convenienceFeePaise: microFeesPaise(itemCount),
       totalPaise,
       appliedClaim: claimInfo.appliedClaim,
-      itemCount: rows.reduce((s, r) => s + r.quantity, 0),
+      itemCount,
     };
   });
 
@@ -333,9 +347,10 @@ export async function registerCartRoutes(app: FastifyInstance) {
       .limit(1);
 
     if (existingLine) {
+      // S1.5 — adding more of a dish re-locks the line to the live menu price
       const [updated] = await db
         .update(cartItems)
-        .set({ quantity: existingLine.quantity + quantity })
+        .set({ quantity: existingLine.quantity + quantity, unitPricePaise: item.pricePaise })
         .where(eq(cartItems.id, existingLine.id))
         .returning();
       return { line: updated };
@@ -352,6 +367,54 @@ export async function registerCartRoutes(app: FastifyInstance) {
       .returning();
 
     return { line };
+  });
+
+  /**
+   * S1.5 — re-lock an open cart to live menu prices: reprices drifted lines and drops
+   * dishes that are no longer orderable. Call after a CART_PRICE_STALE (409).
+   */
+  app.post("/cart/refresh-prices", { preHandler: requireGuest }, async (request, reply) => {
+    const body = z.object({ restaurantId: z.string().uuid() }).safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({
+        error: { code: "INVALID_REQUEST", message: "restaurantId required", correlationId: request.id },
+      });
+    }
+    const customerId = request.guest!.sub!;
+    const cart = await getOrCreateOpenCart(customerId, body.data.restaurantId);
+    const rows = await db
+      .select({
+        id: cartItems.id,
+        name: menuItems.name,
+        unitPricePaise: cartItems.unitPricePaise,
+        livePricePaise: menuItems.pricePaise,
+        available: menuItems.available,
+        draft: menuItems.draft,
+      })
+      .from(cartItems)
+      .innerJoin(menuItems, eq(cartItems.menuItemId, menuItems.id))
+      .where(eq(cartItems.cartId, cart.id));
+
+    let repriced = 0;
+    const removedIds: string[] = [];
+    for (const r of rows) {
+      if (!r.available || r.draft) {
+        removedIds.push(r.id);
+      } else if (r.unitPricePaise !== r.livePricePaise) {
+        await db
+          .update(cartItems)
+          .set({ unitPricePaise: r.livePricePaise })
+          .where(eq(cartItems.id, r.id));
+        repriced += 1;
+      }
+    }
+    if (removedIds.length > 0) {
+      await db.delete(cartItems).where(inArray(cartItems.id, removedIds));
+    }
+    if (repriced > 0 || removedIds.length > 0) {
+      await db.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cart.id));
+    }
+    return { repriced, removed: removedIds.length };
   });
 
   /** G-07.03 / G-R01b — open kitchen carts (max 2 for Cross-By) */

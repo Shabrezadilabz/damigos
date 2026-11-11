@@ -12,7 +12,9 @@ import {
 import { randomUUID } from "node:crypto";
 import { ensureBestClaimApplied } from "./auto-apply-claim.js";
 import { captureOrderPayment } from "./capture-order-payment.js";
-import { CONVENIENCE_FEE_PAISE, resolveAppliedClaimDiscount } from "./cart-totals.js";
+import { resolveAppliedClaimDiscount } from "./cart-totals.js";
+import { findStaleCartLines, type StaleCartLine } from "./cart-price-lock.js";
+import { legMicroFeesPaise } from "./micro-fees.js";
 import { crossByMeta, listOpenKitchenCarts } from "./cross-by-cart.js";
 import { clampLoyaltyApplyPaise } from "./guest-loyalty.js";
 import { isFirstOrderFreeEligible } from "./first-order-delivery.js";
@@ -37,6 +39,8 @@ export type LegSnapshot = {
   deliveryPincode: string | null;
   deliveryAddressText: string | null;
   appliedClaimId: string | null;
+  /** S1.5 — lines whose cart price drifted from live menu price (checkout is rejected if any) */
+  staleLines: StaleCartLine[];
 };
 
 export async function buildLegSnapshots(customerId: string): Promise<LegSnapshot[]> {
@@ -50,18 +54,29 @@ export async function buildLegSnapshots(customerId: string): Promise<LegSnapshot
     const [cart] = await db.select().from(carts).where(eq(carts.id, kitchen.cartId)).limit(1);
     if (!cart) continue;
 
-    const lines = await db
+    const lineRows = await db
       .select({
         menuItemId: cartItems.menuItemId,
         quantity: cartItems.quantity,
         unitPricePaise: cartItems.unitPricePaise,
         name: menuItems.name,
+        livePricePaise: menuItems.pricePaise,
+        available: menuItems.available,
+        draft: menuItems.draft,
       })
       .from(cartItems)
       .innerJoin(menuItems, eq(cartItems.menuItemId, menuItems.id))
       .where(eq(cartItems.cartId, cart.id));
 
-    if (lines.length === 0) continue;
+    if (lineRows.length === 0) continue;
+
+    const staleLines = findStaleCartLines(lineRows);
+    const lines = lineRows.map((l) => ({
+      menuItemId: l.menuItemId,
+      quantity: l.quantity,
+      unitPricePaise: l.unitPricePaise,
+      name: l.name,
+    }));
 
     const subtotalPaise = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0);
 
@@ -115,6 +130,7 @@ export async function buildLegSnapshots(customerId: string): Promise<LegSnapshot
       deliveryPincode: cart.deliveryPincode,
       deliveryAddressText: cart.deliveryAddressText ?? null,
       appliedClaimId: claimInfo.discountPaise > 0 ? claimId : null,
+      staleLines,
     });
   }
 
@@ -131,12 +147,21 @@ export function groupDeliveryFeePaise(
   return fees.reduce((s, f) => s + f, 0);
 }
 
+export function legItemQty(leg: LegSnapshot): number {
+  return leg.lines.reduce((s, l) => s + l.quantity, 0);
+}
+
+/** S1.9 — silent micro-fees for the whole group (₹2/item across legs + ₹2 WA + ₹3 rail once). */
+export function groupMicroFeesPaise(legs: LegSnapshot[]): number {
+  return legs.reduce((s, l) => s + legMicroFeesPaise(legItemQty(l), l.legIndex), 0);
+}
+
 export function groupTotalPaise(legs: LegSnapshot[], deliveryFeePaise: number): number {
   const items = legs.reduce(
     (s, l) => s + Math.max(0, l.subtotalPaise - l.discountPaise - l.loyaltyAppliedPaise),
     0,
   );
-  return items + CONVENIENCE_FEE_PAISE + deliveryFeePaise;
+  return items + groupMicroFeesPaise(legs) + deliveryFeePaise;
 }
 
 export type PendingCheckoutGroup = {
@@ -195,6 +220,9 @@ export async function createPendingCheckoutGroup(
     }
   }
 
+  // S1.5 — cart lock: never create orders from stale cart prices
+  if (legs.some((l) => l.staleLines.length > 0)) return { error: "CART_PRICE_STALE" };
+
   const [group] = await db
     .insert(checkoutGroups)
     .values({
@@ -204,7 +232,7 @@ export async function createPendingCheckoutGroup(
       distanceMeters: meta.distanceMeters,
       deliveryFeePaise,
       platformDeliverySubsidyPaise: platformSubsidyPaise,
-      convenienceFeePaise: CONVENIENCE_FEE_PAISE,
+      convenienceFeePaise: groupMicroFeesPaise(legs),
       idempotencyKey: key,
     })
     .returning();
@@ -212,7 +240,7 @@ export async function createPendingCheckoutGroup(
   const createdOrderIds: string[] = [];
 
   for (const leg of legs) {
-    const convenience = leg.legIndex === 1 ? CONVENIENCE_FEE_PAISE : 0;
+    const convenience = legMicroFeesPaise(legItemQty(leg), leg.legIndex);
     const deliveryShare = leg.legIndex === 1 ? deliveryFeePaise : 0;
     const combinedDiscount = leg.discountPaise + leg.loyaltyAppliedPaise;
     const legTotal =

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { bearerToken, verifyGuestToken } from "@damigos/auth";
 import {
   db,
+  menuCategories,
   menuItems,
   offers,
   orders,
@@ -39,8 +40,12 @@ export async function registerHubRoutes(app: FastifyInstance) {
         ? new Set(["bangalore", "bengaluru", "blr", ""])
         : new Set([cityFilter]);
 
-    // All hub-listed kitchens (no artificial cap). Soft city match for Bangalore pilot.
-    const rows = await db.select().from(restaurants).where(eq(restaurants.hubListed, true));
+    // S1.6 — master menu OFF (orderingEnabled=false) hides the kitchen from the hub entirely.
+    // Soft city match for Bangalore pilot.
+    const rows = await db
+      .select()
+      .from(restaurants)
+      .where(and(eq(restaurants.hubListed, true), eq(restaurants.orderingEnabled, true)));
 
     const filtered: typeof rows = [];
     for (const r of rows) {
@@ -75,16 +80,27 @@ export async function registerHubRoutes(app: FastifyInstance) {
           pricePaise: menuItems.pricePaise,
           isVeg: menuItems.isVeg,
           imageUrl: menuItems.imageUrl,
+          guestImageUrl: menuItems.guestImageUrl,
         })
         .from(menuItems)
+        .leftJoin(menuCategories, eq(menuItems.categoryId, menuCategories.id))
         .where(
           and(
             eq(menuItems.restaurantId, r.id),
             eq(menuItems.draft, false),
             eq(menuItems.available, true),
+            // S2.2 — items in hidden categories are not surfaced to guests
+            or(isNull(menuItems.categoryId), eq(menuCategories.hidden, false)),
           ),
         )
-        .limit(24);
+        .limit(24)
+        .then((rows) =>
+          rows.map(({ guestImageUrl, imageUrl, ...rest }) => ({
+            ...rest,
+            // S2.1 — guest surfaces prefer guestImageUrl, fall back to imageUrl
+            imageUrl: guestImageUrl?.trim() || imageUrl,
+          })),
+        );
 
       const vegCount = items.filter((i) => i.isVeg).length;
       let logoUrl: string | null = null;
@@ -179,18 +195,21 @@ export async function registerHubRoutes(app: FastifyInstance) {
         pricePaise: menuItems.pricePaise,
         isVeg: menuItems.isVeg,
         imageUrl: menuItems.imageUrl,
+        guestImageUrl: menuItems.guestImageUrl,
         restaurantId: restaurants.id,
         restaurantName: restaurants.name,
         restaurantSlug: restaurants.slug,
       })
       .from(menuItems)
       .innerJoin(restaurants, eq(menuItems.restaurantId, restaurants.id))
+      .leftJoin(menuCategories, eq(menuItems.categoryId, menuCategories.id))
       .where(
         and(
           eq(restaurants.hubListed, true),
           eq(restaurants.orderingEnabled, true),
           eq(menuItems.draft, false),
           eq(menuItems.available, true),
+          or(isNull(menuItems.categoryId), eq(menuCategories.hidden, false)),
           lte(menuItems.pricePaise, 14900),
           ...(vegOnly ? [eq(menuItems.isVeg, true)] : []),
         ),
@@ -206,7 +225,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
         name: r.name,
         pricePaise: r.pricePaise,
         isVeg: r.isVeg,
-        imageUrl: r.imageUrl,
+        imageUrl: r.guestImageUrl?.trim() || r.imageUrl,
         restaurantId: r.restaurantId,
         restaurantName: r.restaurantName,
         restaurantSlug: r.restaurantSlug,
@@ -227,6 +246,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
         restaurantName: restaurants.name,
         restaurantId: restaurants.id,
         hubListed: restaurants.hubListed,
+        orderingEnabled: restaurants.orderingEnabled,
       })
       .from(offers)
       .innerJoin(restaurants, eq(offers.restaurantId, restaurants.id))
@@ -272,7 +292,10 @@ export async function registerHubRoutes(app: FastifyInstance) {
         continue;
       }
       // One card per active kitchen offer (not one-per-kitchen) so Grow segments show up
-      if (!row.hubListed) continue;
+      // S1.6 — kitchens with master menu OFF don't surface perk cards on the hub
+      if (!row.hubListed || !row.orderingEnabled) continue;
+      // S1.7 — "Better luck next time" segment is not a perk
+      if (row.offer.prizeType === "no_prize") continue;
       if (kitchenCards.length >= 16) continue;
       kitchenCards.push({
         id: row.offer.id,

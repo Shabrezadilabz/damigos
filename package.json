@@ -34,6 +34,14 @@
     "db:patch-menu": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/patch-menu.ps1",
     "db:cleanup-e2e-menu": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cleanup-e2e-menu.ps1",
     "test:e2e": "npm run test -w @damigos/e2e",
+    "test:unit:generate": "node scripts/generate-per-file-unit-tests.mjs",
+    "test:unit:enrich-deep": "node scripts/enrich-deep-unit-tests.mjs",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:crm-api": "vitest run --project crm-api",
+    "test:unit:guest-api": "vitest run --project guest-api",
+    "test:unit:crm-web": "vitest run --project crm-web",
+    "test:unit:guest-web": "vitest run --project guest-web",
     "kitchen:load": "node scripts/kitchen-stream-load.mjs",
     "dev:infra": "docker compose up -d",
     "redis:ping": "tsx scripts/redis-ping.ts",
@@ -41,9 +49,15 @@
     "stop:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-damigos-ports.ps1"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
+    "esbuild": "^0.25.0",
+    "happy-dom": "^17.4.4",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }

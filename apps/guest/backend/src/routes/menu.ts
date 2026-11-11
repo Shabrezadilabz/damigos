@@ -1,8 +1,15 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { brandKitForGuestFromJson } from "@damigos/domain";
-import { db, loadFoodCatalogCache, matchFoodCatalogFromCache, menuItems, restaurants } from "@damigos/db";
+import {
+  db,
+  loadFoodCatalogCache,
+  matchFoodCatalogFromCache,
+  menuCategories,
+  menuItems,
+  restaurants,
+} from "@damigos/db";
 
 /** G-03.01 — published menu only */
 export async function registerMenuRoutes(app: FastifyInstance) {
@@ -49,15 +56,36 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         isVeg: menuItems.isVeg,
         available: menuItems.available,
         imageUrl: menuItems.imageUrl,
+        guestImageUrl: menuItems.guestImageUrl,
+        categoryId: menuItems.categoryId,
       })
       .from(menuItems)
+      .leftJoin(menuCategories, eq(menuItems.categoryId, menuCategories.id))
       .where(
         and(
           eq(menuItems.restaurantId, params.data.restaurantId),
           eq(menuItems.draft, false),
           eq(menuItems.available, true),
+          // S2.2 — items in hidden categories are not shown to guests
+          or(isNull(menuItems.categoryId), eq(menuCategories.hidden, false)),
         ),
       );
+
+    // S2.2 — visible categories in owner-defined order
+    const categories = await db
+      .select({
+        id: menuCategories.id,
+        name: menuCategories.name,
+        sortOrder: menuCategories.sortOrder,
+      })
+      .from(menuCategories)
+      .where(
+        and(
+          eq(menuCategories.restaurantId, params.data.restaurantId),
+          eq(menuCategories.hidden, false),
+        ),
+      )
+      .orderBy(asc(menuCategories.sortOrder), asc(menuCategories.name));
 
     if (!restaurant.orderingEnabled) {
       return reply.status(503).send({
@@ -75,9 +103,11 @@ export async function registerMenuRoutes(app: FastifyInstance) {
     const catalog = await loadFoodCatalogCache();
     const itemsWithImages = items.map((row) => {
       const matched = matchFoodCatalogFromCache(catalog, row.name, row.description, row.isVeg);
+      // S2.1 — guest image wins; fall back to owner/primary image, then catalog match
       const imageUrl =
-        row.imageUrl?.trim() || matched?.imageUrl || null;
-      return { ...row, imageUrl };
+        row.guestImageUrl?.trim() || row.imageUrl?.trim() || matched?.imageUrl || null;
+      const { guestImageUrl: _guestImageUrl, ...rest } = row;
+      return { ...rest, imageUrl };
     });
     return {
       restaurant: {
@@ -85,6 +115,7 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         name: brand?.displayName ?? restaurant.name,
         brand,
       },
+      categories,
       items: itemsWithImages,
     };
   });

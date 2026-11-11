@@ -59,7 +59,7 @@ export function CrmSidebar() {
       <aside
         id="crm-sidebar"
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-full w-[min(100vw-3rem,16rem)] flex-col justify-between border-r border-[#E2E5EE] bg-white/95 py-5 backdrop-blur-xl transition-transform duration-200 ease-out lg:w-64 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-full w-[min(100vw-3rem,16rem)] flex-col justify-between border-r border-border bg-white/95 py-5 backdrop-blur-xl transition-transform duration-200 ease-out lg:w-64 lg:translate-x-0",
           navOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
@@ -67,14 +67,14 @@ export function CrmSidebar() {
           <div className="px-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#0F1115] font-display text-xs font-extrabold text-[#EAFF81] shadow-[0_4px_12px_rgba(15,17,21,0.2)]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-primary font-display text-xs font-extrabold text-accent-foreground shadow-[0_4px_12px_rgba(15,17,21,0.2)]">
                   D&apos;A
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-display text-[16px] font-extrabold tracking-tight text-[#0F1115]">
+                  <div className="truncate font-display text-[16px] font-extrabold tracking-tight text-foreground">
                     D&apos;aMigo&apos;s
                   </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
                     {kitchenOnly ? "Kitchen OS" : "Guest OS"}
                   </div>
                 </div>
@@ -110,8 +110,8 @@ export function CrmSidebar() {
                   className={cn(
                     "flex items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[14px] font-bold tracking-tight transition-all",
                     active
-                      ? "bg-[#0F1115] text-white shadow-[0_6px_14px_-4px_rgba(15,17,21,0.28)]"
-                      : "text-[#475569] hover:bg-[#EEF0F5] hover:text-[#0F1115]",
+                      ? "bg-primary text-primary-foreground shadow-[0_6px_14px_-4px_rgba(15,17,21,0.28)]"
+                      : "text-on-surface-variant hover:bg-secondary hover:text-foreground",
                   )}
                 >
                   <MaterialIcon name={item.icon} className="text-[20px]" />

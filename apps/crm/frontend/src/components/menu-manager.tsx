@@ -5,10 +5,12 @@ import {
   bulkUpdateMenuPrep,
   createMenuItem,
   deleteMenuItem,
+  fetchMenuCategories,
   fetchMenuImportJob,
   fetchMenuItems,
   formatInr,
   MENU_IMPORT_LOW_CONFIDENCE,
+  type MenuCategoryRow,
   type MenuImportJobRow,
   type MenuItemRow,
   publishMenu,
@@ -18,6 +20,7 @@ import {
   updateMenuItem,
 } from "@/lib/api";
 import { menuItemThumb } from "@/lib/menu-item-thumb";
+import { MenuCategoriesPanel } from "@/components/menu-categories-panel";
 import { MenuImportReview } from "@/components/menu-import-review";
 import { MenuImportOverlay } from "@/components/menu-import-overlay";
 import { MenuExtractionAudit, MenuItemDrawer } from "@/components/menu-item-drawer";
@@ -105,6 +108,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [importUploading, setImportUploading] = useState(false);
   const [overlayItem, setOverlayItem] = useState<MenuItemRow | null>(null);
   const [draftTotal, setDraftTotal] = useState(0);
+  const [categories, setCategories] = useState<MenuCategoryRow[]>([]);
   const importPollLock = useRef(false);
   const hydratedImportJobId = useRef<string | null>(null);
 
@@ -118,6 +122,10 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       setItems(rows);
       const drafts = await fetchMenuItems(restaurantId, true);
       setDraftTotal(drafts.length);
+      // S2.2 — categories are non-blocking: a failure must not hide the menu table
+      void fetchMenuCategories(restaurantId)
+        .then(setCategories)
+        .catch(() => setCategories([]));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Load failed";
       setError(
@@ -230,8 +238,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     const rupees = parseFloat(price);
-    if (!name.trim() || Number.isNaN(rupees) || rupees <= 0) {
-      setError("Enter a name and a valid price (₹) to add an item.");
+    if (!name.trim() || Number.isNaN(rupees) || (rupees !== 49 && rupees !== 99)) {
+      setError("Enter a name and guest price ₹49 or ₹99.");
       return;
     }
     setError(null);
@@ -320,6 +328,10 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       const drafts = await fetchMenuItems(restaurantId, true);
       setItems(live);
       setDraftTotal(drafts.length);
+      // S2.2 — categories are non-blocking: a failure must not hide the menu table
+      void fetchMenuCategories(restaurantId)
+        .then(setCategories)
+        .catch(() => setCategories([]));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Revert failed");
     }
@@ -492,6 +504,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
           item={overlayItem}
           restaurantId={restaurantId}
           layout="overlay"
+          categories={categories}
           onClose={() => setOverlayItem(null)}
           onSaved={(updated) => {
             setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
@@ -580,6 +593,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
           ) : null}
         </div>
       </div>
+
+      <MenuCategoriesPanel
+        restaurantId={restaurantId}
+        categories={categories}
+        checkedIds={[...checkedIds]}
+        onChanged={setCategories}
+        onItemsAssigned={() => {
+          setCheckedIds(new Set());
+          void load();
+        }}
+      />
 
       {importError && <p className="text-sm text-red-700">{importError}</p>}
       {error && <p className="text-sm text-red-700">{error}</p>}
@@ -980,14 +1004,33 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 onChange={(e) => setName(e.target.value)}
                 data-testid="menu-add-name"
               />
-              <input
-                className="rounded-lg bg-surface-container-lowest px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Price (₹)"
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                data-testid="menu-add-price"
-              />
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  {(["49", "99"] as const).map((band) => (
+                    <button
+                      key={band}
+                      type="button"
+                      className={`flex-1 rounded-lg py-2 text-sm font-bold tabular-nums ${
+                        price === band
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-surface-container-lowest text-foreground"
+                      }`}
+                      onClick={() => setPrice(band)}
+                      data-testid={`menu-add-price-band-${band}`}
+                    >
+                      ₹{band}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className="rounded-lg bg-surface-container-lowest px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Guest price ₹49 or ₹99"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  data-testid="menu-add-price"
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm md:col-span-2">
                 <input type="checkbox" checked={isVeg} onChange={(e) => setIsVeg(e.target.checked)} />
                 Vegetarian
@@ -1012,6 +1055,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 item={selected}
                 restaurantId={restaurantId}
                 layout="embedded"
+                categories={categories}
                 onClose={() => setSelectedId(null)}
                 onSaved={(updated) => {
                   setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));

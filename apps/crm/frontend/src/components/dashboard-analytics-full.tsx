@@ -109,7 +109,16 @@ export function DashboardAnalyticsFull({
   const orders = funnel.find((f) => f.step === "order")?.count ?? 0;
   const conv = scans > 0 ? (orders / scans) * 100 : 0;
   const aovPaise = 148_000; // display estimate only when live orders exist
-  const gmvPaise = orders > 0 ? orders * aovPaise : 0;
+  // S3.1 — prefer real per-rail numbers from the API; fall back to the display estimate
+  const railDirect = analytics?.rails?.direct;
+  const railOndc = analytics?.rails?.ondc;
+  const directOrders = railDirect?.orders ?? orders;
+  const gmvPaise =
+    railDirect && railDirect.grossSalesPaise > 0
+      ? railDirect.grossSalesPaise
+      : directOrders > 0
+        ? directOrders * aovPaise
+        : 0;
   const repeatEst = orders > 0 ? Math.round(orders * 0.4) : 0;
   const aggregatorRatePct = 26;
   const commissionReport = useMemo((): CommissionReportOverview => {
@@ -121,8 +130,11 @@ export function DashboardAnalyticsFull({
       periodLabel: "This month",
       directGmvPaise: gmvPaise,
       avoidedCommissionPaise: savingsPaise,
+      directOrders,
+      ondcOrders: railOndc?.orders ?? 0,
+      ondcGmvPaise: railOndc?.grossSalesPaise ?? 0,
     };
-  }, [gmvPaise]);
+  }, [gmvPaise, directOrders, railOndc?.orders, railOndc?.grossSalesPaise]);
 
   useEffect(() => {
     if (scrollTo !== "hourly-demand") return;
@@ -512,7 +524,7 @@ export function DashboardAnalyticsFull({
               <div className="mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#ffdea3]">
                   <MaterialIcon name="savings" className="text-[16px]" />
-                  0% Commission Direct Engine
+                  {(railOndc?.orders ?? 0) > 0 ? "Direct rail · 0% commission" : "0% Commission Direct Engine"}
                 </span>
                 <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">Sector 29 Hub</span>
               </div>
@@ -520,7 +532,10 @@ export function DashboardAnalyticsFull({
                 {formatInr(commissionReport.savingsPaise)}
               </p>
               <p className="mt-1 text-sm text-inverse-on-surface/80">
-                Net Savings vs {aggregatorRatePct}% 3rd-Party Food Aggregator commissions this month alone.
+                Net Savings vs {aggregatorRatePct}% 3rd-Party Food Aggregator commissions on Direct orders this month.
+                {(railOndc?.orders ?? 0) > 0
+                  ? ` ${railOndc?.orders} ONDC order${railOndc?.orders === 1 ? "" : "s"} settle on the ONDC rail.`
+                  : ""}
               </p>
             </div>
             <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">

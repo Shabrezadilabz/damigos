@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, stickerBatches, stickerTokens } from "@damigos/db";
 import { verifyStickerOpsKey } from "../lib/sticker-ops-key.js";
+import { STICKER_VALID_DAYS_MAX, STICKER_VALID_DAYS_MIN } from "../lib/sticker-activation.js";
 import { enforceRestaurantScope, requireRoles } from "../lib/require-staff.js";
 
 /** C-06.05 — admin mint (PLATFORM_ADMIN only) */
@@ -15,7 +16,7 @@ export async function registerAdminStickerRoutes(app: FastifyInstance) {
       .object({
         restaurantId: z.string().uuid(),
         quantity: z.number().int().min(1).max(5000),
-        validDays: z.number().int().min(10).max(15).default(12),
+        validDays: z.number().int().min(STICKER_VALID_DAYS_MIN).max(STICKER_VALID_DAYS_MAX).default(12),
         notes: z.string().optional(),
         opsKey: z.string().min(4),
       })

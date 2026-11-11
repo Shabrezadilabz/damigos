@@ -52,6 +52,8 @@ export async function ensureKitchenSchema() {
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_verified_at timestamptz`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_verify_source varchar(32)`,
     sql`ALTER TABLE offers ADD COLUMN IF NOT EXISTS scope varchar(32) NOT NULL DEFAULT 'RESTAURANT_SCOPED'`,
+    // S3.1 — settlement rail tag (DIRECT | ONDC)
+    sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rail varchar(16) NOT NULL DEFAULT 'DIRECT'`,
     sql`CREATE TABLE IF NOT EXISTS restaurant_payout_ledger (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       restaurant_id uuid NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,

@@ -199,7 +199,11 @@ export function SettingsStickersOwnerWorkspace() {
       };
       setPreview(payload);
       setPreviewOpen(true);
-      setMessage(`Generated ${res.quantity} codes (${res.batchCode}). Preview opened.`);
+      setMessage(
+        res.activated
+          ? `Generated ${res.quantity} codes (${res.batchCode}). Preview opened.`
+          : `Generated ${res.quantity} codes (${res.batchCode}). Not active yet — enter this batch code under "Activate" before stickers go live.`,
+      );
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generate failed");

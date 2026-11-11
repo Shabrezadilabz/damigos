@@ -16,7 +16,12 @@ import {
   sendGrowCampaignTemplate,
   sendSparkMarketingText,
 } from "./kapso.js";
-import { getWalletSnapshot, WHATSAPP_MSG_COST_PAISE } from "./wallet.js";
+import {
+  debitForCampaign,
+  getWalletSnapshot,
+  refundUnsentCampaign,
+  WHATSAPP_MSG_COST_PAISE,
+} from "./wallet.js";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -162,8 +167,14 @@ export async function createCampaignRecord(input: {
   return rowToDto(row);
 }
 
-async function buildRecipientRows(campaignId: string, restaurantId: string, audience: CampaignAudience) {
-  const customerIds = await distinctCustomerIds(restaurantId);
+async function buildRecipientRows(
+  campaignId: string,
+  restaurantId: string,
+  audience: CampaignAudience,
+  /** S2.3 — auto programs target a pre-selected segment (e.g. lapsed guests) */
+  customerIdsOverride?: string[],
+) {
+  const customerIds = customerIdsOverride ?? (await distinctCustomerIds(restaurantId));
   const rows: (typeof campaignRecipients.$inferInsert)[] = [];
   let skippedSevenDayCap = 0;
   let skippedOptIn = 0;
@@ -359,10 +370,94 @@ export async function dispatchCampaignMock(campaignId: string, restaurantId: str
     sent += 1;
   }
 
+  // Total across resumed runs (a crashed "Sending" campaign can be re-dispatched)
+  const [{ totalSent }] = await db
+    .select({ totalSent: sql<number>`count(*)::int` })
+    .from(campaignRecipients)
+    .where(and(eq(campaignRecipients.campaignId, campaignId), eq(campaignRecipients.status, "sent")));
+
   await db
     .update(campaigns)
-    .set({ status: "Sent", sentCount: sent })
+    .set({ status: "Sent", sentCount: totalSent ?? sent })
     .where(eq(campaigns.id, campaignId));
 
+  // S2.4 — wallet was debited for estimated recipients at schedule time; refund the unsent remainder
+  try {
+    await refundUnsentCampaign({ restaurantId, campaignId, sentCount: totalSent ?? sent });
+  } catch (err) {
+    console.warn("[campaign-queue] refund unsent failed", err);
+  }
+
   return { ok: true as const, sent, mode, campaign: await getCampaignById(campaignId, restaurantId) };
+}
+
+export type AutoProgramCampaignResult =
+  | { status: "dispatched"; sent: number; campaignId: string }
+  | { status: "empty"; campaignId: string }
+  | { status: "wallet_blocked"; campaignId: string; reason: string }
+  | { status: "kapso_off" | "failed"; campaignId: string | null };
+
+/**
+ * S2.3 — create + debit + dispatch one campaign for an enabled Grow program (no manual wizard).
+ * Always marketing-opt-in only, 7-day cap enforced, wallet floor enforced.
+ * Never used for AI posters (those stay manual Approve → Send via Campaigns).
+ */
+export async function createAndDispatchAutoProgramCampaign(input: {
+  restaurantId: string;
+  name: string;
+  templateKey: string;
+  /** Defaults to every guest who has ordered from this kitchen */
+  customerIds?: string[];
+}): Promise<AutoProgramCampaignResult> {
+  if (kapsoModeFromLib() === "off") return { status: "kapso_off", campaignId: null };
+
+  const [row] = await db
+    .insert(campaigns)
+    .values({
+      restaurantId: input.restaurantId,
+      name: input.name.slice(0, 120),
+      status: "Draft",
+      audience: "marketing_opt_in",
+      templateKey: input.templateKey,
+    })
+    .returning();
+
+  const built = await buildRecipientRows(
+    row.id,
+    input.restaurantId,
+    "marketing_opt_in",
+    input.customerIds,
+  );
+  await db
+    .update(campaigns)
+    .set({
+      estimatedRecipients: built.pending,
+      skippedSevenDayCap: built.skippedSevenDayCap,
+      skippedOptIn: built.skippedOptIn,
+    })
+    .where(eq(campaigns.id, row.id));
+
+  if (built.pending === 0) {
+    // Marker row so this period is not re-evaluated every tick
+    await db.update(campaigns).set({ status: "Sent", sentCount: 0 }).where(eq(campaigns.id, row.id));
+    return { status: "empty", campaignId: row.id };
+  }
+
+  const debit = await debitForCampaign({
+    restaurantId: input.restaurantId,
+    campaignId: row.id,
+    amountPaise: built.pending * WHATSAPP_MSG_COST_PAISE,
+  });
+  if (!debit.ok) {
+    // Left as Draft so the owner can top up and schedule it manually from Campaigns
+    return { status: "wallet_blocked", campaignId: row.id, reason: debit.reason ?? "INSUFFICIENT" };
+  }
+
+  await db
+    .update(campaigns)
+    .set({ status: "Scheduled", scheduledAt: new Date() })
+    .where(eq(campaigns.id, row.id));
+  const result = await dispatchCampaignMock(row.id, input.restaurantId);
+  if (!result.ok) return { status: "failed", campaignId: row.id };
+  return { status: "dispatched", sent: result.sent, campaignId: row.id };
 }

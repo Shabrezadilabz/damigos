@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/material-icon";
+import { PostOrderRewardsSheet } from "@/components/post-order-rewards-sheet";
 import { WaChrome } from "@/components/wa-chrome";
 import { formatInr, fetchMyOrders, type GuestOrderSummary } from "@/lib/api";
 import { authHeaders, getGuestToken } from "@/lib/session";
@@ -361,45 +362,15 @@ export default function OrderTrackPage({ params }: { params: Promise<{ orderId: 
         </div>
       </main>
 
-      {/* g12 — Order confirmed celebration */}
+      {/* g12 — Order confirmed → Google Pay–style rewards */}
       {celebrate && order ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-inverse-surface/55 backdrop-blur-[2px] sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="order-confirmed-title"
-        >
-          <div className="sheet-spring w-full max-w-md rounded-t-[28px] bg-surface-container-lowest p-6 pb-safe shadow-2xl sm:rounded-[28px]">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success">
-              <MaterialIcon name="check_circle" className="text-[40px] [font-variation-settings:'FILL'_1]" />
-            </div>
-            <h2
-              id="order-confirmed-title"
-              className="text-center font-display text-[26px] font-extrabold tracking-tight"
-            >
-              Order confirmed
-            </h2>
-            <p className="mt-2 text-center text-[14px] text-on-surface-variant">
-              Bill synced to D&apos;aMigo Food WhatsApp · live track below
-            </p>
-            <p className="mt-4 text-center font-display text-[22px] font-bold tabular text-primary">
-              {formatInr(order.totalPaise)}
-            </p>
-            <Button className="pressable mt-5 w-full" type="button" onClick={dismissCelebrate}>
-              Track order
-            </Button>
-            <Button
-              variant="ghost"
-              className="pressable mt-1 w-full"
-              type="button"
-              asChild
-            >
-              <Link href="/hub" onClick={dismissCelebrate}>
-                Order again
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <PostOrderRewardsSheet
+          open
+          totalPaise={order.totalPaise}
+          rewardPaise={order.discountPaise ?? 0}
+          restaurantId={order.restaurantId}
+          onDismiss={dismissCelebrate}
+        />
       ) : null}
     </>
   );

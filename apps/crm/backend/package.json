@@ -7,7 +7,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "tsx src/index.ts",
-    "food-catalog:flux": "tsx src/scripts/food-catalog-flux-fill.ts"
+    "food-catalog:flux": "tsx src/scripts/food-catalog-flux-fill.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
   },
   "dependencies": {
     "@damigos/auth": "*",

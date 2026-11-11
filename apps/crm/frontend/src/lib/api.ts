@@ -67,7 +67,12 @@ export async function verifyCrmOtp(phone: string, code: string) {
   });
   const data = await readCrmApiJson(res);
   if (!res.ok) throw new Error(crmApiErrorMessage(data, "OTP failed"));
-  return data as { token: string; roles: string[]; restaurantId: string | null };
+  return data as {
+    token: string;
+    roles: string[];
+    restaurantId: string | null;
+    welcomeCreditPaise?: number;
+  };
 }
 
 export type RestaurantOperations = {
@@ -209,6 +214,8 @@ export type OnboardingApplicationResponse = {
   restaurantSlug?: string;
   phone?: string;
   fssaiVerification?: FssaiVerifyResponse | null;
+  /** S1.1 — ₹1000 Grow welcome credit granted on activation (paise) */
+  welcomeCreditPaise?: number;
 };
 
 export async function submitOnboardingApplication(payload: {
@@ -222,6 +229,11 @@ export async function submitOnboardingApplication(payload: {
   fssai?: string;
   dpdpAccepted: true;
   whatsappGatewayAccepted: true;
+  /** S1.2 — required before activation */
+  bankAccountName: string;
+  bankAccountNumber: string;
+  bankIfsc: string;
+  bankName: string;
 }) {
   const res = await fetch(`${base}/v1/onboarding/applications`, {
     method: "POST",
@@ -243,6 +255,9 @@ export async function fetchOnboardingStatus() {
   return data as {
     restaurantId: string;
     onboardingComplete: boolean;
+    bankReady?: boolean;
+    activationBlockers?: string[];
+    welcomeCreditGranted?: boolean;
     fssaiNumber: string | null;
     fssaiVerifiedAt: string | null;
     tenantStatus: string;
@@ -341,6 +356,8 @@ export async function generateStickerBatch(input: {
     validFrom: string;
     validTo: string;
     activated: boolean;
+    /** S2.5 — production batches stay inactive until the owner enters the batch code */
+    requiresActivation?: boolean;
     designId: number | null;
     designName: string | null;
     restaurantName: string;
@@ -422,7 +439,12 @@ export type MenuItemRow = {
   draft: boolean;
   importConfidence: number | null;
   importJobId: string | null;
+  /** Owner/primary image */
   imageUrl?: string | null;
+  /** S2.1 — guest-facing image; null falls back to imageUrl on guest surfaces */
+  guestImageUrl?: string | null;
+  /** S2.2 — category assignment (null = uncategorised) */
+  categoryId?: string | null;
   /** Kitchen Accept SLA — READY_10M | COOKED_15M */
   prepCategory?: "READY_10M" | "COOKED_15M";
   prepMinutes?: number | null;
@@ -595,6 +617,8 @@ export async function updateMenuItem(
     prepCategory?: "READY_10M" | "COOKED_15M";
     prepMinutes?: 10 | 15 | null;
     imageUrl?: string | null;
+    guestImageUrl?: string | null;
+    categoryId?: string | null;
   },
 ) {
   const res = await fetch(`${base}/v1/menu/items/${itemId}`, {
@@ -607,6 +631,83 @@ export async function updateMenuItem(
   return data.item as MenuItemRow;
 }
 
+export type MenuCategoryRow = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  sortOrder: number;
+  hidden: boolean;
+  itemCount: number;
+};
+
+async function menuCategoryFetch(
+  path: string,
+  init: RequestInit | undefined,
+  fallback: string,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`${base}${path}`, {
+    cache: "no-store",
+    ...init,
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders(), ...(init?.headers ?? {}) },
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, fallback));
+  return data;
+}
+
+export async function fetchMenuCategories(restaurantId: string) {
+  const q = new URLSearchParams({ restaurantId });
+  const data = await menuCategoryFetch(`/v1/menu/categories?${q}`, undefined, "Failed to load categories");
+  return (data.categories ?? []) as MenuCategoryRow[];
+}
+
+export async function createMenuCategory(restaurantId: string, name: string, hidden?: boolean) {
+  const data = await menuCategoryFetch(
+    "/v1/menu/categories",
+    { method: "POST", body: JSON.stringify({ restaurantId, name, hidden }) },
+    "Create category failed",
+  );
+  return data.category as MenuCategoryRow;
+}
+
+export async function updateMenuCategory(
+  categoryId: string,
+  input: { restaurantId: string; name?: string; hidden?: boolean },
+) {
+  const data = await menuCategoryFetch(
+    `/v1/menu/categories/${categoryId}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+    "Update category failed",
+  );
+  return (data.categories ?? []) as MenuCategoryRow[];
+}
+
+export async function reorderMenuCategories(restaurantId: string, orderedIds: string[]) {
+  const data = await menuCategoryFetch(
+    "/v1/menu/categories/reorder",
+    { method: "POST", body: JSON.stringify({ restaurantId, orderedIds }) },
+    "Reorder failed",
+  );
+  return (data.categories ?? []) as MenuCategoryRow[];
+}
+
+export async function deleteMenuCategory(restaurantId: string, categoryId: string) {
+  const q = new URLSearchParams({ restaurantId });
+  await menuCategoryFetch(`/v1/menu/categories/${categoryId}?${q}`, { method: "DELETE" }, "Delete category failed");
+}
+
+export async function assignMenuItemsToCategory(
+  restaurantId: string,
+  itemIds: string[],
+  categoryId: string | null,
+) {
+  const data = await menuCategoryFetch(
+    "/v1/menu/items/assign-category",
+    { method: "POST", body: JSON.stringify({ restaurantId, itemIds, categoryId }) },
+    "Assign category failed",
+  );
+  return data as { updated: number; categoryId: string | null; itemIds: string[] };
+}
 export function formatInr(paise: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100);
 }
@@ -656,7 +757,13 @@ export type CrmOrder = {
   deliveryOtpSentAt?: string | null;
   deliveryOtpVerifiedAt?: string | null;
   deliveryVerifySource?: string | null;
+  /** S3.1 — settlement rail */
+  rail?: "DIRECT" | "ONDC" | string;
 };
+
+/** S3.1 — Direct vs ONDC split */
+export type RailSplit = { orders: number; grossSalesPaise: number };
+export type RailsSummary = { direct: RailSplit; ondc: RailSplit };
 
 export type DashboardOverview = {
   restaurantId: string;
@@ -672,6 +779,7 @@ export type DashboardOverview = {
     waitingPenaltyPaise: number;
     ledgerPenaltyDebitsPaise: number;
     netEstimatePaise: number;
+    rails?: RailsSummary;
   };
   alerts: Array<{ code: string; severity: "info" | "warning"; message: string }>;
 };
@@ -682,6 +790,7 @@ export type DashboardAnalytics = {
   since: string;
   funnel: Array<{ step: string; label: string; count: number }>;
   ordersByHour: Array<{ hour: number; count: number }>;
+  rails?: RailsSummary;
 };
 
 export async function fetchDashboardOverview(restaurantId: string) {
@@ -1151,7 +1260,27 @@ export type CampaignProgramRow = {
   icon: string;
   enabled: boolean;
   offerSummary: string;
+  /** S2.3 — scheduler dispatches this program automatically when enabled */
+  autoDispatch?: boolean;
+  autoSchedule?: string | null;
 };
+
+export async function runDueCampaignPrograms(restaurantId: string) {
+  const res = await fetch(`${base}/v1/grow/campaign-programs/run-due`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...crmAuthHeaders() },
+    body: JSON.stringify({ restaurantId }),
+  });
+  const data = await readCrmApiJson(res);
+  if (!res.ok) throw new Error(crmApiErrorMessage(data, "Run failed"));
+  return data.summary as {
+    restaurantsChecked: number;
+    campaignsCreated: number;
+    messagesSent: number;
+    walletBlocked: number;
+    skipped: string[];
+  };
+}
 
 export async function fetchCampaignPrograms(restaurantId: string) {
   const q = new URLSearchParams({ restaurantId });
@@ -1302,6 +1431,11 @@ export type DayEarnings = {
   platformFeePaise: number;
   deliveryFeePaise: number;
   waitingPenaltyPaise: number;
+  /** S3.1 — Direct vs ONDC */
+  rails?: {
+    direct: { orderCount: number; grossSalesPaise: number; restaurantSharePaise: number };
+    ondc: { orderCount: number; grossSalesPaise: number; restaurantSharePaise: number };
+  };
 };
 
 export type PayoutSettlementRow = {
@@ -1314,6 +1448,11 @@ export type PayoutSettlementRow = {
   platformFeePaise: number;
   deliveryFeePaise: number;
   waitingPenaltyPaise: number;
+  /** S3.1 — Direct vs ONDC EOD split */
+  rails?: {
+    direct: { orderCount: number; restaurantSharePaise: number };
+    ondc: { orderCount: number; restaurantSharePaise: number };
+  };
   status: string;
   invoiceNumber: string | null;
   invoice: unknown;
