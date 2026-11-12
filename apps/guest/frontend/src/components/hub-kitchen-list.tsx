@@ -19,6 +19,8 @@ import {
   type HubRestaurant,
   type OpenCartSummary,
 } from "@/lib/api";
+import { mergeDirectAndOndcHub } from "@/lib/hub-ondc-merge";
+import type { OndcDiscoveredRestaurant } from "@/lib/ondc-beckn";
 import { OwnlyFilterChips } from "@/components/ownly-filter-chips";
 import { OwnlyRestaurantRow } from "@/components/ownly-restaurant-row";
 import { ProfileConsentSheet } from "@/components/profile-consent-sheet";
@@ -69,15 +71,24 @@ function KitchenCard({
       <div className="relative aspect-[4/3] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={r.cover} alt="" className="h-full w-full object-cover" />
+        <span
+          className={`absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide shadow-sm ${
+            r.listingSource === "ondc"
+              ? "bg-[#0B57D0] text-white"
+              : "bg-primary text-primary-foreground"
+          }`}
+        >
+          {r.listingSource === "ondc" ? "ONDC" : "Direct"}
+        </span>
         {r.badge === "delivery_promise" ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-card/95 px-2.5 py-0.5 text-[10px] font-extrabold text-foreground shadow-sm">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-card/95 px-2.5 py-0.5 text-[10px] font-extrabold text-foreground shadow-sm">
             <MaterialIcon name="timer" className="text-[12px]" />
-            Delivery Promise
+            Promise
           </span>
         ) : (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground shadow-sm">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground shadow-sm">
             <MaterialIcon name="sell" className="text-[12px]" />
-            Lowest Price
+            Value
           </span>
         )}
       </div>
@@ -123,13 +134,28 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     const handle = window.setTimeout(() => {
       setLoading(true);
-      void fetchHubRestaurants("bangalore", filters.search, filters.vegOnly)
-        .then((list) => {
-          setRows(list);
+      void (async () => {
+        try {
+          const direct = await fetchHubRestaurants("bangalore", filters.search, filters.vegOnly);
+          // Pull ONDC catalog into hub (seed / last on_search) — no manual /ondc search required
+          void fetch("/api/ondc/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cityCode: "std:080", areaCode: "560034" }),
+          }).catch(() => undefined);
+          const ondcRes = await fetch("/api/ondc/search", { cache: "no-store" });
+          const ondcJson = (await ondcRes.json().catch(() => ({}))) as {
+            restaurants?: OndcDiscoveredRestaurant[];
+          };
+          const ondc = Array.isArray(ondcJson.restaurants) ? ondcJson.restaurants : [];
+          setRows(mergeDirectAndOndcHub(direct, ondc));
           setError(null);
-        })
-        .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-        .finally(() => setLoading(false));
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Failed to load");
+        } finally {
+          setLoading(false);
+        }
+      })();
     }, filters.search ? 250 : 0);
     return () => window.clearTimeout(handle);
   }, [filters.search, filters.vegOnly]);
@@ -373,14 +399,17 @@ export function HubKitchenList({ embedded = false }: { embedded?: boolean }) {
                       />
                     </Link>
                     {item.bestseller ? (
-                      <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-md bg-[#1b1b1b]/80 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span
+                        className="offer-ticket-sticker pointer-events-none absolute left-1.5 top-1.5 z-[1] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white"
+                        data-testid="bestseller-ticket-sticker"
+                      >
                         Bestseller
                       </span>
                     ) : null}
                     <button
                       type="button"
-                      className="pressable absolute bottom-1.5 right-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-lg font-bold text-white shadow-md disabled:opacity-60"
-                      aria-label={`Add ${item.name}`}
+                      className="pressable absolute bottom-1.5 right-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-xl font-bold leading-none text-foreground shadow-md disabled:opacity-60"
+                      aria-label="Add"
                       data-testid={`hub-bestseller-add-${item.id}`}
                       disabled={addingId === item.id}
                       onClick={(e) => void onAddBestseller(e, item)}

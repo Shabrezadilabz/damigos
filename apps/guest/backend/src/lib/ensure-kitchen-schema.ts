@@ -1,5 +1,43 @@
-import { sql } from "drizzle-orm";
-import { db } from "@damigos/db";
+import { eq, sql } from "drizzle-orm";
+import { db, menuItems, restaurants } from "@damigos/db";
+
+/** Mark kitchens with no logo AND no dish images as inactive (soft-hide on hub). */
+export async function markIncompleteRestaurantsInactive() {
+  try {
+    const rows = await db.select().from(restaurants);
+    for (const r of rows) {
+      let hasLogo = false;
+      if (r.brandKit) {
+        try {
+          const kit = JSON.parse(r.brandKit) as { logoDataUrl?: string | null };
+          hasLogo = Boolean(kit.logoDataUrl?.trim());
+        } catch {
+          /* ignore */
+        }
+      }
+      const dishes = await db
+        .select({
+          imageUrl: menuItems.imageUrl,
+          guestImageUrl: menuItems.guestImageUrl,
+        })
+        .from(menuItems)
+        .where(eq(menuItems.restaurantId, r.id))
+        .limit(80);
+      const hasFoodImage = dishes.some(
+        (d) => Boolean(d.imageUrl?.trim()) || Boolean(d.guestImageUrl?.trim()),
+      );
+      const shouldInactive = !hasLogo && !hasFoodImage;
+      if (Boolean(r.inactive) !== shouldInactive) {
+        await db
+          .update(restaurants)
+          .set({ inactive: shouldInactive })
+          .where(eq(restaurants.id, r.id));
+      }
+    }
+  } catch (err) {
+    console.warn("[markIncompleteRestaurantsInactive]", err);
+  }
+}
 
 /** Guest-side ensure for prep/geo columns (same DB as CRM). */
 export async function ensureKitchenSchema() {
@@ -8,6 +46,7 @@ export async function ensureKitchenSchema() {
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS lng double precision`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS geo_updated_at timestamptz`,
     sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS welcome_credit_granted_at timestamptz`,
+    sql`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS inactive boolean NOT NULL DEFAULT false`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS committed_prep_minutes integer`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS extended_prep_minutes integer NOT NULL DEFAULT 0`,
     sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS prep_deadline_at timestamptz`,
@@ -60,4 +99,5 @@ export async function ensureKitchenSchema() {
       console.warn("[ensure-kitchen-schema:guest]", err);
     }
   }
+  await markIncompleteRestaurantsInactive();
 }

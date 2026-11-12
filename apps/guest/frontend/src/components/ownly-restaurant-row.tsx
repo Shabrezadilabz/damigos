@@ -43,17 +43,29 @@ export function OwnlyRestaurantRow({
         <img src={cover} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1 py-0.5">
-        {badge === "delivery_promise" ? (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-extrabold text-foreground">
-            <MaterialIcon name="timer" className="text-[12px]" />
-            Delivery Promise
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide ${
+              r.listingSource === "ondc"
+                ? "bg-[#0B57D0] text-white"
+                : "bg-primary text-primary-foreground"
+            }`}
+            data-testid={r.listingSource === "ondc" ? "badge-ondc" : "badge-direct"}
+          >
+            {r.listingSource === "ondc" ? "ONDC" : "Direct"}
           </span>
-        ) : (
-          <span className="mb-1 inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
-            <MaterialIcon name="sell" className="text-[12px]" />
-            Lowest Price
-          </span>
-        )}
+          {badge === "delivery_promise" ? (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-extrabold text-foreground">
+              <MaterialIcon name="timer" className="text-[12px]" />
+              Delivery Promise
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
+              <MaterialIcon name="sell" className="text-[12px]" />
+              Lowest Price
+            </span>
+          )}
+        </div>
         <p className="truncate font-display text-[16px] font-extrabold leading-snug tracking-tight text-foreground">
           {r.name}
         </p>

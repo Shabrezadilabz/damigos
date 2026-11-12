@@ -147,7 +147,10 @@ export function HubTodaysOffers({ perks, vegOnly = false }: Props) {
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                  <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-black uppercase text-white">
+                  <span
+                    className="offer-ticket-sticker absolute left-1.5 top-1.5 z-[1] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white"
+                    data-testid="offer-ticket-sticker"
+                  >
                     {p.badge.slice(0, 12)}
                   </span>
                   <p className="absolute inset-x-1.5 bottom-1.5 line-clamp-2 text-[11px] font-bold leading-tight text-white drop-shadow">
@@ -197,7 +200,10 @@ export function HubTodaysOffers({ perks, vegOnly = false }: Props) {
                     <p className="truncate text-[14px] font-bold leading-tight">{p.kitchenName}</p>
                     <p className="mt-0.5 line-clamp-2 text-[12px] text-on-surface-variant">{p.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+                      <span
+                        className="offer-ticket-sticker px-2 py-0.5 text-[10px] font-bold uppercase text-white"
+                        data-testid="offer-ticket-sticker-list"
+                      >
                         {p.badge}
                       </span>
                       {p.coinsHint > 0 ? (

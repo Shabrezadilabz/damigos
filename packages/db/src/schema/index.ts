@@ -37,6 +37,8 @@ export const restaurants = pgTable("restaurants", {
   geoUpdatedAt: timestamp("geo_updated_at", { withTimezone: true }),
   orderingEnabled: boolean("ordering_enabled").default(true).notNull(),
   hubListed: boolean("hub_listed").default(false).notNull(),
+  /** Soft-hide incomplete kitchens (no logo + no food images) from guest hub — data kept */
+  inactive: boolean("inactive").default(false).notNull(),
   razorpayLinkedAccountId: varchar("razorpay_linked_account_id", { length: 64 }),
   razorpayKycStatus: varchar("razorpay_kyc_status", { length: 32 }).default("not_linked").notNull(),
   petpoojaOutletId: varchar("petpooja_outlet_id", { length: 64 }),

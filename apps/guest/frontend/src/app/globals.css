@@ -391,3 +391,31 @@ h4,
   touch-action: pan-x pan-y;
 }
 
+/* Today's Offers — red ticket/coupon sticker with side cut */
+.offer-ticket-sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e11d2e 0%, #c41122 55%, #a30e1c 100%);
+  box-shadow:
+    0 2px 6px rgba(196, 17, 34, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  /* Ticket cut: notches on left + right */
+  --cut: 4px;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(50% - var(--cut)),
+    calc(100% - 1.5px) 50%,
+    100% calc(50% + var(--cut)),
+    100% 100%,
+    0 100%,
+    0 calc(50% + var(--cut)),
+    1.5px 50%,
+    0 calc(50% - var(--cut))
+  );
+  border-radius: 3px 2px 2px 3px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+

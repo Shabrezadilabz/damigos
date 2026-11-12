@@ -45,7 +45,13 @@ export async function registerHubRoutes(app: FastifyInstance) {
     const rows = await db
       .select()
       .from(restaurants)
-      .where(and(eq(restaurants.hubListed, true), eq(restaurants.orderingEnabled, true)));
+      .where(
+        and(
+          eq(restaurants.hubListed, true),
+          eq(restaurants.orderingEnabled, true),
+          eq(restaurants.inactive, false),
+        ),
+      );
 
     const filtered: typeof rows = [];
     for (const r of rows) {
@@ -156,6 +162,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
         menuPath: `/r/${r.id}/menu`,
         coverImageUrl,
         logoUrl,
+        listingSource: "direct" as const,
         dietType: dietType === "veg" || dietType === "non_veg" || dietType === "both" ? dietType : null,
         vegFriendly,
         pureVeg,
@@ -207,6 +214,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
         and(
           eq(restaurants.hubListed, true),
           eq(restaurants.orderingEnabled, true),
+          eq(restaurants.inactive, false),
           eq(menuItems.draft, false),
           eq(menuItems.available, true),
           or(isNull(menuItems.categoryId), eq(menuCategories.hidden, false)),
@@ -247,6 +255,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
         restaurantId: restaurants.id,
         hubListed: restaurants.hubListed,
         orderingEnabled: restaurants.orderingEnabled,
+        inactive: restaurants.inactive,
       })
       .from(offers)
       .innerJoin(restaurants, eq(offers.restaurantId, restaurants.id))
@@ -293,7 +302,7 @@ export async function registerHubRoutes(app: FastifyInstance) {
       }
       // One card per active kitchen offer (not one-per-kitchen) so Grow segments show up
       // S1.6 — kitchens with master menu OFF don't surface perk cards on the hub
-      if (!row.hubListed || !row.orderingEnabled) continue;
+      if (!row.hubListed || !row.orderingEnabled || row.inactive) continue;
       // S1.7 — "Better luck next time" segment is not a perk
       if (row.offer.prizeType === "no_prize") continue;
       if (kitchenCards.length >= 16) continue;

@@ -239,13 +239,83 @@ export function recordOndcCallback(input: {
   return logEntry;
 }
 
+/** Local / Workbench seed so hub can show ONDC tags without a manual search first. */
+export function ensureLocalOndcCatalogSeed() {
+  if (discoveredRestaurants.size > 0) return;
+  const now = new Date().toISOString();
+  const seed: OndcDiscoveredRestaurant[] = [
+    {
+      providerId: "ondc-seed-hsr-biryani",
+      bppId: "preprod.magicpin-bpp.ondc.org",
+      bppUri: "https://preprod.magicpin-bpp.ondc.org",
+      name: "HSR Donne Biryani House (ONDC PreProd)",
+      shortDesc: "Workbench F&B catalog seed",
+      symbol:
+        "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=640&q=80&auto=format&fit=crop",
+      gps: "12.9121,77.6446",
+      address: "HSR Layout, Bengaluru",
+      city: "Bengaluru",
+      itemsCount: 3,
+      sampleItems: [
+        { id: "i1", name: "Donne Biryani", priceInr: "180" },
+        { id: "i2", name: "Chicken Kabab", priceInr: "220" },
+        { id: "i3", name: "Raita", priceInr: "40" },
+      ],
+      updatedAt: now,
+    },
+    {
+      providerId: "ondc-seed-indiranagar-dosa",
+      bppId: "preprod.magicpin-bpp.ondc.org",
+      bppUri: "https://preprod.magicpin-bpp.ondc.org",
+      name: "Indiranagar Dosa Corner (ONDC)",
+      shortDesc: "Full catalog city seed",
+      symbol:
+        "https://images.unsplash.com/photo-1630383249896-424e482df921?w=640&q=80&auto=format&fit=crop",
+      gps: "12.9784,77.6408",
+      address: "Indiranagar, Bengaluru",
+      city: "Bengaluru",
+      itemsCount: 2,
+      sampleItems: [
+        { id: "d1", name: "Masala Dosa", priceInr: "90" },
+        { id: "d2", name: "Filter Coffee", priceInr: "40" },
+      ],
+      updatedAt: now,
+    },
+    {
+      providerId: "ondc-seed-koramangala-bowl",
+      bppId: "workbench.ondc.tech",
+      bppUri: "https://workbench.ondc.tech",
+      name: "Koramangala Bowl Bar (ONDC)",
+      shortDesc: "Buyer Delivery catalog seed",
+      symbol:
+        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=640&q=80&auto=format&fit=crop",
+      gps: "12.9352,77.6245",
+      address: "Koramangala, Bengaluru",
+      city: "Bengaluru",
+      itemsCount: 2,
+      sampleItems: [
+        { id: "b1", name: "Buddha Bowl", priceInr: "249" },
+        { id: "b2", name: "Smoothie", priceInr: "129" },
+      ],
+      updatedAt: now,
+    },
+  ];
+  for (const r of seed) {
+    discoveredRestaurants.set(`${r.bppId}:${r.providerId}`, r);
+  }
+}
+
 export function getOndcState() {
+  ensureLocalOndcCatalogSeed();
   return {
     subscriberId: ONDC_DEFAULT_SUBSCRIBER_ID,
     subscriberUrl: ONDC_DEFAULT_SUBSCRIBER_URL,
     ukid: ONDC_DEFAULT_UKID,
     domain: "ONDC:RET11",
     environment: "PreProd",
+    coreVersion: "1.2.0",
+    workbenchSellerBase:
+      "https://workbench.ondc.tech/api-service/ONDC:RET11/1.2.0/seller",
     signingPublicKey: ONDC_DEFAULT_SIGNING_PUBLIC_KEY,
     encryptionPublicKey: ONDC_DEFAULT_ENCRYPTION_PUBLIC_KEY,
     logsCount: actionLogs.length,
