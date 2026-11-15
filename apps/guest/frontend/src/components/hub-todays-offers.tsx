@@ -7,75 +7,6 @@ import { MaterialIcon } from "@/components/material-icon";
 import type { HubPerkRailItem } from "@/lib/api";
 import { coverForPerk, FOOD } from "@/lib/hub-media";
 
-const FEATURED_FALLBACKS: HubPerkRailItem[] = [
-  {
-    id: "todays-1",
-    kitchenName: "Festival Special",
-    title: "Celebrate & save on Direct D2C",
-    badge: "TODAY",
-    coinsHint: 0,
-    href: "/hub/collections/festival",
-    kind: "platform",
-  },
-  {
-    id: "todays-2",
-    kitchenName: "Bestsellers",
-    title: "Under ₹149 · great value picks",
-    badge: "DEAL",
-    coinsHint: 0,
-    href: "/hub/collections/bestsellers",
-    kind: "kitchen",
-  },
-  {
-    id: "todays-3",
-    kitchenName: "Delivery Promise",
-    title: "Fast kitchens near you",
-    badge: "FAST",
-    coinsHint: 0,
-    href: "/hub/collections/promise",
-    kind: "kitchen",
-  },
-  {
-    id: "todays-4",
-    kitchenName: "Healthy Choices",
-    title: "Options without guilt",
-    badge: "FRESH",
-    coinsHint: 0,
-    href: "/hub/collections/healthy",
-    kind: "kitchen",
-  },
-];
-
-const VEG_FALLBACKS: HubPerkRailItem[] = [
-  {
-    id: "veg-1",
-    kitchenName: "Pure Veg Picks",
-    title: "Green kitchens · vegetarian menus",
-    badge: "VEG",
-    coinsHint: 0,
-    href: "/hub/collections/healthy",
-    kind: "platform",
-  },
-  {
-    id: "veg-2",
-    kitchenName: "South Indian",
-    title: "Dosa · idli · filter-friendly",
-    badge: "FRESH",
-    coinsHint: 0,
-    href: "/hub/search?q=dosa%20idli",
-    kind: "kitchen",
-  },
-  {
-    id: "veg-3",
-    kitchenName: "Healthy Bowls",
-    title: "Salads & bowls under ₹199",
-    badge: "DEAL",
-    coinsHint: 0,
-    href: "/hub/collections/bestsellers",
-    kind: "kitchen",
-  },
-];
-
 const TILE_IMAGES = [FOOD.festival, FOOD.bowl, FOOD.healthy, FOOD.dosa, FOOD.dessert, FOOD.thali];
 
 function OfferThumb({
@@ -106,11 +37,10 @@ type Props = { perks: HubPerkRailItem[]; vegOnly?: boolean };
 /** Today's Offers — featured image tiles + combined all-offers list */
 export function HubTodaysOffers({ perks, vegOnly = false }: Props) {
   const pool = useMemo(() => {
-    const source = perks.length > 0 ? perks : vegOnly ? VEG_FALLBACKS : FEATURED_FALLBACKS;
     const filtered = vegOnly
-      ? source.filter((p) => !looksNonVegCopy(p.kitchenName, p.title, p.badge))
-      : source;
-    return filtered.length > 0 ? filtered : vegOnly ? VEG_FALLBACKS : FEATURED_FALLBACKS;
+      ? perks.filter((p) => !looksNonVegCopy(p.kitchenName, p.title, p.badge))
+      : perks;
+    return filtered;
   }, [perks, vegOnly]);
 
   const featured = pool.slice(0, 12);
@@ -127,14 +57,17 @@ export function HubTodaysOffers({ perks, vegOnly = false }: Props) {
             {featured.length} live
           </span>
         </div>
-        <div className="hub-h-scroll no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-1">
+        {featured.length === 0 ? (
+          <p className="text-[14px] text-on-surface-variant">No offers are published right now.</p>
+        ) : null}
+        <div className="hub-h-scroll no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-4 xl:grid-cols-5">
           {featured.map((p, i) => {
             const img = coverForPerk(p.kitchenName, p.href, i) || TILE_IMAGES[i % TILE_IMAGES.length]!;
             return (
               <Link
                 key={`feat-${p.kind}-${p.id}`}
                 href={withVegQuery(p.href, vegOnly)}
-                className="hub-craving-float pressable flex w-[7.25rem] shrink-0 flex-col gap-1.5"
+                className="hub-craving-float pressable flex w-[9.5rem] shrink-0 flex-col gap-1.5 md:w-auto"
               >
                 <div
                   className="hub-float-inner relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-b from-primary-fixed to-surface-container-lowest shadow-[0_8px_18px_rgba(178,18,42,0.14)] border border-border"
@@ -179,7 +112,7 @@ export function HubTodaysOffers({ perks, vegOnly = false }: Props) {
             See all &gt;
           </Link>
         </div>
-        <ul className="space-y-2.5">
+        <ul className="grid gap-2.5 md:grid-cols-2">
           {allOffers.map((p, i) => {
             const img = coverForPerk(p.kitchenName, p.href, i) || TILE_IMAGES[i % TILE_IMAGES.length]!;
             return (

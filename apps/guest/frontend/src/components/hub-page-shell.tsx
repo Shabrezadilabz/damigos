@@ -118,8 +118,8 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background pb-32">
-      <header className="fixed top-0 z-50 w-full border-b border-border/80 bg-background/85 pt-safe text-foreground backdrop-blur-xl">
-        <div className="mx-auto w-full max-w-lg md:max-w-3xl lg:max-w-5xl">
+      <header className="yumm-topbar fixed top-0 z-50 w-full border-b border-white/70 bg-white/55 pt-safe text-foreground shadow-[0_8px_30px_rgba(56,25,50,0.04)] backdrop-blur-xl">
+        <div className="yumm-frame yumm-frame-wide">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <button
               type="button"
@@ -206,7 +206,7 @@ function HubPageShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg px-4 pt-[5.25rem] md:max-w-3xl lg:max-w-5xl">
+      <main className="yumm-frame yumm-frame-wide px-4 pt-[5.25rem]">
         {/* Search + mini promo — Ownly row */}
         <div className="mb-4 flex gap-2">
           <div className="relative flex-1">

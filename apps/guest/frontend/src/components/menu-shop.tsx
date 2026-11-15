@@ -285,7 +285,7 @@ export function MenuShop({
 
   return (
     <>
-      <main className="mx-auto min-h-dvh w-full max-w-lg bg-background px-4 pb-36 pt-safe md:max-w-3xl lg:max-w-4xl">
+      <main className="yumm-frame yumm-frame-wide min-h-dvh w-full bg-background px-4 pb-36 pt-safe">
         {/* Ownly header: back · search · share */}
         <div className="sticky top-0 z-40 -mx-4 mb-3 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -597,7 +597,7 @@ export function MenuShop({
             {restGroups.map((group) => (
             <div key={group.id} id={`menu-cat-${group.id}`} data-testid="menu-category-group">
             <h2 className="font-display mb-3 text-[18px] font-bold tracking-tight">{group.name}</h2>
-            <ul className="space-y-4">
+            <ul className="grid gap-4 lg:grid-cols-2">
               {group.items.map((item, idx) => {
                 const other = otherAppsLabel(item.pricePaise, item.referencePricePaise);
                 return (

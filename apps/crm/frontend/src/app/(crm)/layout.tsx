@@ -13,7 +13,9 @@ export default function CrmShellLayout({ children }: { children: React.ReactNode
           <div className="min-w-0 lg:pl-64">
             <CrmTopHeader />
             <main className="min-h-screen min-w-0 px-3 pb-8 pt-[4.5rem] sm:px-5 sm:pt-20 md:px-6 lg:px-8">
-              <CrmAuthGate>{children}</CrmAuthGate>
+              <div className="yumm-frame yumm-frame-wide">
+                <CrmAuthGate>{children}</CrmAuthGate>
+              </div>
             </main>
           </div>
         </CrmShellProvider>

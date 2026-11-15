@@ -138,7 +138,7 @@ export default function OrderTrackPage({ params }: { params: Promise<{ orderId: 
     <>
       <WaChrome title="Live tracking" subtitle="WhatsApp sync · Direct D2C" profileHref="/me" />
 
-      <main className="mx-auto min-h-dvh max-w-lg px-4 pb-10 pt-[7.25rem]">
+      <main className="yumm-frame min-h-dvh px-4 pb-10 pt-[7.25rem]">
         {trackIds.length > 1 ? (
           <div className="mb-4 flex rounded-xl bg-surface-container-low p-1">
             {trackIds.map((id, i) => (

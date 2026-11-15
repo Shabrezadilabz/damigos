@@ -135,8 +135,8 @@ function SearchInner() {
 
   return (
     <main className="min-h-dvh bg-background pb-16">
-      <header className="border-b border-border bg-surface-container-lowest px-4 pb-4 pt-safe">
-        <div className="mx-auto flex max-w-lg items-center gap-2 md:max-w-3xl">
+      <header className="border-b border-border bg-surface-container-lowest pb-4 pt-safe">
+        <div className="yumm-frame flex items-center gap-2 px-4">
           <Link
             href="/hub"
             className="pressable flex h-10 w-10 items-center justify-center rounded-md bg-surface-container"
@@ -155,7 +155,7 @@ function SearchInner() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-lg space-y-6 px-4 pt-4 md:max-w-3xl">
+      <div className="yumm-frame space-y-6 px-4 pt-4">
         {loading ? (
           <p className="text-sm text-on-surface-variant">Searching…</p>
         ) : error ? (

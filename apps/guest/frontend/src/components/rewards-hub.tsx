@@ -214,7 +214,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
     <>
       <WaChrome title={restaurantName} subtitle="Packaging Perks · Direct D2C" creditsLabel="Play" />
 
-      <section className="mx-auto max-w-lg space-y-4 px-4 pb-10 pt-[7.25rem]">
+      <section className="yumm-frame space-y-4 px-4 pb-10 pt-[7.25rem]">
         <p className="text-[13px] text-on-surface-variant">
           Spin or scratch to unlock a kitchen perk from this pouch. One play per scan · T&amp;C apply.
         </p>

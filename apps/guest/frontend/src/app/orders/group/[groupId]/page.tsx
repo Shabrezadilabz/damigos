@@ -118,7 +118,7 @@ export default function OrderGroupTrackPage({
     <>
       <WaChrome title="Cross-By tracking" subtitle="Multi-kitchen · Direct D2C" profileHref="/me" />
 
-      <main className="mx-auto min-h-dvh max-w-lg px-4 pb-10 pt-[7.25rem]">
+      <main className="yumm-frame min-h-dvh px-4 pb-10 pt-[7.25rem]">
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
         {legs.length > 1 ? (

@@ -117,7 +117,7 @@ export function OrdersHome() {
     <>
       <WaChrome title="Orders Home" subtitle="Packaging Delivery · All kitchens" profileHref="/me" />
 
-      <main className="mx-auto min-h-dvh max-w-lg px-4 pb-10 pt-[7.25rem]">
+      <main className="yumm-frame yumm-frame-wide min-h-dvh px-4 pb-10 pt-[7.25rem]">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-[24px] font-bold tracking-tight">Your Orders</h1>
@@ -161,7 +161,7 @@ export function OrdersHome() {
           </Link>
         ) : null}
 
-        <div className="mb-4 flex rounded-xl bg-surface-container-low p-1">
+        <div className="mb-4 flex w-full max-w-md rounded-xl bg-surface-container-low p-1">
           {(["active", "past"] as const).map((t) => (
             <button
               key={t}
@@ -178,7 +178,7 @@ export function OrdersHome() {
           ))}
         </div>
 
-        <ul className="space-y-3">
+        <ul className="grid gap-3 lg:grid-cols-2">
           {orders.map((o) => {
             const groupLegs =
               o.checkoutGroupId && crossByGroups.get(o.checkoutGroupId)?.length

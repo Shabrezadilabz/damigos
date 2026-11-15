@@ -82,8 +82,8 @@ function SparkBridgeInner() {
 
   return (
     <>
-      <WaChrome title="Spark by D'aMigo's" subtitle="Marketing opt-in · Packaging perks" />
-      <main className="mx-auto max-w-lg space-y-5 px-4 pb-16 pt-[7.25rem]">
+      <WaChrome title="Spark by YUMM" subtitle="Marketing opt-in · Packaging perks" />
+      <main className="yumm-frame space-y-5 px-4 pb-16 pt-[7.25rem]">
         <div className="rounded-xl border border-[#E4E4E7] bg-white p-5 text-[#171717] shadow-xs">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#737373]">
             Step 1 · WhatsApp

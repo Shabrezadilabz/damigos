@@ -27,7 +27,7 @@ export function GuestErrorView({
         : "border-red-200 bg-red-50 text-red-800";
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-8 pt-10">
+    <main className="yumm-frame flex min-h-dvh flex-col px-4 pb-8 pt-10">
       <div className="flex flex-col items-center text-center">
         <div
           className={`mb-6 flex h-20 w-20 items-center justify-center rounded-full border-2 ${ring}`}

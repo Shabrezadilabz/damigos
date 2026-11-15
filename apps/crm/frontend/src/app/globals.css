@@ -1,9 +1,8 @@
 @import "tailwindcss";
 
 /* YUMM Brand Design System
- * Milk canvas: #FFF3E6 | Card: #FFFFFF | Subtle: #F6E4CF
- * Plum ink: #381932 / #2A1226 | Soft plum accent: #B98AAE
- * Borders: #EBD5BF | Body text: #6B5466
+ * Page: #FFF9F2 | Milk: #FFF3E6 | Plum: #381932
+ * Ink: #261522 | Secondary text: #806D7B | Gold: #D9A441
  */
 :root {
   --qa-page: 33 100% 95%;
@@ -22,8 +21,11 @@
 }
 
 @theme {
-  --color-background: #fff3e6;
-  --color-foreground: #2a1226;
+  --color-background: #fff9f2;
+  --color-foreground: #261522;
+  --color-milk: #fff3e6;
+  --color-gold: #d9a441;
+  --color-warning: #d99a35;
   --color-primary: #381932;
   --color-primary-foreground: #fff3e6;
   --color-secondary: #f6e4cf;
@@ -43,7 +45,7 @@
   --color-surface-container-low: #fff8f0;
   --color-surface-container: #f6e4cf;
   --color-surface-container-high: #ebd5bf;
-  --color-on-surface-variant: #6b5466;
+  --color-on-surface-variant: #806d7b;
   --color-primary-container: #b98aae;
   --color-on-primary-container: #381932;
   --color-primary-fixed: #f6e4cf;
@@ -51,10 +53,10 @@
   --color-tertiary-container: #e8d5e2;
   --color-inverse-surface: #381932;
   --color-inverse-on-surface: #fff3e6;
-  --color-success: #3d8b6e;
+  --color-success: #238b57;
   --color-card: #ffffff;
   --color-card-foreground: #2a1226;
-  --color-destructive: #c2412d;
+  --color-destructive: #d94b55;
   --color-accent: #b98aae;
   --color-accent-foreground: #381932;
   --color-qa-accent: #b98aae;
@@ -177,4 +179,478 @@ h4,
     break-inside: avoid;
     page-break-inside: avoid;
   }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(56, 25, 50, 0.08);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.bento-card {
+  position: relative;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 12px 40px rgba(56, 25, 50, 0.07);
+}
+
+.bento-span-3,
+.bento-span-4,
+.bento-span-5,
+.bento-span-6,
+.bento-span-7,
+.bento-span-8 {
+  grid-column: span 12;
+}
+
+@media (min-width: 768px) {
+  .bento-span-3 { grid-column: span 3; }
+  .bento-span-4 { grid-column: span 4; }
+  .bento-span-5 { grid-column: span 5; }
+  .bento-span-6 { grid-column: span 6; }
+  .bento-span-7 { grid-column: span 7; }
+  .bento-span-8 { grid-column: span 8; }
+}
+
+.yumm-logo {
+  display: block;
+  height: auto;
+}
+
+.yumm-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  background: #fff3e6;
+  padding: 2rem;
+  pointer-events: none;
+}
+
+.yamm-glow {
+  position: absolute;
+  width: min(78vw, 520px);
+  height: min(78vw, 520px);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(56, 25, 50, 0.2), rgba(217, 164, 65, 0.08) 42%, transparent 70%);
+  filter: blur(10px);
+  animation: yamm-glow-in 400ms ease-out both, yamm-glow-breathe 2600ms ease-in-out 400ms 1;
+  pointer-events: none;
+}
+
+.yamm-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #381932;
+  opacity: 0;
+  animation: yamm-particle 2400ms ease-out 200ms 1 both;
+  pointer-events: none;
+}
+.yamm-particle-a { left: 18%; top: 28%; }
+.yamm-particle-b { right: 16%; top: 24%; animation-delay: 320ms; background: #d9a441; }
+.yamm-particle-c { left: 22%; bottom: 26%; animation-delay: 480ms; }
+.yamm-particle-d { right: 20%; bottom: 30%; animation-delay: 600ms; background: #d9a441; }
+
+.yamm-logo-stage {
+  perspective: 900px;
+}
+
+.yamm-logo-spin {
+  position: relative;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 22px 28px rgba(56, 25, 50, 0.28));
+  animation: yamm-logo-3d 1900ms cubic-bezier(0.22, 1, 0.36, 1) 400ms both;
+}
+
+.yamm-sweep {
+  position: absolute;
+  inset: 8% 0;
+  z-index: 1;
+  background: linear-gradient(
+    105deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.55) 48%,
+    rgba(217, 164, 65, 0.35) 52%,
+    transparent 64%
+  );
+  transform: translateX(-130%);
+  animation: yamm-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) 1000ms both;
+  pointer-events: none;
+}
+
+.yamm-letters {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+  color: #381932;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+}
+
+.yamm-letters span {
+  display: inline-block;
+  opacity: 0;
+  animation: yamm-letter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yamm-tag {
+  margin: 0;
+  color: #261522;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: yamm-tag 400ms cubic-bezier(0.22, 1, 0.36, 1) 2300ms both;
+}
+
+.yumm-splash-exit {
+  animation: yumm-splash-out 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.yumm-splash-exit .yamm-logo-spin {
+  animation: yamm-logo-out 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes yamm-logo-out {
+  to { transform: scale(0.96); }
+}
+
+@keyframes yamm-glow-in {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes yamm-glow-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes yamm-particle {
+  0% { opacity: 0; transform: translateY(8px); }
+  30% { opacity: 0.55; }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+
+@keyframes yamm-logo-3d {
+  0% {
+    opacity: 0;
+    transform: rotateY(-32deg) rotateX(12deg) scale(0.78);
+  }
+  32% {
+    opacity: 1;
+    transform: rotateY(12deg) rotateX(-4deg) scale(1.02);
+  }
+  68% {
+    opacity: 1;
+    transform: rotateY(-6deg) rotateX(2deg) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) rotateX(0deg) scale(1);
+  }
+}
+
+@keyframes yamm-sweep {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes yamm-letter {
+  from { opacity: 0; transform: translateY(10px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes yamm-tag {
+  from { opacity: 0; transform: translateY(8px); letter-spacing: 0.28em; }
+  to { opacity: 1; transform: none; letter-spacing: 0.16em; }
+}
+
+@keyframes yumm-splash-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+.yumm-page {
+  animation: yumm-page-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#crm-sidebar {
+  animation: yumm-fade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yumm-topbar {
+  animation: yumm-bar-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+[data-testid^="dashboard-kpi-"] {
+  animation: yumm-card-in 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease;
+}
+
+[data-testid="dashboard-kpi-scans-7d"] {
+  animation-delay: 70ms;
+}
+[data-testid="dashboard-kpi-wallet"] {
+  animation-delay: 140ms;
+}
+[data-testid="dashboard-kpi-campaign-sends"] {
+  animation-delay: 210ms;
+}
+
+[data-testid^="dashboard-kpi-"]:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes yumm-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes yumm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes yumm-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes yumm-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.yumm-bar {
+  transform-origin: bottom;
+  animation: yumm-bar-grow 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes yumm-bar-grow {
+  from {
+    transform: scaleY(0.2);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+[data-testid="dashboard-settlement-7d"],
+[data-testid="dashboard-recent-orders"] {
+  animation: yumm-card-in 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+[data-testid="dashboard-recent-orders"] {
+  animation-delay: 90ms;
+}
+
+@keyframes damigos-sheet-spring {
+  from {
+    opacity: 0.85;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet-spring {
+  animation: damigos-sheet-spring 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yumm-select-chevron {
+  display: inline-flex;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.yumm-select-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.yumm-glass-menu {
+  transform-origin: top center;
+  animation: yumm-menu-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yumm-glass-menu[data-side="top"] {
+  transform-origin: bottom center;
+}
+
+@keyframes yumm-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+#crm-sidebar nav a {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+#crm-sidebar nav a .crm-nav-icon {
+  display: inline-flex;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.yumm-zoom {
+  overflow: hidden;
+}
+
+.yumm-zoom img {
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .glass-card {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease;
+  }
+
+  .glass-card:hover,
+  .bento-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .bento-card {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease;
+  }
+
+  .yumm-zoom:hover img {
+    transform: scale(1.03);
+  }
+
+  :where(button:not(:disabled)):hover {
+    transform: translateY(-1px);
+  }
+
+  :where(button:not(:disabled)):active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  :where(button:not(:disabled)):hover .material-symbols-outlined:not(.yumm-select-chevron) {
+    transform: scale(1.06);
+  }
+
+  #crm-sidebar nav a:hover .crm-nav-icon,
+  #crm-sidebar nav a:focus-visible .crm-nav-icon {
+    transform: scale(1.08);
+  }
+
+  #crm-sidebar nav a.bg-primary .crm-nav-icon,
+  #crm-sidebar nav a.bg-primary:hover .crm-nav-icon {
+    transform: scale(1.1);
+  }
+
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea):focus-visible {
+    box-shadow: 0 0 0 3px rgba(56, 25, 50, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yumm-splash,
+  .yamm-glow,
+  .yamm-particle,
+  .yamm-logo-spin,
+  .yamm-sweep,
+  .yamm-letters span,
+  .yamm-tag,
+  .yumm-splash-exit,
+  .yumm-page,
+  #crm-sidebar,
+  .yumm-topbar,
+  [data-testid^="dashboard-kpi-"],
+  [data-testid="dashboard-settlement-7d"],
+  [data-testid="dashboard-recent-orders"],
+  .yumm-bar,
+  .sheet-spring,
+  .yumm-glass-menu,
+  .yumm-select-chevron,
+  .yumm-zoom img,
+  #crm-sidebar nav a .crm-nav-icon {
+    animation: none !important;
+    transition: none !important;
+  }
+  .glass-card:hover,
+  .bento-card:hover,
+  .yumm-zoom:hover img,
+  :where(button:not(:disabled)):hover,
+  :where(button:not(:disabled)):active,
+  [data-testid^="dashboard-kpi-"]:hover,
+  #crm-sidebar nav a:hover .crm-nav-icon,
+  #crm-sidebar nav a.bg-primary .crm-nav-icon {
+    transform: none;
+  }
+}
+
+.yumm-frame {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+@media (min-width: 1280px) {
+  .yumm-frame { max-width: 1240px; }
+}
+
+@media (min-width: 1440px) {
+  .yumm-frame { max-width: 1320px; }
+}
+
+@media (min-width: 1600px) {
+  .yumm-frame-wide { max-width: 1400px; }
 }

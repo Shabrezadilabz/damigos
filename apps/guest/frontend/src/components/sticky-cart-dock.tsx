@@ -50,7 +50,7 @@ export function StickyCartDock({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 pb-safe">
-      <div className="mx-auto w-full max-w-lg px-3 pb-3 md:max-w-3xl lg:max-w-5xl">
+      <div className="yumm-frame yumm-frame-wide px-3 pb-3">
         {promoLine ? (
           <div className="rounded-t-lg border border-b-0 border-border bg-promo-strip px-3 py-1.5 text-center text-[12px] font-semibold text-promo-strip-fg">
             {promoLine}

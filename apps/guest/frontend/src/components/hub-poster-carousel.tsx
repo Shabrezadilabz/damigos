@@ -116,7 +116,8 @@ export function HubPosterCarousel({ vegOnly = false }: { vegOnly?: boolean }) {
         if (mid > 0 && el.scrollLeft >= mid - 1) {
           el.scrollLeft -= mid;
         }
-        const cardW = el.clientWidth * 0.82 + 12;
+        const card = el.querySelector("a");
+        const cardW = card ? card.getBoundingClientRect().width + 12 : el.clientWidth;
         if (cardW > 0 && posters.length > 0) {
           const idx = Math.round(el.scrollLeft / cardW) % posters.length;
           setActive(idx);
@@ -164,15 +165,16 @@ export function HubPosterCarousel({ vegOnly = false }: { vegOnly?: boolean }) {
         </p>
       </div>
 
+      <div className="relative">
       <div
         ref={scrollerRef}
-        className="hub-h-scroll no-scrollbar relative -mx-4 flex gap-3 overflow-x-auto px-4 pb-2"
+        className="hub-h-scroll no-scrollbar relative -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0"
       >
         {[...posters, ...posters].map((p, i) => (
           <Link
             key={`${p.id}-${i}`}
             href={withVegQuery(p.href, vegOnly)}
-            className="relative h-[12.5rem] w-[82%] max-w-[20rem] shrink-0 overflow-hidden rounded-[1.35rem] text-white shadow-[0_10px_28px_rgba(40,20,20,0.22)] ring-1 ring-black/10"
+            className="relative h-[13.5rem] w-[86%] max-w-[22rem] shrink-0 overflow-hidden rounded-[1.35rem] text-white shadow-[0_10px_28px_rgba(40,20,20,0.22)] ring-1 ring-black/10 md:h-[17rem] md:w-[calc(50%-0.4rem)] md:max-w-none lg:h-[18.5rem] lg:w-[calc(33.333%-0.5rem)]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -197,6 +199,33 @@ export function HubPosterCarousel({ vegOnly = false }: { vegOnly?: boolean }) {
             </div>
           </Link>
         ))}
+      </div>
+      <button
+        type="button"
+        aria-label="Previous promotion"
+        className="pressable absolute left-2 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[#FFF3E6] text-[#381932] shadow md:flex"
+        onClick={() => {
+          const el = scrollerRef.current;
+          const card = el?.querySelector("a");
+          if (!el || !card) return;
+          el.scrollBy({ left: -(card.getBoundingClientRect().width + 12), behavior: "smooth" });
+        }}
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        aria-label="Next promotion"
+        className="pressable absolute right-2 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[#FFF3E6] text-[#381932] shadow md:flex"
+        onClick={() => {
+          const el = scrollerRef.current;
+          const card = el?.querySelector("a");
+          if (!el || !card) return;
+          el.scrollBy({ left: card.getBoundingClientRect().width + 12, behavior: "smooth" });
+        }}
+      >
+        ›
+      </button>
       </div>
 
       <div className="relative flex justify-center gap-1.5 pt-1">

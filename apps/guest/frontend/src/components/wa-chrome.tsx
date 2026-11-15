@@ -21,7 +21,7 @@ export function WaChrome({
 }: Props) {
   return (
     <header className="glass-header fixed inset-x-0 top-0 z-50 border-b border-border/40 pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-      <div className="mx-auto flex max-w-lg flex-col">
+      <div className="yumm-frame yumm-frame-wide flex flex-col">
         <div className="flex h-11 items-center justify-between px-4">
           <div className="flex items-center gap-1.5 text-on-surface-variant">
             <MaterialIcon name="lock" className="text-[15px] text-tertiary" />

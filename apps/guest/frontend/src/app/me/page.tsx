@@ -111,7 +111,8 @@ export default function MePage() {
 
   return (
     <main className="min-h-dvh bg-background pb-10">
-      <div className="relative border-b border-border bg-surface-container-low px-4 pb-14 pt-safe">
+      <div className="relative border-b border-border bg-surface-container-low pt-safe">
+        <div className="yumm-frame px-4 pb-14">
         <div className="flex items-center justify-between py-3">
           <Link
             href="/hub"
@@ -151,9 +152,11 @@ export default function MePage() {
             ) : null}
           </div>
         </div>
+        </div>
       </div>
 
-      <div className="space-y-3 px-4 pt-4">
+      <div className="yumm-frame px-4 pt-4">
+        <div className="grid gap-3 lg:grid-cols-2">
         <div className="overflow-hidden rounded-lg bg-surface-container-lowest shadow-sm border border-border">
           {primary.map((row, i) => (
             <Link
@@ -194,6 +197,7 @@ export default function MePage() {
               <MaterialIcon name="chevron_right" className="text-[22px] text-on-surface-variant" />
             </Link>
           ))}
+        </div>
         </div>
 
         <button

@@ -14,7 +14,7 @@ export function KitchenPausedMenu({
   items: GuestMenuItem[];
 }) {
   return (
-    <div className="mx-auto min-h-dvh max-w-lg pb-24">
+    <div className="yumm-frame min-h-dvh pb-24">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         <h1 className="font-[family-name:var(--font-display)] text-lg font-bold">{restaurantName}</h1>
         <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
