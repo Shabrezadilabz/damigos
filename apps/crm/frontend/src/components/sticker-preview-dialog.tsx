@@ -222,7 +222,7 @@ export function StickerPreviewDialog({
           <div className="flex items-center gap-2">
             {alreadySent ? (
               <span className="rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#24963F]">
-                Sent to D'aMigo's
+                Sent to YUMM
               </span>
             ) : (
               <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-900">
@@ -276,7 +276,7 @@ export function StickerPreviewDialog({
               <h3 className="text-sm font-semibold text-on-surface">
                 Samples ({samples.length || 0} of 3)
               </h3>
-              <p className="text-[11px] text-on-surface-variant">Testable · full sheet stays with D'aMigo's</p>
+              <p className="text-[11px] text-on-surface-variant">Testable · full sheet stays with YUMM</p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" data-testid="sticker-sample-preview">
               {samples.map((s) => (
@@ -307,7 +307,7 @@ export function StickerPreviewDialog({
           </div>
 
           <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950">
-            Scan a sample to verify the WhatsApp flow. Send a print request and D'aMigo's prints the full count and
+            Scan a sample to verify the WhatsApp flow. Send a print request and YUMM prints the full count and
             ships — CRM never downloads the full sheet.
           </div>
 
@@ -337,7 +337,7 @@ export function StickerPreviewDialog({
               data-testid="sticker-send-print-request"
             >
               <MaterialIcon name="payments" className="text-[18px]" />
-              {alreadySent ? "Pay & send again" : "Send request to D'aMigo's"}
+              {alreadySent ? "Pay & send again" : "Send request to YUMM"}
             </Button>
           </div>
         </div>

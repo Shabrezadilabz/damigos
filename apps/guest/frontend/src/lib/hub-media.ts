@@ -116,7 +116,7 @@ export function cuisineForSlug(slug: string, city?: string | null): string {
 
 export const CRAVING_TILES = [
   { id: "festival", label: "Festival", image: FOOD.festival, href: "/hub/collections/festival" },
-  { id: "new", label: "New on D'aMigo", image: FOOD.bowl, href: "/hub/collections/new" },
+  { id: "new", label: "New on YUMM", image: FOOD.bowl, href: "/hub/collections/new" },
   { id: "healthy", label: "Healthy", image: FOOD.healthy, href: "/hub/collections/healthy" },
   { id: "brands", label: "Top Brands", image: FOOD.biryani, href: "/hub/collections/brands" },
 ] as const;

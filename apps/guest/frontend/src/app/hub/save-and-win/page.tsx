@@ -54,7 +54,7 @@ export default function SaveAndWinPage() {
   }, [refCode]);
 
   const shareText =
-    `Hey! Order direct on D'aMigo's with my invite — local kitchens, packaging rewards & Spark games.\n` +
+    `Hey! Order direct on YUMM with my invite — local kitchens, packaging rewards & Spark games.\n` +
     `Open my link (then say HI on WhatsApp to opt in):\n${shareUrl}`;
 
   function bumpShare(offer?: string) {
@@ -78,7 +78,7 @@ export default function SaveAndWinPage() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "D'aMigo's invite",
+          title: "YUMM invite",
           text: shareText,
           url: shareUrl,
         });
@@ -182,7 +182,7 @@ export default function SaveAndWinPage() {
         >
           <p className="text-[13px] font-bold">Send to friend&apos;s number</p>
           <p className="text-[12px] text-on-surface-variant">
-            Opens a chat with <span className="font-semibold">their</span> WhatsApp — not D'aMigo's line —
+            Opens a chat with <span className="font-semibold">their</span> WhatsApp — not YUMM line —
             with your referral link prefilled.
           </p>
           <input

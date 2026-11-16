@@ -126,14 +126,14 @@ export function encodeKotEscPos(ticket: KotTicketInput): Uint8Array {
     );
   }
 
-  chunks.push(hr(cols), align(1), line("D'aMigo's Kitchen"), line(" "), line(" "), cut());
+  chunks.push(hr(cols), align(1), line("YUMM Kitchen"), line(" "), line(" "), cut());
 
   return concat(...chunks);
 }
 
 export function encodeTestPage(paperMm: 58 | 80 = 80): Uint8Array {
   return encodeKotEscPos({
-    restaurantName: "D'aMigo's CRM",
+    restaurantName: "YUMM CRM",
     orderId: "TESTPRINT0001",
     createdAt: new Date().toISOString(),
     prepMinutes: 15,

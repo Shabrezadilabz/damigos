@@ -24,7 +24,7 @@ export function StickyCartDock({
   restaurantName,
   itemCount,
   subtotalPaise,
-  promoLine = "Direct D2C · First order FREE delivery on D'aMigo's",
+  promoLine = "Direct D2C · First order FREE delivery on YUMM",
   extraKitchenCount = 0,
   riderModeLabel = null,
   onCleared,

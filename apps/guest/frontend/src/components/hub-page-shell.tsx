@@ -52,7 +52,7 @@ const FALLBACK_PERKS: HubPerkRailItem[] = [
   },
   {
     id: "fb4",
-    kitchenName: "D'aMigo's",
+    kitchenName: "YUMM",
     title: "First-order FREE delivery",
     badge: "Platform",
     coinsHint: 0,
@@ -61,7 +61,7 @@ const FALLBACK_PERKS: HubPerkRailItem[] = [
   },
 ];
 
-/** Hub chrome — Ownly WA IA + D'aMigo crimson (DEC-016 / P-UI-02) */
+/** Hub chrome — Ownly WA IA + YUMM crimson (DEC-016 / P-UI-02) */
 export function HubPageShell({ children }: { children: React.ReactNode }) {
   return (
     <HubFiltersProvider>

@@ -148,7 +148,7 @@ export function MenuShop({
         billLabel:
           cart.appliedClaim.billLabel ??
           (cart.appliedClaim.scope === "PLATFORM_WIDE"
-            ? "D'aMigo Platform Offer"
+            ? "YUMM Platform Offer"
             : "Restaurant scoped reward"),
         discountPaise: cart.appliedClaim.discountPaise,
       };
@@ -161,7 +161,7 @@ export function MenuShop({
       billLabel:
         first.billLabel ??
         (first.scope === "PLATFORM_WIDE"
-          ? "D'aMigo Platform Offer"
+          ? "YUMM Platform Offer"
           : "Restaurant scoped reward"),
       discountPaise: 0,
     };
@@ -274,7 +274,7 @@ export function MenuShop({
     const url = typeof window !== "undefined" ? window.location.href : "";
     try {
       if (navigator.share) {
-        await navigator.share({ title: restaurantName, text: `Order from ${restaurantName} on D'aMigo's`, url });
+        await navigator.share({ title: restaurantName, text: `Order from ${restaurantName} on YUMM`, url });
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(url);
       }

@@ -32,7 +32,7 @@ export function openRazorpayCheckout(input: {
     key: input.keyId,
     amount: input.amountPaise,
     currency: "INR",
-    name: "D'aMigo's",
+    name: "YUMM",
     description: "Restaurant order",
     order_id: input.orderId,
     theme: { color: "#C85D3E" },

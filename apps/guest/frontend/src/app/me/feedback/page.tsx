@@ -47,7 +47,7 @@ export default function MeFeedbackPage() {
           <MaterialIcon name="check_circle" className="text-[40px] text-success" />
           <p className="mt-2 text-[16px] font-bold">Thanks — we got it</p>
           <p className="mt-1 text-[13px] text-on-surface-variant">
-            Your note is with the D&apos;aMigo&apos;s team. We&apos;ll use it to improve the app.
+            Your note is with the YUMM team. We&apos;ll use it to improve the app.
           </p>
           <button
             type="button"

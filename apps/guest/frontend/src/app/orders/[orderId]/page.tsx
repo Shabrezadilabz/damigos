@@ -162,7 +162,7 @@ export default function OrderTrackPage({ params }: { params: Promise<{ orderId: 
           <div>
             <h1 className="font-display text-[24px] font-bold tracking-tight">Order tracking</h1>
             <p className="mt-0.5 text-[12px] text-on-surface-variant">
-              Mirrored to D&apos;aMigo Food WhatsApp when connected
+              Mirrored to YUMM Food WhatsApp when connected
             </p>
           </div>
           {countdownSec != null ? (

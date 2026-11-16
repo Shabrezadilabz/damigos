@@ -98,7 +98,7 @@ export function defaultGrowLoyaltyConfig(): GrowLoyaltyConfig {
       },
       {
         localId: "s4",
-        title: "₹20 D'aMigo platform off",
+        title: "₹20 YUMM platform off",
         prizeType: "flat_off_paise",
         prizeValue: 2000,
         weight: 20,

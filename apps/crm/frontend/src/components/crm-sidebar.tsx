@@ -68,11 +68,11 @@ export function CrmSidebar() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-primary font-display text-xs font-extrabold text-accent-foreground shadow-[0_4px_12px_rgba(15,17,21,0.2)]">
-                  D&apos;A
+                  Y
                 </div>
                 <div className="min-w-0">
                   <div className="truncate font-display text-[16px] font-extrabold tracking-tight text-foreground">
-                    D&apos;aMigo&apos;s
+                    YUMM
                   </div>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
                     {kitchenOnly ? "Kitchen OS" : "Guest OS"}

@@ -66,13 +66,13 @@ const ROWS = [
     href: "/me/about",
     icon: "info",
     title: "About",
-    sub: "What D'aMigo's is and how Direct works.",
+    sub: "What YUMM is and how Direct works.",
   },
   {
-    href: "mailto:partners@damigos.in?subject=Damigos%20guest%20help",
+    href: "mailto:partners@damigos.in?subject=YUMM%20guest%20help",
     icon: "help",
     title: "Help",
-    sub: "Email partners@damigos.in for assistance.",
+    sub: "Email YUMM support for assistance.",
   },
 ] as const;
 
@@ -208,7 +208,7 @@ export default function MePage() {
           Logout
         </button>
         <p className="text-center text-[11px] text-on-surface-variant">
-          © {new Date().getFullYear()} D&apos;aMigo&apos;s · Packaging Delivery
+          © {new Date().getFullYear()} YUMM · Packaging Delivery
         </p>
       </div>
     </main>

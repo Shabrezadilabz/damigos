@@ -132,7 +132,7 @@ export function HomePageClient() {
 
       a.href = url;
 
-      a.download = "damigos-analytics-30d.csv";
+      a.download = "yumm-analytics-30d.csv";
 
       a.click();
 

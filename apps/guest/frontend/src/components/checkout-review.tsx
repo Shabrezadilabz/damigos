@@ -456,7 +456,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                   {applied.billLabel ??
                     (applied.scope === "PLATFORM_WIDE"
-                      ? "D'aMigo Platform Offer"
+                      ? "YUMM Platform Offer"
                       : "Restaurant scoped reward")}
                 </p>
                 {applied.eligible ? (
@@ -500,7 +500,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                         {c.billLabel ??
                           (c.scope === "PLATFORM_WIDE"
-                            ? "D'aMigo Platform Offer"
+                            ? "YUMM Platform Offer"
                             : "Restaurant scoped reward")}
                       </p>
                       {c.minOrderPaise > 0 ? (
@@ -544,7 +544,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
             <span>
               {applied?.billLabel ??
                 (applied?.scope === "PLATFORM_WIDE"
-                  ? "D'aMigo Platform Offer"
+                  ? "YUMM Platform Offer"
                   : "Restaurant scoped reward")}
               {applied ? ` (${applied.title})` : ""}
             </span>
@@ -621,7 +621,7 @@ export function CheckoutReview({ restaurantId }: { restaurantId: string }) {
                 </div>
                 <p className="text-[11px] font-semibold text-primary">
                   {groupPreview?.subsidyLabel ??
-                    "First-Order FREE Delivery · Sponsored by D'aMigo's"}
+                    "First-Order FREE Delivery · Sponsored by YUMM"}
                 </p>
               </div>
             );

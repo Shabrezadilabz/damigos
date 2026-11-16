@@ -48,7 +48,7 @@ export const HUB_COLLECTIONS: Record<HubCollectionSlug, CollectionHero> = {
   new: {
     slug: "new",
     title: "New on",
-    titleAccent: "D'aMigo's",
+    titleAccent: "YUMM",
     subtitle: "New kitchens, better value",
     heroClass: "bg-gradient-to-br from-[#fef3c7] via-[#fffbeb] to-white",
     image: FOOD.bowl,

@@ -46,7 +46,7 @@ export function openRazorpayCheckout(input: {
     key: input.keyId,
     amount: input.amountPaise,
     currency: "INR",
-    name: input.name ?? "D'aMigo's Grow",
+    name: input.name ?? "YUMM Grow",
     description: input.description ?? "Marketing wallet top-up",
     order_id: input.orderId,
     handler: (response: RazorpaySuccessResponse) => input.onSuccess(response),

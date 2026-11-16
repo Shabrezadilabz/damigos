@@ -52,7 +52,7 @@ export function OnboardingPendingScreen({ submittedAt, onClearDemo }: Props) {
         </ol>
         <p className="mt-6 rounded-lg bg-surface-container-high px-4 py-3 text-center text-xs text-on-surface-variant">
           We will WhatsApp the director number you provided when login is enabled. Need help?{" "}
-          <span className="font-semibold text-primary">helpdesk@damigos.in</span>
+          <span className="font-semibold text-primary">YUMM Helpdesk</span>
         </p>
         {onClearDemo ? (
           <button type="button" className="mt-4 w-full text-center text-[10px] text-on-surface-variant underline" onClick={onClearDemo}>

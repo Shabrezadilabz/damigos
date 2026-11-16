@@ -681,7 +681,7 @@ export function KitchenBoard({
   const [kotNotice, setKotNotice] = useState<string | null>(null);
   const seenPaidIdsRef = useRef<Set<string> | null>(null);
   const alertedSlaIdsRef = useRef<Set<string>>(new Set());
-  const kitchenLabel = "D'aMigo's Kitchen";
+  const kitchenLabel = "YUMM Kitchen";
 
   const reload = useCallback(async () => {
     if (!restaurantId) return;

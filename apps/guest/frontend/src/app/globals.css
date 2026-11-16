@@ -70,7 +70,7 @@
     system-ui, sans-serif;
   --font-display: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui,
     sans-serif;
-  --font-mono: var(--font-mono-code), "SF Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 .material-symbols-outlined {
   font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;

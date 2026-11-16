@@ -138,7 +138,7 @@ function SettingsSubNav({ active }: { active: SettingsTabId }) {
       <div className="mt-2 hidden flex-col gap-2 rounded-lg bg-surface-container-low p-3 lg:mt-4 lg:flex">
         <span className="text-[10px] font-bold text-on-surface">Physical stickers</span>
         <p className="text-[11px] leading-tight text-on-surface-variant">
-          Generate codes here, then send a print request to partners@damigos.in — we print and ship.
+          Generate codes here, then send a print request to YUMM — we print and ship.
         </p>
       </div>
     </nav>

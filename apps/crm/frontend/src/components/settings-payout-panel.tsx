@@ -117,7 +117,7 @@ export function SettingsPayoutPanel({ embedded = false }: { embedded?: boolean }
         </h2>
         <p className="text-xs text-on-surface-variant">
           Daily earnings, EOD settlement after 12:00 AM IST, and invoices. Editing bank freezes
-          today&apos;s payout until Razorpay Route is updated (partners@damigos.in notified).
+          today&apos;s payout until Razorpay Route is updated (YUMM partners notified).
         </p>
       </div>
 

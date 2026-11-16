@@ -383,7 +383,7 @@ export function RewardsHub({ restaurantId, scanId, brand, restaurantName = "Kitc
                 <span className="rounded-full border border-border bg-surface-container px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                   {outcome.billLabel ??
                     (outcome.scope === "PLATFORM_WIDE"
-                      ? "D'aMigo Platform Offer"
+                      ? "YUMM Platform Offer"
                       : "Restaurant scoped")}
                 </span>
               </div>

@@ -36,7 +36,7 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
     setExporting(true);
     try {
       const stamp = new Date().toISOString().slice(0, 10);
-      downloadTextPdf(`damigos-commission-report-${stamp}.pdf`, "D'aMigo Commission Report", [
+      downloadTextPdf(`yumm-commission-report-${stamp}.pdf`, "YUMM Commission Report", [
         `Hub: ${report.hubLabel}`,
         `Period: ${report.periodLabel}`,
         "",
@@ -45,7 +45,7 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
         `Avoided commission (at ${report.aggregatorRatePct}%, Direct only): ${formatInr(report.avoidedCommissionPaise)}`,
         `ONDC rail GMV: ${formatInr(ondcGmv)} (${ondcOrders} orders)`,
         "",
-        "Direct rail: 0% D'aMigo's commission (WhatsApp / sticker / guest app)",
+        "Direct rail: 0% YUMM commission (WhatsApp / sticker / guest app)",
         hasOndc
           ? "ONDC rail: settled via the ONDC network — network / buyer-app fees apply, not 0%"
           : "ONDC rail: no ONDC orders in this period",
@@ -120,7 +120,7 @@ export function CommissionReportDialog({ open, onClose, report }: Props) {
               <dd className="font-semibold tabular-nums">{formatInr(report.avoidedCommissionPaise)}</dd>
             </div>
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-              <dt className="text-on-surface-variant">D'aMigo's take rate · Direct rail</dt>
+              <dt className="text-on-surface-variant">YUMM take rate · Direct rail</dt>
               <dd className="font-semibold text-[#24963F]">0%</dd>
             </div>
             <div className="flex justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">

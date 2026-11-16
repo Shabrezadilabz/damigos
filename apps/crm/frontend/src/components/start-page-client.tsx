@@ -263,7 +263,7 @@ export function StartPageClient() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
-                  D&apos;aMigo&apos;s
+                  YUMM
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant">

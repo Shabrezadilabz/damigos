@@ -29,7 +29,7 @@ export const SCAN_ERROR_COPY: Record<string, GuestErrorContent> = {
   STICKER_EXPIRED: {
     errId: "G-ERR-02",
     title: "This sticker batch expired",
-    body: "Packaging stickers are valid for about 10–15 days after the kitchen activates a batch. Ask the restaurant for a fresh bag QR, or discover other kitchens on D'aMigo's.",
+    body: "Packaging stickers are valid for about 10–15 days after the kitchen activates a batch. Ask the restaurant for a fresh bag QR, or discover other kitchens on YUMM.",
     badge: "Expired",
     primaryCta: { label: "Discover kitchens", href: "/hub" },
     secondaryCta: { label: "Your orders", href: "/orders" },

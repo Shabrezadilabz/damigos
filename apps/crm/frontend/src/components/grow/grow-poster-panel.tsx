@@ -185,7 +185,7 @@ export function GrowPosterPanel({ restaurantId }: { restaurantId: string }) {
     const marketingMessage =
       poster.marketingMessage ??
       [
-        "━━ D'aMigo's · WhatsApp broadcast ━━",
+        "━━ YUMM · WhatsApp broadcast ━━",
         "",
         `🍽️ *${poster.headline}*`,
         poster.offerLine,

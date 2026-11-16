@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "D'aMigo's CRM",
+  title: "YUMM CRM",
   description: "Restaurant CRM — menu, grow, orders",
 };
 

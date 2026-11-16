@@ -158,13 +158,13 @@ export default function RewardsScanPage() {
   }
 
   const waHref = waDigits
-    ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi — I scanned D'aMigo's packaging")}`
+    ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi — I scanned YUMM packaging")}`
     : null;
 
   return (
     <MeSubpageShell title="Scan packaging">
       <p className="mb-3 text-[13px] text-on-surface-variant">
-        Scan the D'aMigo's sticker QR → we open the kitchen play flow and WhatsApp opt-in (one test
+        Scan the YUMM sticker QR → we open the kitchen play flow and WhatsApp opt-in (one test
         number for now).
       </p>
 

@@ -507,7 +507,7 @@ export type HubRestaurant = {
   menuPath: string;
   coverImageUrl?: string | null;
   logoUrl?: string | null;
-  /** direct = onboarded Damigos; ondc = network catalog */
+  /** direct = onboarded YUMM; ondc = network catalog */
   listingSource?: "direct" | "ondc";
   dietType?: "veg" | "non_veg" | "both" | null;
   vegFriendly?: boolean;

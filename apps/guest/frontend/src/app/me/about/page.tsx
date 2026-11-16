@@ -6,12 +6,12 @@ import { MaterialIcon } from "@/components/material-icon";
 
 export default function MeAboutPage() {
   return (
-    <MeSubpageShell title="About D'aMigo's">
+    <MeSubpageShell title="About YUMM">
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-surface-container-lowest p-5 shadow-sm">
           <p className="font-display text-[22px] font-extrabold tracking-tight">Direct packaging delivery</p>
           <p className="mt-2 text-[14px] leading-relaxed text-on-surface-variant">
-            D&apos;aMigo&apos;s connects you to neighbourhood kitchens over WhatsApp — scan the packaging
+            YUMM connects you to neighbourhood kitchens over WhatsApp — scan the packaging
             QR, order direct, and keep restaurant rewards without marketplace markups.
           </p>
         </div>
@@ -36,7 +36,7 @@ export default function MeAboutPage() {
         </div>
 
         <p className="text-center text-[12px] text-on-surface-variant">
-          App build · guest web · © {new Date().getFullYear()} D&apos;aMigo&apos;s
+          App build · guest web · © {new Date().getFullYear()} YUMM
         </p>
 
         <Link href="/me/feedback" className="pressable block text-center text-[14px] font-bold text-primary">
