@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, menuItems, restaurants } from "@damigos/db";
 
 /** Mark kitchens with no logo AND no dish images as inactive (soft-hide on hub). */
@@ -26,7 +26,13 @@ export async function markIncompleteRestaurantsInactive() {
       const hasFoodImage = dishes.some(
         (d) => Boolean(d.imageUrl?.trim()) || Boolean(d.guestImageUrl?.trim()),
       );
-      const shouldInactive = !hasLogo && !hasFoodImage;
+      const [{ publishedCount }] = await db
+        .select({ publishedCount: sql<number>`count(*)::int` })
+        .from(menuItems)
+        .where(and(eq(menuItems.restaurantId, r.id), eq(menuItems.draft, false)));
+      const hasPublishedMenu = (publishedCount ?? 0) > 0;
+      // Keep hub-listed kitchens visible once menu is published (CRM catalog fallbacks may omit stored images).
+      const shouldInactive = hasPublishedMenu ? false : !hasLogo && !hasFoodImage;
       if (Boolean(r.inactive) !== shouldInactive) {
         await db
           .update(restaurants)

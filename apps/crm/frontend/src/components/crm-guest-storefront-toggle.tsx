@@ -56,6 +56,13 @@ export function CrmGuestStorefrontToggle({ restaurantId, compact }: Props) {
 
   const open = ops?.orderingEnabled ?? true;
   const guestVisible = ops?.guestVisible ?? false;
+  const hubBlockers =
+    ops && open && ops.liveMenuCount > 0 && !guestVisible
+      ? [
+          !ops.hubListed ? "Publish menu once to list on the guest hub" : null,
+          ops.inactive ? "Add a brand logo or dish photo so the hub can show this kitchen" : null,
+        ].filter(Boolean)
+      : [];
 
   if (compact) {
     return (
@@ -121,6 +128,11 @@ export function CrmGuestStorefrontToggle({ restaurantId, compact }: Props) {
             : "Open — publish menu to go live"
           : "Off — hidden from guest hub"}
       </div>
+      {hubBlockers.map((msg) => (
+        <p key={msg} className="text-[10px] leading-snug text-amber-800">
+          {msg}
+        </p>
+      ))}
       {error ? <p className="text-[10px] leading-snug text-red-700">{error}</p> : null}
     </div>
   );

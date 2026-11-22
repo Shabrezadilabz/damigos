@@ -65,7 +65,6 @@ export async function registerMenuRoutes(app: FastifyInstance) {
         and(
           eq(menuItems.restaurantId, params.data.restaurantId),
           eq(menuItems.draft, false),
-          eq(menuItems.available, true),
           // S2.2 — items in hidden categories are not shown to guests
           or(isNull(menuItems.categoryId), eq(menuCategories.hidden, false)),
         ),
@@ -87,18 +86,6 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       )
       .orderBy(asc(menuCategories.sortOrder), asc(menuCategories.name));
 
-    if (!restaurant.orderingEnabled) {
-      return reply.status(503).send({
-        error: {
-          code: "ORDERING_PAUSED",
-          message: "Kitchen is off — not available for guest ordering",
-          correlationId: request.id,
-        },
-        restaurant: { id: restaurant.id, name: restaurant.name },
-        items: [],
-      });
-    }
-
     const brand = brandKitForGuestFromJson(restaurant.brandKit ?? null);
     const catalog = await loadFoodCatalogCache();
     const itemsWithImages = items.map((row) => {
@@ -109,12 +96,29 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       const { guestImageUrl: _guestImageUrl, ...rest } = row;
       return { ...rest, imageUrl };
     });
+
+    const restaurantOut = {
+      id: restaurant.id,
+      name: brand?.displayName ?? restaurant.name,
+      brand,
+      orderingEnabled: restaurant.orderingEnabled,
+    };
+
+    if (!restaurant.orderingEnabled) {
+      return reply.status(503).send({
+        error: {
+          code: "ORDERING_PAUSED",
+          message: "Kitchen is off — not available for guest ordering",
+          correlationId: request.id,
+        },
+        restaurant: restaurantOut,
+        categories,
+        items: itemsWithImages,
+      });
+    }
+
     return {
-      restaurant: {
-        id: restaurant.id,
-        name: brand?.displayName ?? restaurant.name,
-        brand,
-      },
+      restaurant: restaurantOut,
       categories,
       items: itemsWithImages,
     };

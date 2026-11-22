@@ -32,9 +32,15 @@ export function KitchenPausedMenu({
       {items.length > 0 ? (
         <ul className="divide-y divide-border">
           {items.map((item) => (
-            <li key={item.id} className="flex justify-between gap-3 px-4 py-3 opacity-80">
+            <li
+              key={item.id}
+              className={`flex justify-between gap-3 px-4 py-3 ${item.available ? "opacity-80" : "opacity-50"}`}
+            >
               <div>
                 <p className="font-medium">{item.name}</p>
+                {!item.available ? (
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-foreground/50">Sold out</p>
+                ) : null}
                 {item.description && (
                   <p className="text-xs text-foreground/60">{item.description}</p>
                 )}

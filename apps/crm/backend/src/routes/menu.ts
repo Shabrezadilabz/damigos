@@ -350,6 +350,13 @@ export async function registerMenuRoutes(app: FastifyInstance) {
       await db.update(menuItems).set({ draft: false }).where(and(scope, eq(menuItems.draft, true)));
     }
 
+    if (candidates.length > 0) {
+      await db
+        .update(restaurants)
+        .set({ hubListed: true, inactive: false })
+        .where(eq(restaurants.id, body.data.restaurantId));
+    }
+
     return { published: true, restaurantId: body.data.restaurantId, count: candidates.length };
   });
 

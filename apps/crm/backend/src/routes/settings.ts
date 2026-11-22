@@ -34,6 +34,14 @@ const kycLabels: Record<string, string> = {
   activated: "Activated — payouts enabled (stub)",
 };
 
+function guestHubVisible(row: {
+  orderingEnabled: boolean;
+  hubListed: boolean;
+  inactive: boolean;
+}, liveMenuCount: number) {
+  return row.orderingEnabled && liveMenuCount > 0 && row.hubListed && !row.inactive;
+}
+
 /** C-06.03 — payout + POS stub fields */
 export async function registerSettingsRoutes(app: FastifyInstance) {
   /** Guest hub + WhatsApp menu — master open/off (PRD: settings/operations) */
@@ -50,6 +58,8 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
         name: restaurants.name,
         city: restaurants.city,
         orderingEnabled: restaurants.orderingEnabled,
+        hubListed: restaurants.hubListed,
+        inactive: restaurants.inactive,
       })
       .from(restaurants)
       .where(eq(restaurants.id, query.restaurantId))
@@ -79,8 +89,10 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
       name: row.name,
       city: row.city,
       orderingEnabled: row.orderingEnabled,
+      hubListed: row.hubListed,
+      inactive: row.inactive,
       liveMenuCount,
-      guestVisible: row.orderingEnabled && liveMenuCount > 0,
+      guestVisible: guestHubVisible(row, liveMenuCount),
     };
   });
 
@@ -97,24 +109,7 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
 
     await ensureOperationsSchema();
 
-    const [updated] = await db
-      .update(restaurants)
-      .set({ orderingEnabled: body.orderingEnabled })
-      .where(eq(restaurants.id, body.restaurantId))
-      .returning({
-        id: restaurants.id,
-        name: restaurants.name,
-        city: restaurants.city,
-        orderingEnabled: restaurants.orderingEnabled,
-      });
-
-    if (!updated) {
-      return reply.status(404).send({
-        error: { code: "NOT_FOUND", message: "Restaurant not found", correlationId: request.id },
-      });
-    }
-
-    const [{ count }] = await db
+    const [{ count: liveMenuBefore }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(menuItems)
       .where(
@@ -125,15 +120,46 @@ export async function registerSettingsRoutes(app: FastifyInstance) {
         ),
       );
 
-    const liveMenuCount = count ?? 0;
+    const opsPatch: {
+      orderingEnabled: boolean;
+      hubListed?: boolean;
+      inactive?: boolean;
+    } = { orderingEnabled: body.orderingEnabled };
+    if (body.orderingEnabled && (liveMenuBefore ?? 0) > 0) {
+      opsPatch.hubListed = true;
+      opsPatch.inactive = false;
+    }
+
+    const [updated] = await db
+      .update(restaurants)
+      .set(opsPatch)
+      .where(eq(restaurants.id, body.restaurantId))
+      .returning({
+        id: restaurants.id,
+        name: restaurants.name,
+        city: restaurants.city,
+        orderingEnabled: restaurants.orderingEnabled,
+        hubListed: restaurants.hubListed,
+        inactive: restaurants.inactive,
+      });
+
+    if (!updated) {
+      return reply.status(404).send({
+        error: { code: "NOT_FOUND", message: "Restaurant not found", correlationId: request.id },
+      });
+    }
+
+    const liveMenuCount = liveMenuBefore ?? 0;
 
     return {
       restaurantId: updated.id,
       name: updated.name,
       city: updated.city,
       orderingEnabled: updated.orderingEnabled,
+      hubListed: updated.hubListed,
+      inactive: updated.inactive,
       liveMenuCount,
-      guestVisible: updated.orderingEnabled && liveMenuCount > 0,
+      guestVisible: guestHubVisible(updated, liveMenuCount),
     };
   });
 

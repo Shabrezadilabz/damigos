@@ -136,6 +136,7 @@ export async function fetchGuestMenu(restaurantId: string) {
       data,
       status: res.status,
       restaurant: data.restaurant as { id: string; name: string } | undefined,
+      categories: data.categories as GuestMenuCategory[] | undefined,
       items: data.items as GuestMenuItem[] | undefined,
     });
   }

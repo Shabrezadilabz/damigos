@@ -80,6 +80,8 @@ export type RestaurantOperations = {
   name: string;
   city: string | null;
   orderingEnabled: boolean;
+  hubListed: boolean;
+  inactive: boolean;
   liveMenuCount: number;
   guestVisible: boolean;
 };

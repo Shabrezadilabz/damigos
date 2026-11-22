@@ -551,13 +551,13 @@ export function MenuShop({
                         <button
                           type="button"
                           disabled={!item.available}
-                          className="pressable absolute bottom-2 right-2 rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white shadow-md"
+                          className="pressable absolute bottom-2 right-2 rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white shadow-md disabled:bg-on-surface-variant/80"
                           onClick={() => {
                             setSelected(item);
                             setQty(1);
                           }}
                         >
-                          Add
+                          {item.available ? "Add" : "Sold out"}
                         </button>
                       </div>
                       <div className="flex items-start gap-1.5 px-0.5">
@@ -635,13 +635,13 @@ export function MenuShop({
                       <button
                         type="button"
                         disabled={!item.available}
-                        className="pressable absolute bottom-1.5 right-1.5 rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-white shadow"
+                        className="pressable absolute bottom-1.5 right-1.5 rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-white shadow disabled:bg-on-surface-variant/80"
                         onClick={() => {
                           setSelected(item);
                           setQty(1);
                         }}
                       >
-                        Add
+                        {item.available ? "Add" : "Sold out"}
                       </button>
                     </div>
                   </li>
